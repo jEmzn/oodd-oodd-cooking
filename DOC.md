@@ -1,8 +1,8 @@
-﻿# Oodd Oodd Cooking - Project Summary
+# Oodd Oodd Cooking - Project Summary
 
 ## Overview
 
-Oodd Oodd Cooking is a small, dependency-free browser game built with HTML, CSS, JavaScript, and inline SVG. It presents a top-down kitchen where the player walks to objects and interacts with them before a 30-second timer expires.
+Oodd Oodd Cooking is a small, dependency-free browser game built with HTML, CSS, JavaScript, and inline SVG. It presents a top-down kitchen where the player collects ingredients, cooks customer menus, and serves them before order or game timers expire.
 
 ## Project Files
 
@@ -38,3 +38,12 @@ The app has no external dependencies or build step. Open `index.html` directly i
 ## Validation
 
 The generated files were inspected locally. Node.js was not installed in the shell environment, so `node --check` could not be run. Manual source review covered the button handler, screen switching, timer reset, movement bounds, proximity interaction, score updates, timeout return, and the explicit hidden-screen CSS rule.
+
+## Documentation Update
+
+This summary was updated alongside `AGENTS.md` to document the current flat project structure and the repository rule that every completed task must update `DOC.md` with the relevant change and validation status.
+
+
+## Gameplay Update
+
+The game now uses a cooking loop with a 40-second round timer and 15-second customer orders. Garden Soup requires the pot and Sizzling Stir-Fry requires the pan. Players collect ingredients, cook for 2 seconds, and serve the finished menu. Successful service increases the completed-order score and immediately generates a new order. An unserved order expires after 15 seconds, clears unfinished inventory, and immediately generates the next order. Source validation was completed; browser gameplay validation remains recommended for the full timed flow.

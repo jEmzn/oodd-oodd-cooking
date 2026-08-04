@@ -20,16 +20,16 @@
       <header class="hud">
         <div>
           <p class="eyebrow">Kitchen shift</p>
-          <h2>Oodd Oodd Cooking</h2>
+          <h2>Oodd Oodd Cooking</h2><section class="order-card" aria-live="polite"><p class="order-kicker">Customer order</p><h3 id="order-name">Waiting for an order</h3><p id="order-detail">Collect ingredients to get started.</p><strong><span id="order-timer">15</span>s left</strong></section>
         </div>
         <div class="hud-stats">
           <div><span>Time</span><strong id="timer">30</strong></div>
-          <div><span>Score</span><strong id="score">0</strong></div>
+          <div><span>Orders</span><strong id="score">0</strong></div>
         </div>
       </header>
 
       <section class="game-shell" aria-label="Top-down kitchen game">
-        <svg id="game-world" viewBox="0 0 1000 620" role="img" aria-label="Top-down kitchen with a player and three objects">
+        <svg id="game-world" viewBox="0 0 1000 620" role="img" aria-label="Top-down kitchen with a player and four cooking stations">
           <defs>
             <pattern id="floor-pattern" width="44" height="44" patternUnits="userSpaceOnUse">
               <rect width="44" height="44" fill="#f7f1e8" />
@@ -44,33 +44,10 @@
           <rect x="30" y="30" width="940" height="560" rx="18" fill="none" stroke="#d7c7b2" stroke-width="3" />
           <text x="54" y="80" class="room-label">OODD OODD KITCHEN</text>
 
-          <g class="object" data-object="table" data-x="270" data-y="220" tabindex="0">
-            <rect x="190" y="155" width="160" height="130" rx="20" class="object-shadow" />
-            <rect x="190" y="145" width="160" height="130" rx="20" fill="#bd764f" stroke="#8d5038" stroke-width="5" />
-            <rect x="211" y="166" width="118" height="88" rx="12" fill="#d99a69" stroke="#a96343" stroke-width="4" />
-            <text x="270" y="315" class="object-label">TABLE</text>
-            <text x="270" y="336" class="object-score" data-label="table-score">0 interactions</text>
-          </g>
-
-          <g class="object" data-object="freezer" data-x="730" data-y="210" tabindex="0">
-            <rect x="660" y="135" width="140" height="160" rx="16" class="object-shadow" />
-            <rect x="660" y="125" width="140" height="160" rx="16" fill="#9bc9d1" stroke="#4d8f9d" stroke-width="5" />
-            <path d="M680 202h100M730 144v38M730 220v44" stroke="#4d8f9d" stroke-width="5" stroke-linecap="round" />
-            <circle cx="755" cy="163" r="7" fill="#f7f1e8" />
-            <text x="730" y="325" class="object-label">FREEZER</text>
-            <text x="730" y="346" class="object-score" data-label="freezer-score">0 interactions</text>
-          </g>
-
-          <g class="object" data-object="chair" data-x="490" data-y="455" tabindex="0">
-            <rect x="445" y="390" width="90" height="125" rx="18" class="object-shadow" />
-            <rect x="445" y="380" width="90" height="125" rx="18" fill="#e4a94f" stroke="#b87c2b" stroke-width="5" />
-            <rect x="463" y="398" width="54" height="60" rx="10" fill="#f4c976" />
-            <path d="M462 490v30M518 490v30" stroke="#b87c2b" stroke-width="8" stroke-linecap="round" />
-            <text x="490" y="550" class="object-label">CHAIR</text>
-            <text x="490" y="571" class="object-score" data-label="chair-score">0 interactions</text>
-          </g>
-
-          <g id="player" transform="translate(490 150)">
+          <g class="object station" data-object="ingredients" data-x="180" data-y="220" tabindex="0"><rect x="105" y="155" width="150" height="130" rx="20" class="object-shadow" /><rect x="105" y="145" width="150" height="130" rx="20" fill="#bd764f" stroke="#8d5038" stroke-width="5" /><circle cx="145" cy="205" r="25" fill="#8fbf70" /><circle cx="195" cy="205" r="25" fill="#e4a94f" /><text x="180" y="315" class="object-label">INGREDIENTS</text></g>
+          <g class="object station" data-object="pot" data-x="425" data-y="205" tabindex="0"><rect x="360" y="135" width="130" height="140" rx="20" class="object-shadow" /><rect x="360" y="125" width="130" height="140" rx="20" fill="#9bc9d1" stroke="#4d8f9d" stroke-width="5" /><ellipse cx="425" cy="190" rx="40" ry="25" fill="#6c8990" stroke="#395e66" stroke-width="5" /><text x="425" y="315" class="object-label">POT</text></g>
+          <g class="object station" data-object="pan" data-x="750" data-y="205" tabindex="0"><rect x="685" y="135" width="130" height="140" rx="20" class="object-shadow" /><rect x="685" y="125" width="130" height="140" rx="20" fill="#e4a94f" stroke="#b87c2b" stroke-width="5" /><ellipse cx="740" cy="190" rx="40" ry="25" fill="#8b6650" stroke="#624633" stroke-width="5" /><path d="M770 185l32-24" stroke="#624633" stroke-width="10" stroke-linecap="round" /><text x="750" y="315" class="object-label">PAN</text></g>
+          <g class="object station" data-object="serve" data-x="500" data-y="455" tabindex="0"><rect x="425" y="390" width="150" height="125" rx="18" class="object-shadow" /><rect x="425" y="380" width="150" height="125" rx="18" fill="#e4a94f" stroke="#b87c2b" stroke-width="5" /><ellipse cx="500" cy="442" rx="48" ry="24" fill="#fffaf2" stroke="#b87c2b" stroke-width="4" /><text x="500" y="550" class="object-label">SERVE</text></g>          <g id="player" transform="translate(490 150)">
             <circle class="player-shadow" cx="0" cy="27" r="23" />
             <circle class="player-body" cx="0" cy="0" r="21" />
             <circle class="player-face" cx="0" cy="-4" r="13" />

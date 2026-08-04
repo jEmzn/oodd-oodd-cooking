@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   font-family: "Trebuchet MS", system-ui, sans-serif;
   color: #493a2c;
   background: #fbf8f3;
@@ -44,3 +44,10 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
 @media (max-width: 650px) { .screen { padding: 18px; } .hud { align-items: flex-start; flex-direction: column; } .hud-stats { width: 100%; } .hud-stats div { flex: 1; } .game-shell { border-width: 2px; border-radius: 18px; } }
 
 
+
+.order-card { max-width: 360px; margin-top: 16px; padding: 16px 18px; border: 2px solid #eadfce; border-radius: 18px; background: #fffdf9; box-shadow: 0 8px 20px #493a2c10; }
+.order-kicker { margin: 0 0 5px; color: #ba6849; font-size: .7rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.order-card h3 { margin: 0; font-size: 1.2rem; }
+.order-card p:not(.order-kicker) { margin: 5px 0 8px; color: #7e6b59; font-size: .85rem; }
+.order-card strong { color: #ba6849; font-size: .9rem; }
+#order-timer.warning { color: #9f332d; }

@@ -1,32 +1,37 @@
-# Repository Guidelines
+﻿# Repository Guidelines
 
 ## Project Structure & Module Organization
 
-This checkout currently contains no source files, tests, assets, or build configuration. As the project is added, keep production code under a clearly named source directory (for example, `src/`), tests under `tests/` or alongside modules using the project framework’s convention, and static files under `assets/` or `public/`. Keep reusable modules focused and avoid placing generated output in version control.
+This is a small dependency-free browser game with a flat project layout:
+
+- `index.html` contains the start screen, game screen, HUD, and inline SVG kitchen scene.
+- `styles.css` contains the visual theme, responsive layout, button states, HUD styling, and screen visibility rules.
+- `game.js` contains movement, object proximity checks, `E` interactions, scoring, the countdown, and round reset/timeout behavior.
+- `DOC.md` is the maintained project summary and task history reference.
+- `AGENTS.md` contains these contributor instructions.
+
+There are currently no separate source, test, asset, or build directories. Keep the flat layout unless the project grows enough to justify grouping files.
 
 ## Build, Test, and Development Commands
 
-No build or development commands are defined yet. When introducing tooling, document the canonical commands in the project README and package configuration. Prefer stable, repeatable commands such as:
-
-- `npm install` — install declared dependencies.
-- `npm run build` — produce a production build.
-- `npm test` — run the complete automated test suite.
-- `npm run lint` — check formatting and static-analysis rules.
-
-Use the equivalent commands for the chosen language or build system if this repository adopts something other than Node.js.
+No build step or package manager is required. Open `index.html` directly in a modern browser to run the game. Use a local static server when browser security restrictions require one. Node.js is not currently installed in the development environment, so `node --check` is unavailable.
 
 ## Coding Style & Naming Conventions
 
-Follow the formatter and linter selected by the project; configuration should live in the repository (for example, `.editorconfig`, `eslint.config.js`, or `pyproject.toml`). Use spaces rather than tabs unless the adopted toolchain requires otherwise. Name files and directories consistently, use descriptive names, and keep public APIs documented. Do not commit temporary files, local environment files, credentials, or build artifacts.
+Use two-space indentation, semicolons in JavaScript, descriptive camelCase JavaScript names, kebab-case HTML/CSS IDs and classes, and lowercase file names. Keep the SVG inline in `index.html` and avoid external dependencies unless the project requirements change. Preserve the existing warm, responsive visual style.
 
 ## Testing Guidelines
 
-Add tests for new behavior and regression fixes. Name test files according to the selected framework (for example, `*.test.ts` or `test_*.py`) and keep tests deterministic. Run the full suite and lint checks before opening a pull request; add coverage requirements when a test framework is introduced.
+Manually verify the start screen, Play Game transition, WASD/arrow movement, proximity prompt, `E` interactions, score updates, 30-second timeout, and return to the start screen. Check both desktop and narrow-screen layouts. Add automated tests if the project later adopts a test framework.
+
+## Documentation Maintenance
+
+After every completed task, update `DOC.md` with the change, relevant behavior, and validation status. Keep the summary accurate as files, controls, structure, or technical constraints change.
 
 ## Commit & Pull Request Guidelines
 
-No Git history is available in this checkout, so no existing commit convention can be inferred. Use short, imperative commit subjects (for example, `Add recipe parser`) and keep unrelated changes separate. Pull requests should explain the behavior change, link related issues, include validation commands and results, and attach screenshots or sample output when the change affects user-visible behavior.
+No Git history is available, so use short, imperative commit subjects such as `Fix game screen switching`. Keep unrelated changes separate. Pull requests should describe behavior changes, list validation steps, and include screenshots or sample output for visible changes.
 
 ## Security & Configuration
 
-Store secrets only in local environment files excluded by `.gitignore` or in the project’s approved secret manager. Provide safe example configuration such as `.env.example`, validate external input, and review dependency changes before merging.
+Do not commit secrets, credentials, or local environment files. Keep the app dependency-free where practical and review any future third-party scripts before adding them.
