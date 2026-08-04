@@ -16,20 +16,20 @@ Oodd Oodd Cooking is a small, dependency-free browser game built with HTML, CSS,
 
 When the page opens, the start screen shows a blank light background, the title "Oodd Oodd Cooking," a short description, and a "Play Game" button. Clicking the button hides the start screen and reveals the game screen. The explicit `[hidden]` CSS rule ensures the two screens switch instead of appearing together.
 
-After 30 seconds, the game stops, clears its timers and animation loop, waits briefly for a transition, and returns to the start screen. Starting a new round resets the player position, timer, total score, and each object's interaction count.
+After 40 seconds, the game stops, clears its timers and animation loop, waits briefly for a transition, and returns to the start screen. Starting a new round resets the player position, timer, and total score.
 
 ## Gameplay
 
 - Move with `WASD` or the arrow keys.
-- Walk close to the table, freezer, or chair.
+- Walk close to the ingredients, pot, pan, or serve station.
 - Press `E` to interact with the nearest object.
-- Each interaction increases both the global score and that object's displayed count.
+- Each successfully served order increases the global score.
 - A "PRESS E TO INTERACT" prompt appears when an object is within range.
 - The HUD displays remaining time and total score; the timer changes color during the final 10 seconds.
 
 ## Visual Design
 
-The game world is drawn entirely with SVG: patterned floor, room border, labels, three kitchen objects, player character, shadows, and interaction prompt. CSS adds a warm cream, brown, coral, blue, and gold palette, responsive sizing, rounded panels, hover states, and mobile-friendly HUD stacking.
+The game world is drawn entirely with SVG: patterned floor, room border, labels, four kitchen stations, player character, shadows, and interaction prompt. CSS adds a warm cream, brown, coral, blue, and gold palette, responsive sizing, rounded panels, hover states, and mobile-friendly HUD stacking.
 
 ## Technical Notes
 
@@ -47,3 +47,18 @@ This summary was updated alongside `AGENTS.md` to document the current flat proj
 ## Gameplay Update
 
 The game now uses a cooking loop with a 40-second round timer and 15-second customer orders. Garden Soup requires the pot and Sizzling Stir-Fry requires the pan. Players collect ingredients, cook for 2 seconds, and serve the finished menu. Successful service increases the completed-order score and immediately generates a new order. An unserved order expires after 15 seconds, clears unfinished inventory, and immediately generates the next order. Source validation was completed; browser gameplay validation remains recommended for the full timed flow.
+
+
+## Held Food Indicator
+
+The player displays a small circular SVG food indicator above the avatar while holding ingredients, cooking food, soup, or stir-fry. The indicator follows the player and clears when food is served, an order expires, or a round resets. Source validation was completed; browser visual validation remains recommended.
+
+
+## Cooking Progress Status
+
+While cooking, a realtime loading bar appears above the active pot or pan and fills over the two-second cooking duration. It reaches 100% and changes to READY at the cooking station. The player must interact with that same pot or pan to pick up the menu; only then does the station status disappear. The status also resets when an order expires or the round ends.
+
+
+## Cooking Status Reset
+
+Cooking status is explicitly reset to an empty bar at the start of every cooking cycle, ensuring later menus show realtime progress and the READY state consistently.
