@@ -2,19 +2,21 @@
 
 ## Overview
 
-Oodd Oodd Cooking is a small, dependency-free browser game built with HTML, CSS, JavaScript, and inline SVG. It presents a top-down kitchen where the player collects ingredients, cooks customer menus, and serves them before order or game timers expire.
+Oodd Oodd Cooking is a browser cooking game built with HTML, CSS, JavaScript, inline SVG, and an optional Node.js multiplayer server. It presents a top-down kitchen where players collect ingredients, cook customer menus, and serve them before order or game timers expire.
 
 ## Project Files
 
 - `index.html` defines the start screen, game screen, HUD, and SVG kitchen scene.
 - `styles.css` controls the warm visual theme, layout, responsive behavior, buttons, HUD, SVG labels, and screen switching.
 - `game.js` contains movement, proximity detection, interaction scoring, timer management, and game lifecycle logic.
+- `server/server.js` serves the frontend and manages authoritative multiplayer rooms and gameplay through Socket.IO.
+- `server/package.json` defines the Node.js server dependencies and start commands.
 - `AGENTS.md` contains contributor guidance for this repository.
 - `DOC.md` is this project summary.
 
 ## User Flow
 
-When the page opens, the start screen shows a blank light background, the title "Oodd Oodd Cooking," a short description, and a "Play Game" button. Clicking the button hides the start screen and reveals the game screen. The explicit `[hidden]` CSS rule ensures the two screens switch instead of appearing together.
+When the page opens, the start screen offers Solo Game and Multiplayer. Solo starts immediately. Multiplayer asks for a temporary display name and lets players create or join a short room code. The lobby supports 2 to 5 players; every player must be Ready before the host can start the shared round. The explicit `[hidden]` CSS rule ensures only the active screen is visible.
 
 After 40 seconds, the game stops, clears its timers and animation loop, waits briefly for a transition, and returns to the start screen. Starting a new round resets the player position, timer, and total score.
 
@@ -23,7 +25,7 @@ After 40 seconds, the game stops, clears its timers and animation loop, waits br
 - Move with `WASD` or the arrow keys.
 - Walk close to the ingredients, pot, pan, or serve station.
 - Press `E` to interact with the nearest object.
-- Each successfully served order increases the global score.
+- Each successfully served order increases the shared team score.
 - A "PRESS E TO INTERACT" prompt appears when an object is within range.
 - The HUD displays remaining time and total score; the timer changes color during the final 10 seconds.
 
@@ -33,15 +35,19 @@ The game world is drawn entirely with SVG: patterned floor, room border, labels,
 
 ## Technical Notes
 
-The app has no external dependencies or build step. Open `index.html` directly in a modern browser. JavaScript uses DOM queries, SVG attributes, `requestAnimationFrame` for movement, and `setInterval` for the countdown. A browser-global naming collision was avoided by naming the prompt reference `interactionPrompt` rather than `prompt`.
+Solo mode remains dependency-free in the browser. Multiplayer runs through the Node.js server, which serves the project root and exposes Socket.IO at the same origin. The server keeps active room data in memory, uses server-authoritative movement snapshots, and validates station interactions. Each player has personal inventory and statistics; orders, cooking stations, timers, and team score are shared. Run it with `cd server && npm install && npm start`, then open the printed server URL. Opening `index.html` directly still supports solo mode but cannot connect multiplayer.
 
 ## Validation
 
-The generated files were inspected locally. Node.js was not installed in the shell environment, so `node --check` could not be run. Manual source review covered the button handler, screen switching, timer reset, movement bounds, proximity interaction, score updates, timeout return, and the explicit hidden-screen CSS rule.
+`node --check game.js` and `node --check server/server.js` pass. The package manifest parses successfully. Source review covered solo mode, room creation and joining, readiness gating, host start permissions, room capacity, server movement bounds, personal inventory, shared cooking and score, order expiry, disconnect cleanup, results rendering, and the explicit hidden-screen CSS rule. Full multiplayer browser validation requires installing the server dependencies and connecting multiple browser sessions.
 
 ## Documentation Update
 
 This summary was updated alongside `AGENTS.md` to document the current flat project structure and the repository rule that every completed task must update `DOC.md` with the relevant change and validation status.
+
+## Multiplayer Update
+
+Multiplayer mode now supports temporary names, 5-character room codes, 2 to 5 players, a Ready lobby, host-controlled round start, shared 40-second rounds, 15-second orders, server-authoritative movement, personal inventories, shared stations and score, disconnect removal, and a results screen. Active room data is in-memory and resets when the server restarts.
 
 
 ## Gameplay Update
@@ -62,3 +68,7 @@ While cooking, a realtime loading bar appears above the active pot or pan and fi
 ## Cooking Status Reset
 
 Cooking status is explicitly reset to an empty bar at the start of every cooking cycle, ensuring later menus show realtime progress and the READY state consistently.
+
+## Cooking Status Race Fix
+
+The solo cooking animation now stops updating when cooking completes and cancels its pending animation frame before setting the station to READY. This prevents a final animation frame from overwriting READY with COOKING. Source validation is complete; browser validation should confirm that READY remains visible until the food is picked up.
