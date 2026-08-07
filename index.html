@@ -53,6 +53,10 @@
     </main>
 
     <main id="game-screen" class="screen game-screen" hidden>
+      <div id="orientation-warning" class="orientation-warning" role="status">
+        <strong>Rotate your device</strong>
+        <span>Landscape mode gives you room to cook.</span>
+      </div>
       <header class="hud">
         <div>
           <p class="eyebrow">Kitchen shift</p>
@@ -111,6 +115,15 @@
           </g>
         </svg>
       </section>
+      <div id="mobile-controls" class="mobile-controls" aria-label="Touch controls">
+        <div class="direction-pad" aria-label="Movement">
+          <button class="control-button direction-button direction-up" type="button" data-direction="up" aria-label="Move up">▲</button>
+          <button class="control-button direction-button direction-left" type="button" data-direction="left" aria-label="Move left">◀</button>
+          <button class="control-button direction-button direction-down" type="button" data-direction="down" aria-label="Move down">▼</button>
+          <button class="control-button direction-button direction-right" type="button" data-direction="right" aria-label="Move right">▶</button>
+        </div>
+        <button id="mobile-interact-button" class="control-button interact-button" type="button">Interact</button>
+      </div>
       <p id="game-message" class="game-message">Use WASD or arrow keys to move.</p>
     </main>
 

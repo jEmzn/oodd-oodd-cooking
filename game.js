@@ -12,6 +12,8 @@ const readyButton = document.querySelector("#ready-button");
 const startRoundButton = document.querySelector("#start-round-button");
 const leaveRoomButton = document.querySelector("#leave-room-button");
 const resultsButton = document.querySelector("#results-button");
+const mobileInteractButton = document.querySelector("#mobile-interact-button");
+const directionButtons = [...document.querySelectorAll("[data-direction]")];
 const playerNameInput = document.querySelector("#player-name");
 const roomCodeInput = document.querySelector("#room-code");
 const setupMessage = document.querySelector("#setup-message");
@@ -66,6 +68,51 @@ const remoteElements = new Map();
 let multiplayerFrameAt;
 let remoteFrameAt;
 let remoteAnimationId;
+
+function updateMultiplayerInput() {
+  multiplayerInput = {
+    left: keys.has("arrowleft") || keys.has("a") || keys.has("touch-left"),
+    right: keys.has("arrowright") || keys.has("d") || keys.has("touch-right"),
+    up: keys.has("arrowup") || keys.has("w") || keys.has("touch-up"),
+    down: keys.has("arrowdown") || keys.has("s") || keys.has("touch-down")
+  };
+}
+
+function interact() {
+  if (mode === "multiplayer" && gameRunning) {
+    const nearest = nearestObject();
+    if (nearest.object) socket?.emit("interact", { station: nearest.object.name });
+  } else if (mode === "solo" && gameRunning) {
+    soloInteract();
+  }
+}
+
+function setMovementHint() {
+  setMessage(window.matchMedia("(pointer: coarse)").matches ? "Use the touch controls to move and interact." : "Use WASD or arrow keys to move.");
+}
+
+function releaseTouchDirection(button) {
+  const direction = button.dataset.direction;
+  keys.delete(`touch-${direction}`);
+  button.classList.remove("pressed");
+  updateMultiplayerInput();
+  sendInput();
+}
+
+function pressTouchDirection(event) {
+  event.preventDefault();
+  const button = event.currentTarget;
+  const direction = button.dataset.direction;
+  keys.add(`touch-${direction}`);
+  button.classList.add("pressed");
+  button.setPointerCapture?.(event.pointerId);
+  updateMultiplayerInput();
+  sendInput();
+}
+
+function releaseAllTouchDirections() {
+  directionButtons.forEach((button) => releaseTouchDirection(button));
+}
 
 function showScreen(screen) {
   [startScreen, multiplayerScreen, lobbyScreen, gameScreen, resultsScreen].forEach((item) => { item.hidden = item !== screen; });
@@ -219,10 +266,10 @@ function moveSolo() {
   if (!gameRunning || mode !== "solo") return;
   let dx = 0;
   let dy = 0;
-  if (keys.has("arrowleft") || keys.has("a")) dx -= 1;
-  if (keys.has("arrowright") || keys.has("d")) dx += 1;
-  if (keys.has("arrowup") || keys.has("w")) dy -= 1;
-  if (keys.has("arrowdown") || keys.has("s")) dy += 1;
+  if (keys.has("arrowleft") || keys.has("a") || keys.has("touch-left")) dx -= 1;
+  if (keys.has("arrowright") || keys.has("d") || keys.has("touch-right")) dx += 1;
+  if (keys.has("arrowup") || keys.has("w") || keys.has("touch-up")) dy -= 1;
+  if (keys.has("arrowdown") || keys.has("s") || keys.has("touch-down")) dy += 1;
   if (dx || dy) {
     const length = Math.hypot(dx, dy);
     playerState.x = Math.max(65, Math.min(935, playerState.x + (dx / length) * playerState.speed));
@@ -305,6 +352,7 @@ function startSoloGame() {
   playerState.y = 350;
   clearInventory();
   generateOrder();
+  setMovementHint();
   setPlayerPosition();
   positionCookingStatus();
   updatePrompt();
@@ -498,6 +546,13 @@ function requestRoom(eventName, payload) {
 
 playButton.addEventListener("click", startSoloGame);
 multiplayerButton.addEventListener("click", setupMultiplayer);
+mobileInteractButton.addEventListener("click", interact);
+directionButtons.forEach((button) => {
+  button.addEventListener("pointerdown", pressTouchDirection);
+  button.addEventListener("pointerup", (event) => { event.preventDefault(); releaseTouchDirection(button); });
+  button.addEventListener("pointercancel", () => releaseTouchDirection(button));
+  button.addEventListener("lostpointercapture", () => releaseTouchDirection(button));
+});
 backButton.addEventListener("click", () => showScreen(startScreen));
 createRoomButton.addEventListener("click", () => requestRoom("create-room", { name: playerNameInput.value }));
 joinRoomButton.addEventListener("click", () => requestRoom("join-room", { name: playerNameInput.value, roomCode: roomCodeInput.value }));
@@ -510,19 +565,20 @@ window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
   if (["arrowleft", "arrowright", "arrowup", "arrowdown", " "].includes(key)) event.preventDefault();
   if (key === "e") {
-    if (mode === "multiplayer" && gameRunning) { const nearest = nearestObject(); if (nearest.object) socket?.emit("interact", { station: nearest.object.name }); }
-    else if (mode === "solo") soloInteract();
+    interact();
   }
   keys.add(key);
-  multiplayerInput = { left: keys.has("arrowleft") || keys.has("a"), right: keys.has("arrowright") || keys.has("d"), up: keys.has("arrowup") || keys.has("w"), down: keys.has("arrowdown") || keys.has("s") };
+  updateMultiplayerInput();
   sendInput();
 });
 
 window.addEventListener("keyup", (event) => {
   keys.delete(event.key.toLowerCase());
-  multiplayerInput = { left: keys.has("arrowleft") || keys.has("a"), right: keys.has("arrowright") || keys.has("d"), up: keys.has("arrowup") || keys.has("w"), down: keys.has("arrowdown") || keys.has("s") };
+  updateMultiplayerInput();
   sendInput();
 });
+
+window.addEventListener("blur", releaseAllTouchDirections);
 
 if (socket) {
   socket.on("room-state", renderMultiplayerState);
