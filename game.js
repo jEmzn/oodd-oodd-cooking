@@ -21,6 +21,7 @@ const playerList = document.querySelector("#player-list");
 const resultsList = document.querySelector("#results-list");
 const resultsScore = document.querySelector("#results-score");
 const player = document.querySelector("#player");
+const playerSprite = document.querySelector("#player-sprite");
 const otherPlayers = document.querySelector("#other-players");
 const cookingStatus = document.querySelector("#cooking-status");
 const cookingStatusLabel = document.querySelector("#cooking-status-label");
@@ -38,6 +39,26 @@ const heldItemIcons = { ingredients: "#held-ingredients", cooking: "#held-cookin
 const objects = [...document.querySelectorAll(".object")].map((element) => ({ element, name: element.dataset.object, x: Number(element.dataset.x), y: Number(element.dataset.y) }));
 const menus = [{ name: "Garden Soup", tool: "pot" }, { name: "Sizzling Stir-Fry", tool: "pan" }];
 const playerState = { x: 500, y: 350, speed: 4.5, radius: 32 };
+const playerSprites = {
+  down: [
+    { href: "animation_walk/Stand%20still.png", width: 108, height: 66 },
+    { href: "animation_walk/Walk%20towards%20the%20right%20side2.png", width: 104, height: 68 }
+  ],
+  up: [
+    { href: "animation_walk/Stand_facing_forward.png", width: 105, height: 64 },
+    { href: "animation_walk/Walk%20forward.-Photoroom.png", width: 105, height: 72 }
+  ],
+  left: [
+    { href: "animation_walk/Stand%20facing%20left.png", width: 69, height: 75 },
+    { href: "animation_walk/Walk%20towards%20the%20left%20side.png", width: 94, height: 75 },
+    { href: "animation_walk/Walk%20towards%20the%20left%20side2.png", width: 104, height: 68 }
+  ],
+  right: [
+    { href: "animation_walk/Stand%20facing%20right.png", width: 68, height: 75 },
+    { href: "animation_walk/Walk%20towards%20the%20right%20side.png", width: 93, height: 75 },
+    { href: "animation_walk/Walk%20towards%20the%20right%20side2.png", width: 104, height: 68 }
+  ]
+};
 const keys = new Set();
 let score = 0;
 let secondsLeft = 40;
@@ -56,6 +77,8 @@ let gameRunning = false;
 let mode = "solo";
 let roomState;
 let selfId;
+let playerDirection = "down";
+let lastSpriteKey = "";
 let multiplayerInput = { left: false, right: false, up: false, down: false };
 
 function showScreen(screen) {
@@ -64,6 +87,26 @@ function showScreen(screen) {
 
 function setPlayerPosition() {
   player.setAttribute("transform", `translate(${playerState.x} ${playerState.y})`);
+}
+
+function updatePlayerSprite(dx = 0, dy = 0, moving = false, timestamp = performance.now()) {
+  if (moving) {
+    if (Math.abs(dx) >= Math.abs(dy)) playerDirection = dx < 0 ? "left" : "right";
+    else playerDirection = dy < 0 ? "up" : "down";
+  }
+
+  const sprites = playerSprites[playerDirection];
+  const frameIndex = moving ? Math.floor(timestamp / 140) % sprites.length : 0;
+  const sprite = sprites[frameIndex];
+  const spriteKey = `${playerDirection}-${frameIndex}`;
+  if (spriteKey === lastSpriteKey) return;
+
+  playerSprite.setAttribute("href", sprite.href);
+  playerSprite.setAttribute("x", `${-sprite.width / 2}`);
+  playerSprite.setAttribute("y", `${30 - sprite.height}`);
+  playerSprite.setAttribute("width", `${sprite.width}`);
+  playerSprite.setAttribute("height", `${sprite.height}`);
+  lastSpriteKey = spriteKey;
 }
 
 function updateCookingStatus(progress, label) {
@@ -212,6 +255,7 @@ function moveSolo() {
     positionCookingStatus();
     updatePrompt();
   }
+  updatePlayerSprite(dx, dy, Boolean(dx || dy));
   animationId = requestAnimationFrame(moveSolo);
 }
 
@@ -237,6 +281,9 @@ function startSoloGame() {
   timerElement.classList.remove("warning");
   playerState.x = 500;
   playerState.y = 350;
+  playerDirection = "down";
+  lastSpriteKey = "";
+  updatePlayerSprite();
   clearInventory();
   generateOrder();
   setPlayerPosition();
@@ -297,7 +344,16 @@ function renderMultiplayerState(state) {
   roomState = state;
   if (state.selfId) selfId = state.selfId;
   const me = state.players.find((item) => item.id === selfId);
-  if (me) { playerState.x = me.x; playerState.y = me.y; inventory = me.inventory; setPlayerPosition(); updateHeldItem(); }
+  if (me) {
+    const dx = me.x - playerState.x;
+    const dy = me.y - playerState.y;
+    playerState.x = me.x;
+    playerState.y = me.y;
+    inventory = me.inventory;
+    setPlayerPosition();
+    updatePlayerSprite(dx, dy, Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01, Date.now());
+    updateHeldItem();
+  }
   score = state.score;
   secondsLeft = state.secondsLeft;
   orderSecondsLeft = state.orderSecondsLeft;
