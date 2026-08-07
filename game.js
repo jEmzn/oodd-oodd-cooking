@@ -57,6 +57,15 @@ let mode = "solo";
 let roomState;
 let selfId;
 let multiplayerInput = { left: false, right: false, up: false, down: false };
+const multiplayerSpeed = 150;
+const authoritativePosition = { x: 500, y: 350 };
+const predictedPosition = { x: 500, y: 350 };
+const remoteTargets = new Map();
+const remoteRendered = new Map();
+const remoteElements = new Map();
+let multiplayerFrameAt;
+let remoteFrameAt;
+let remoteAnimationId;
 
 function showScreen(screen) {
   [startScreen, multiplayerScreen, lobbyScreen, gameScreen, resultsScreen].forEach((item) => { item.hidden = item !== screen; });
@@ -64,6 +73,16 @@ function showScreen(screen) {
 
 function setPlayerPosition() {
   player.setAttribute("transform", `translate(${playerState.x} ${playerState.y})`);
+}
+
+function setMultiplayerPosition(x, y) {
+  authoritativePosition.x = x;
+  authoritativePosition.y = y;
+  predictedPosition.x = x;
+  predictedPosition.y = y;
+  playerState.x = x;
+  playerState.y = y;
+  setPlayerPosition();
 }
 
 function updateCookingStatus(progress, label) {
@@ -215,6 +234,51 @@ function moveSolo() {
   animationId = requestAnimationFrame(moveSolo);
 }
 
+function moveMultiplayer(timestamp) {
+  if (!gameRunning || mode !== "multiplayer") {
+    animationId = null;
+    multiplayerFrameAt = undefined;
+    return;
+  }
+  const delta = multiplayerFrameAt ? Math.min((timestamp - multiplayerFrameAt) / 1000, 0.05) : 0;
+  multiplayerFrameAt = timestamp;
+  let dx = (multiplayerInput.right ? 1 : 0) - (multiplayerInput.left ? 1 : 0);
+  let dy = (multiplayerInput.down ? 1 : 0) - (multiplayerInput.up ? 1 : 0);
+  if (dx || dy) {
+    const length = Math.hypot(dx, dy);
+    predictedPosition.x = Math.max(65, Math.min(935, predictedPosition.x + (dx / length) * multiplayerSpeed * delta));
+    predictedPosition.y = Math.max(105, Math.min(555, predictedPosition.y + (dy / length) * multiplayerSpeed * delta));
+  }
+
+  const correctionX = authoritativePosition.x - predictedPosition.x;
+  const correctionY = authoritativePosition.y - predictedPosition.y;
+  const correctionDistance = Math.hypot(correctionX, correctionY);
+  if (correctionDistance > 60) {
+    predictedPosition.x = authoritativePosition.x;
+    predictedPosition.y = authoritativePosition.y;
+  } else if (correctionDistance > 8) {
+    const correction = 1 - Math.exp(-10 * delta);
+    predictedPosition.x += correctionX * correction;
+    predictedPosition.y += correctionY * correction;
+  }
+
+  playerState.x = predictedPosition.x;
+  playerState.y = predictedPosition.y;
+  setPlayerPosition();
+  positionCookingStatus();
+  updatePrompt();
+  animationId = requestAnimationFrame(moveMultiplayer);
+}
+
+function stopMultiplayerAnimation() {
+  cancelAnimationFrame(animationId);
+  animationId = null;
+  multiplayerFrameAt = undefined;
+  cancelAnimationFrame(remoteAnimationId);
+  remoteAnimationId = null;
+  remoteFrameAt = undefined;
+}
+
 function endSoloGame() {
   gameRunning = false;
   clearInventory();
@@ -226,6 +290,8 @@ function endSoloGame() {
 
 function startSoloGame() {
   mode = "solo";
+  stopMultiplayerAnimation();
+  clearRemotePlayers();
   roomState = null;
   otherPlayers.replaceChildren();
   showScreen(gameScreen);
@@ -263,23 +329,63 @@ function sendInput() {
   if (mode === "multiplayer" && socket) socket.emit("move-input", multiplayerInput);
 }
 
-function renderRemotePlayers() {
+function createRemotePlayer(item) {
+  const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  const shadow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  shadow.setAttribute("class", "remote-player-shadow"); shadow.setAttribute("cy", "27"); shadow.setAttribute("r", "23");
+  const body = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  body.setAttribute("class", "remote-player-body"); body.setAttribute("r", "21");
+  const face = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  face.setAttribute("class", "remote-player-face"); face.setAttribute("cy", "-4"); face.setAttribute("r", "13");
+  const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  label.setAttribute("class", "remote-player-label"); label.setAttribute("y", "-32"); label.setAttribute("text-anchor", "middle"); label.textContent = item.name;
+  group.append(shadow, body, face, label);
+  otherPlayers.append(group);
+  remoteElements.set(item.id, { group, label });
+}
+
+function clearRemotePlayers() {
+  remoteTargets.clear();
+  remoteRendered.clear();
+  remoteElements.clear();
   otherPlayers.replaceChildren();
+}
+
+function renderRemotePlayers() {
   if (!roomState) return;
   roomState.players.filter((item) => item.id !== selfId).forEach((item) => {
-    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    group.setAttribute("transform", `translate(${item.x} ${item.y})`);
-    const shadow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    shadow.setAttribute("class", "remote-player-shadow"); shadow.setAttribute("cy", "27"); shadow.setAttribute("r", "23");
-    const body = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    body.setAttribute("class", "remote-player-body"); body.setAttribute("r", "21");
-    const face = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    face.setAttribute("class", "remote-player-face"); face.setAttribute("cy", "-4"); face.setAttribute("r", "13");
-    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    label.setAttribute("class", "remote-player-label"); label.setAttribute("y", "-32"); label.setAttribute("text-anchor", "middle"); label.textContent = item.name;
-    group.append(shadow, body, face, label);
-    otherPlayers.append(group);
+    remoteTargets.set(item.id, item);
+    if (!remoteRendered.has(item.id)) remoteRendered.set(item.id, { x: item.x, y: item.y });
+    if (!remoteElements.has(item.id)) createRemotePlayer(item);
+    remoteElements.get(item.id).label.textContent = item.name;
   });
+  [...remoteTargets.keys()].forEach((id) => {
+    if (remoteTargets.has(id) && roomState.players.some((item) => item.id === id)) return;
+    remoteTargets.delete(id);
+    remoteRendered.delete(id);
+    remoteElements.get(id)?.group.remove();
+    remoteElements.delete(id);
+  });
+}
+
+function animateRemotePlayers(timestamp) {
+  if (!gameRunning || mode !== "multiplayer") {
+    remoteAnimationId = null;
+    remoteFrameAt = undefined;
+    return;
+  }
+  const delta = remoteFrameAt ? Math.min((timestamp - remoteFrameAt) / 1000, 0.05) : 0;
+  remoteFrameAt = timestamp;
+  const interpolation = 1 - Math.exp(-18 * delta);
+  remoteTargets.forEach((target, id) => {
+    const rendered = remoteRendered.get(id);
+    const element = remoteElements.get(id);
+    if (!rendered || !element) return;
+    rendered.x += (target.x - rendered.x) * interpolation;
+    rendered.y += (target.y - rendered.y) * interpolation;
+    element.group.setAttribute("transform", `translate(${rendered.x} ${rendered.y})`);
+  });
+  remoteAnimationId = requestAnimationFrame(animateRemotePlayers);
 }
 
 function renderCookingStatus() {
@@ -297,7 +403,13 @@ function renderMultiplayerState(state) {
   roomState = state;
   if (state.selfId) selfId = state.selfId;
   const me = state.players.find((item) => item.id === selfId);
-  if (me) { playerState.x = me.x; playerState.y = me.y; inventory = me.inventory; setPlayerPosition(); updateHeldItem(); }
+  if (me) {
+    if (state.status !== "playing" || !gameRunning) setMultiplayerPosition(me.x, me.y);
+    authoritativePosition.x = me.x;
+    authoritativePosition.y = me.y;
+    inventory = me.inventory;
+    updateHeldItem();
+  }
   score = state.score;
   secondsLeft = state.secondsLeft;
   orderSecondsLeft = state.orderSecondsLeft;
@@ -310,8 +422,20 @@ function renderMultiplayerState(state) {
   renderCookingStatus();
   updatePrompt();
   if (state.status === "lobby") showLobby();
-  if (state.status === "playing") { gameRunning = true; showScreen(gameScreen); }
-  if (state.status === "results") showResults(state);
+  if (state.status === "playing") {
+    if (!gameRunning) {
+      gameRunning = true;
+      multiplayerFrameAt = undefined;
+      remoteFrameAt = undefined;
+      animationId = requestAnimationFrame(moveMultiplayer);
+      remoteAnimationId = requestAnimationFrame(animateRemotePlayers);
+    }
+    showScreen(gameScreen);
+  }
+  if (state.status === "results") {
+    stopMultiplayerAnimation();
+    showResults(state);
+  }
 }
 
 function showLobby() {
@@ -359,6 +483,7 @@ function showResults(state) {
 function setupMultiplayer() {
   if (!socket) { setupMessage.textContent = "Start the game through the Node server to use multiplayer."; return; }
   mode = "multiplayer";
+  clearRemotePlayers();
   showScreen(multiplayerScreen);
   playerNameInput.focus();
 }
@@ -378,8 +503,8 @@ createRoomButton.addEventListener("click", () => requestRoom("create-room", { na
 joinRoomButton.addEventListener("click", () => requestRoom("join-room", { name: playerNameInput.value, roomCode: roomCodeInput.value }));
 readyButton.addEventListener("click", () => socket?.emit("toggle-ready"));
 startRoundButton.addEventListener("click", () => socket?.emit("start-round"));
-leaveRoomButton.addEventListener("click", () => { socket?.emit("leave-room"); roomState = null; showScreen(startScreen); });
-resultsButton.addEventListener("click", () => { socket?.emit("leave-room"); roomState = null; showScreen(startScreen); });
+leaveRoomButton.addEventListener("click", () => { socket?.emit("leave-room"); stopMultiplayerAnimation(); clearRemotePlayers(); roomState = null; gameRunning = false; showScreen(startScreen); });
+resultsButton.addEventListener("click", () => { socket?.emit("leave-room"); stopMultiplayerAnimation(); clearRemotePlayers(); roomState = null; gameRunning = false; showScreen(startScreen); });
 
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
@@ -402,7 +527,7 @@ window.addEventListener("keyup", (event) => {
 if (socket) {
   socket.on("room-state", renderMultiplayerState);
   socket.on("game-message", (text) => { setMessage(text); lobbyMessage.textContent = text; setupMessage.textContent = text; });
-  socket.on("disconnect", () => { if (mode === "multiplayer") { gameRunning = false; setupMessage.textContent = "Disconnected from the kitchen server."; showScreen(multiplayerScreen); } });
+  socket.on("disconnect", () => { if (mode === "multiplayer") { gameRunning = false; stopMultiplayerAnimation(); clearRemotePlayers(); setupMessage.textContent = "Disconnected from the kitchen server."; showScreen(multiplayerScreen); } });
 }
 
 showScreen(startScreen);
