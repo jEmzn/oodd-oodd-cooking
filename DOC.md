@@ -84,3 +84,7 @@ Multiplayer movement now uses client-side prediction for the local player and sm
 ## Landscape Mobile Support
 
 Touch devices can now play solo and multiplayer in landscape orientation using press-and-hold directional controls and a dedicated Interact button. Touch movement reuses the existing keyboard input state, supports simultaneous directions, releases safely on pointer cancellation or page blur, and preserves server validation for multiplayer interactions. During gameplay in portrait orientation, a rotate-device prompt is shown and the game content is temporarily hidden until the device is landscape. Responsive landscape rules account for short phone screens and safe-area insets. Source validation was completed; browser testing on physical landscape phones and tablets remains recommended.
+
+## Mobile Viewport Fit
+
+The mobile viewport metadata now includes safe-area support, and the page prevents horizontal overflow. Short landscape touch screens use the dynamic viewport height and fit the kitchen SVG inside the remaining space below the HUD, keeping the controls and game message within the visible browser viewport instead of extending the page vertically. Source validation was completed; testing across mobile browser address-bar states remains recommended.

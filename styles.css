@@ -7,7 +7,8 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; min-width: 320px; min-height: 100vh; background: #fbf8f3; }
+html { min-width: 320px; min-height: 100%; background: #fbf8f3; }
+body { width: 100%; min-width: 320px; min-height: 100vh; min-height: 100dvh; margin: 0; overflow-x: hidden; background: #fbf8f3; }
 body:has(#game-screen:not([hidden])) { overscroll-behavior: none; }
 button { font: inherit; }
 .screen { min-height: 100vh; padding: 32px; }
@@ -102,7 +103,7 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
 
 @media (pointer: coarse) and (orientation: landscape) and (max-height: 600px) {
   .screen { padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
-  .game-screen { padding-top: 10px; }
+  .game-screen { display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 0; padding-top: max(10px, env(safe-area-inset-top)); overflow: hidden; }
   .hud { gap: 8px; margin-bottom: 8px; }
   .hud h2 { font-size: 1.45rem; }
   .eyebrow { margin-bottom: 4px; font-size: .6rem; }
@@ -112,8 +113,10 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
   .order-kicker { margin-bottom: 2px; font-size: .55rem; }
   .hud-stats div { min-width: 62px; padding: 6px 9px; }
   .hud-stats strong { font-size: 1.1rem; }
+  .game-shell { position: relative; display: flex; flex: 1; align-items: center; justify-content: center; min-height: 0; }
+  #game-world { width: 100%; height: 100%; object-fit: contain; }
   .game-message { min-height: 18px; margin: 6px 0 0; font-size: .75rem; }
-  .mobile-controls { margin-top: -92px; padding-bottom: 8px; }
+  .mobile-controls { position: absolute; inset: auto 0 8px; margin: 0; padding: 0 14px; }
   .direction-pad { grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(2, 40px); gap: 4px; }
   .control-button { min-width: 40px; min-height: 40px; border-radius: 11px; }
   .interact-button { min-width: 76px; min-height: 48px; }
