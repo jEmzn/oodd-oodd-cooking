@@ -100,3 +100,11 @@ The landscape game world uses the height remaining after the compact HUD and gam
 ## 640x360 Landscape Layout
 
 The mobile layout is now designed around a 640x360 CSS viewport and remains responsive across landscape sizes. The kitchen, order card, and touch controls share a bounded game stage: the kitchen uses the remaining height after the compact HUD and message, the order card overlays the stage at top-left, and controls are anchored inside the stage at the bottom. The SVG keeps its full aspect ratio with `object-fit: contain`, so the complete kitchen remains visible without page scrolling. The ingredients station was moved to the lower-left of the kitchen, with matching client and server coordinates, leaving the top-left game area available for the order card. Source validation was completed; browser validation at 640x360 and physical mobile sizes remains recommended.
+
+## Results Replay
+
+Solo rounds now end on the results screen instead of returning directly to the start screen. The results screen includes a Play Again button that immediately starts a new solo round, while multiplayer Play Again returns the room to its lobby so the host can prepare another round. Return to Start remains available. Source validation was completed; browser validation of solo timeout and multiplayer replay remains recommended.
+
+## Game Text Copy Protection
+
+Text selection, copying, cutting, and context-menu actions are disabled within the game screen, including HUD text, order details, SVG labels, prompts, and status messages. Other screens remain selectable and copyable, and game controls continue to accept keyboard, pointer, and touch input. Source validation was completed; browser validation of desktop selection and mobile long-press behavior remains recommended.

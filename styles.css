@@ -10,6 +10,7 @@
 html { min-width: 320px; min-height: 100%; background: #fbf8f3; }
 body { width: 100%; min-width: 320px; min-height: 100vh; min-height: 100dvh; margin: 0; overflow-x: hidden; background: #fbf8f3; }
 body:has(#game-screen:not([hidden])) { overscroll-behavior: none; }
+#game-screen, #game-screen * { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 button { font: inherit; }
 .screen { min-height: 100vh; padding: 32px; }
 .start-screen { display: grid; place-items: center; background: #fbf8f3; }
@@ -24,7 +25,7 @@ h1 { font-size: clamp(3rem, 9vw, 6.4rem); letter-spacing: -.06em; }
 .button-secondary:hover { box-shadow: 0 10px 0 #b87c2b; }
 .button:active { transform: translateY(4px); box-shadow: 0 4px 0 #8d5038; }
 .button-secondary:active { box-shadow: 0 4px 0 #b87c2b; }
-.mode-actions, .room-actions, .lobby-actions { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+.mode-actions, .room-actions, .lobby-actions, .results-actions { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
 .setup-screen { display: grid; place-items: center; background: #fbf8f3; }
 .setup-panel { width: min(100%, 480px); padding: 42px; border: 2px solid #eadfce; border-radius: 24px; background: #fffdf9; box-shadow: 0 20px 50px #493a2c12; }
 .setup-panel h2 { margin-bottom: 14px; font-size: clamp(2rem, 7vw, 3.4rem); }

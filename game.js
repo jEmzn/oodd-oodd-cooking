@@ -11,6 +11,7 @@ const joinRoomButton = document.querySelector("#join-room-button");
 const readyButton = document.querySelector("#ready-button");
 const startRoundButton = document.querySelector("#start-round-button");
 const leaveRoomButton = document.querySelector("#leave-room-button");
+const playAgainButton = document.querySelector("#play-again-button");
 const resultsButton = document.querySelector("#results-button");
 const mobileInteractButton = document.querySelector("#mobile-interact-button");
 const directionButtons = [...document.querySelectorAll("[data-direction]")];
@@ -182,6 +183,10 @@ function setMessage(text) {
   message.textContent = text;
 }
 
+function blockGamePageCopy(event) {
+  if (gameScreen.contains(event.target)) event.preventDefault();
+}
+
 function updateOrder() {
   if (!currentOrder) return;
   orderName.textContent = currentOrder.name;
@@ -332,7 +337,7 @@ function endSoloGame() {
   cancelAnimationFrame(animationId);
   clearInterval(timerId);
   clearInterval(orderTimerId);
-  window.setTimeout(() => showScreen(startScreen), 700);
+  window.setTimeout(() => showSoloResults(), 700);
 }
 
 function startSoloGame() {
@@ -528,6 +533,20 @@ function showResults(state) {
   });
 }
 
+function showSoloResults() {
+  showScreen(resultsScreen);
+  resultsScore.textContent = score;
+  resultsList.replaceChildren();
+  const row = document.createElement("div");
+  row.className = "player-row";
+  const name = document.createElement("span");
+  name.textContent = "You";
+  const stats = document.createElement("strong");
+  stats.textContent = `${score} served`;
+  row.append(name, stats);
+  resultsList.append(row);
+}
+
 function setupMultiplayer() {
   if (!socket) { setupMessage.textContent = "Start the game through the Node server to use multiplayer."; return; }
   mode = "multiplayer";
@@ -560,6 +579,13 @@ readyButton.addEventListener("click", () => socket?.emit("toggle-ready"));
 startRoundButton.addEventListener("click", () => socket?.emit("start-round"));
 leaveRoomButton.addEventListener("click", () => { socket?.emit("leave-room"); stopMultiplayerAnimation(); clearRemotePlayers(); roomState = null; gameRunning = false; showScreen(startScreen); });
 resultsButton.addEventListener("click", () => { socket?.emit("leave-room"); stopMultiplayerAnimation(); clearRemotePlayers(); roomState = null; gameRunning = false; showScreen(startScreen); });
+playAgainButton.addEventListener("click", () => {
+  if (mode === "solo") {
+    startSoloGame();
+    return;
+  }
+  socket?.emit("play-again");
+});
 
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
@@ -579,6 +605,9 @@ window.addEventListener("keyup", (event) => {
 });
 
 window.addEventListener("blur", releaseAllTouchDirections);
+window.addEventListener("copy", blockGamePageCopy);
+window.addEventListener("cut", blockGamePageCopy);
+window.addEventListener("contextmenu", blockGamePageCopy);
 
 if (socket) {
   socket.on("room-state", renderMultiplayerState);

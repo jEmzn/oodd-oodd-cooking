@@ -344,6 +344,15 @@ io.on("connection", (socket) => {
     startRound(room);
   });
 
+  socket.on("play-again", () => {
+    const room = roomFor(socket);
+    if (!room || room.status !== "results" || room.hostId !== socket.id) return socket.emit("game-message", "Only the host can start another round.");
+    resetPlayers(room);
+    room.game = newGame();
+    room.status = "lobby";
+    broadcastRoom(room, "Ready for another shift!");
+  });
+
   socket.on("move-input", (input = {}) => {
     const room = roomFor(socket);
     const player = room && room.players.get(socket.id);
