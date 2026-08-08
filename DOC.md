@@ -116,3 +116,38 @@ The active game screen now includes an `Exit Game` button fixed at the upper-rig
 The game screen now plays `Sound/background-music-map2.mp3` at 35% volume in both Solo and Multiplayer modes. The track loops continuously when it ends and stops and resets when gameplay ends or the player leaves the game screen. The existing Music/Music Off control also applies to gameplay music. Source validation confirmed the audio path, loop configuration, screen lifecycle integration, and shared mute state; browser audio testing remains recommended.
 
 The game screen now displays its own lower-right Music/Music Off button because the original control belongs to the hidden start screen. Both controls share and immediately reflect the same music state, covering lobby and gameplay music without muting walking sound. Source validation confirmed both event bindings and synchronized labels.
+## Hosted Deployment Preparation
+
+The Node.js server now explicitly listens on `0.0.0.0` and exposes `GET /health` for hosted-service health checks. For Render, configure the repository as a Web Service with root directory `server`, build command `npm install`, and start command `npm start`. The service uses Render's `PORT` environment variable and serves the game and Socket.IO from the same origin. Multiplayer rooms remain in memory and are lost whenever the service restarts or sleeps.
+
+## Multiplayer Movement Synchronization Fix
+
+Multiplayer movement now uses client-side prediction for the local player and smooth interpolation for remote players. The local client moves immediately from current keyboard input, tracks the latest server-authoritative position, and smoothly corrects small drift while snapping only after a large correction. Remote player SVG elements follow server position targets on their own animation frame loop, avoiding visible snapshot jumps. The server movement loop now runs every 50 milliseconds and applies a time-based speed of 150 world units per second so the tick-rate change does not alter movement speed. JavaScript syntax and whitespace validation pass; browser testing with multiple connected sessions remains recommended to confirm perceived smoothness and correction behavior.
+
+## Landscape Mobile Support
+
+Touch devices can now play solo and multiplayer in landscape orientation using press-and-hold directional controls and a dedicated Interact button. Touch movement reuses the existing keyboard input state, supports simultaneous directions, releases safely on pointer cancellation or page blur, and preserves server validation for multiplayer interactions. During gameplay in portrait orientation, a rotate-device prompt is shown and the game content is temporarily hidden until the device is landscape. Responsive landscape rules account for short phone screens and safe-area insets. Source validation was completed; browser testing on physical landscape phones and tablets remains recommended.
+
+## Mobile Viewport Fit
+
+The mobile viewport metadata now includes safe-area support, and the page prevents horizontal overflow. Short landscape touch screens use the dynamic viewport height and fit the kitchen SVG inside the remaining space below the HUD, keeping the controls and game message within the visible browser viewport instead of extending the page vertically. Source validation was completed; testing across mobile browser address-bar states remains recommended.
+
+## Landscape Breakpoint Compatibility
+
+The compact landscape layout now applies to all coarse-pointer landscape devices instead of relying on a fixed viewport-height cutoff. This covers mobile browsers that report a taller layout viewport while browser chrome is visible, preventing the kitchen scene from collapsing below the visible screen.
+
+## Mobile Kitchen Scale
+
+The landscape game world uses the height remaining after the compact HUD and game message instead of a fixed dynamic-viewport percentage. The kitchen SVG, stations, player avatar, and remote players therefore scale into the available space while the order card and touch controls remain bounded inside the game stage.
+
+## 640x360 Landscape Layout
+
+The mobile layout is now designed around a 640x360 CSS viewport and remains responsive across landscape sizes. The kitchen, order card, and touch controls share a bounded game stage: the kitchen uses the remaining height after the compact HUD and message, the order card overlays the stage at top-left, and controls are anchored inside the stage at the bottom. The SVG keeps its full aspect ratio with `object-fit: contain`, so the complete kitchen remains visible without page scrolling. The ingredients station was moved to the lower-left of the kitchen, with matching client and server coordinates, leaving the top-left game area available for the order card. Source validation was completed; browser validation at 640x360 and physical mobile sizes remains recommended.
+
+## Results Replay
+
+Solo rounds now end on the results screen instead of returning directly to the start screen. The results screen includes a Play Again button that immediately starts a new solo round, while multiplayer Play Again returns the room to its lobby so the host can prepare another round. Return to Start remains available. Source validation was completed; browser validation of solo timeout and multiplayer replay remains recommended.
+
+## Game Text Copy Protection
+
+Text selection, copying, cutting, and context-menu actions are disabled within the game screen, including HUD text, order details, SVG labels, prompts, and status messages. Other screens remain selectable and copyable, and game controls continue to accept keyboard, pointer, and touch input. Source validation was completed; browser validation of desktop selection and mobile long-press behavior remains recommended.
