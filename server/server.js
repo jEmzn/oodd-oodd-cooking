@@ -18,7 +18,7 @@ const stations = {
   serve: { x: 500, y: 455 }
 };
 const startingPosition = { x: 500, y: 350 };
-const playerSpeed = 4.5;
+const playerSpeed = 2;
 const interactionDistance = 104;
 
 app.use(express.static(path.join(__dirname, "..")));

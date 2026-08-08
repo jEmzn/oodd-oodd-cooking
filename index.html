@@ -9,14 +9,12 @@
   <body>
     <main id="start-screen" class="screen start-screen">
       <div class="title-card">
-        <p class="eyebrow">A tiny kitchen adventure</p>
-        <h1>Oodd Oodd Cooking</h1>
-        <p class="intro">Cook together or take on the kitchen alone before time runs out.</p>
         <div class="mode-actions">
           <button id="play-button" class="button" type="button">Solo Game</button>
           <button id="multiplayer-button" class="button button-secondary" type="button">Multiplayer</button>
         </div>
       </div>
+      <button id="sound-toggle" class="sound-toggle" type="button" aria-pressed="false" aria-label="Turn music off">🎵 Music</button>
     </main>
 
     <main id="multiplayer-screen" class="screen setup-screen" hidden>
@@ -53,6 +51,8 @@
     </main>
 
     <main id="game-screen" class="screen game-screen" hidden>
+      <button id="exit-game-button" class="exit-game-button" type="button">Exit Game</button>
+      <button class="sound-toggle game-sound-toggle" type="button" aria-pressed="false" aria-label="Turn music off">🎵 Music</button>
       <header class="hud">
         <div>
           <p class="eyebrow">Kitchen shift</p>

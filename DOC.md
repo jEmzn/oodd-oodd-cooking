@@ -82,3 +82,37 @@ The local player's original circle-based SVG avatar has been replaced with the t
 The local player now uses the images in `animation_walk` as a directional sprite set. Movement remembers the most recent facing direction, switches to a matching standing pose when movement stops, and cycles walking poses every 140 milliseconds while moving. Per-frame SVG dimensions and a shared bottom-center anchor compensate for the source images having different canvas sizes, reducing visible jumping without modifying the original PNG files. Solo movement animates continuously; multiplayer snapshots select the corresponding local-player direction and walking frame. Source review confirmed all sprite paths, directional selection, idle fallback, and reset behavior. Browser visual validation on desktop and a narrow screen remains recommended.
 
 The left- and right-facing standing sprites are displayed about 10% smaller than their original animation sizing while retaining the same bottom-center foot anchor. This better matches their visual scale to the surrounding walking frames without changing the PNG assets.
+
+## Walking Sound
+
+The local character now plays `Sound/walking-for-cartoon.mp3` at 50% volume while moving in Solo or Multiplayer mode. The sound loops during continuous movement, stops and resets as soon as the character becomes idle, and is also cleared when the round ends or the game screen closes. Source review confirmed the sound path and movement-state integration; browser audio validation remains recommended because autoplay handling can vary between browsers.
+
+## Movement Speed Adjustment
+
+Player movement speed was reduced from 4.5 to 3.5 movement units per update in both Solo and Multiplayer modes, giving the character a slower walking pace while keeping diagonal movement normalized. Source validation confirmed that the browser and authoritative server use the same value; browser feel testing remains recommended.
+
+## Start Screen Poster
+
+The start screen displays `image/POSTERgame.png` on desktop without cropping, using a matching brown background to fill any extra space. On screens up to 650px wide, it switches to the portrait `image/Posterlobby(mb).png` artwork and fills the mobile viewport. Both layouts include a subtle lower gradient for button contrast. The separate HTML eyebrow, game heading, and description were removed because the posters already include the game branding. Only the Solo Game and Multiplayer buttons remain near the bottom of the screen. Source and responsive CSS review are complete; browser validation on representative phones remains recommended.
+
+The start-screen Solo Game and Multiplayer buttons were moved higher above the bottom edge using responsive viewport-based spacing on both desktop and mobile layouts. Source validation is complete; browser visual validation remains recommended.
+
+## Lobby Background Music
+
+The start-screen lobby now plays `Sound/background-music-lobby.mp3` at 35% volume and loops continuously when the track ends. The music stops and resets when leaving the start screen, then starts again when returning. Playback is retried on the first pointer or keyboard interaction to comply with browser autoplay restrictions. Source validation confirmed the audio path, looping state, screen transitions, and interaction fallback; browser audio validation remains recommended on desktop and mobile.
+
+## Music Toggle
+
+The start-screen lobby now includes a bottom-right Music/Music Off toggle with a mobile-sized touch target, visible focus treatment, and accessible pressed-state labeling. The control mutes or restores lobby and gameplay music for the current page session while leaving walking audio enabled. Source validation confirmed the shared music state and responsive positioning; browser interaction testing remains recommended.
+
+The sound toggle is inset farther from the right edge on desktop and mobile so it sits slightly more toward the left while remaining in the lower-right area.
+
+## Exit Game Control
+
+The active game screen now includes an `Exit Game` button fixed at the upper-right corner with safe-area spacing and keyboard focus styling. Exiting immediately stops the round, movement animation, timers, cooking state, and walking audio before returning to the start screen. In Multiplayer mode it also leaves the current room and clears remote-player state. Source validation confirmed the cleanup path and event binding; browser testing remains recommended for both modes.
+
+## Gameplay Background Music
+
+The game screen now plays `Sound/background-music-map2.mp3` at 35% volume in both Solo and Multiplayer modes. The track loops continuously when it ends and stops and resets when gameplay ends or the player leaves the game screen. The existing Music/Music Off control also applies to gameplay music. Source validation confirmed the audio path, loop configuration, screen lifecycle integration, and shared mute state; browser audio testing remains recommended.
+
+The game screen now displays its own lower-right Music/Music Off button because the original control belongs to the hidden start screen. Both controls share and immediately reflect the same music state, covering lobby and gameplay music without muting walking sound. Source validation confirmed both event bindings and synchronized labels.

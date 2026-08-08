@@ -12,6 +12,8 @@ const readyButton = document.querySelector("#ready-button");
 const startRoundButton = document.querySelector("#start-round-button");
 const leaveRoomButton = document.querySelector("#leave-room-button");
 const resultsButton = document.querySelector("#results-button");
+const soundToggles = [...document.querySelectorAll(".sound-toggle")];
+const exitGameButton = document.querySelector("#exit-game-button");
 const playerNameInput = document.querySelector("#player-name");
 const roomCodeInput = document.querySelector("#room-code");
 const setupMessage = document.querySelector("#setup-message");
@@ -35,10 +37,22 @@ const orderDetail = document.querySelector("#order-detail");
 const orderTimer = document.querySelector("#order-timer");
 const message = document.querySelector("#game-message");
 const socket = typeof io === "function" ? io() : null;
+const walkingSound = new Audio("Sound/walking-for-cartoon.mp3");
+walkingSound.loop = true;
+walkingSound.preload = "auto";
+walkingSound.volume = 0.8;
+const lobbyMusic = new Audio("Sound/background-music-lobby.mp3");
+lobbyMusic.loop = true;
+lobbyMusic.preload = "auto";
+lobbyMusic.volume = 0.35;
+const gameMusic = new Audio("Sound/background-music-map2.mp3");
+gameMusic.loop = true;
+gameMusic.preload = "auto";
+gameMusic.volume = 0.35;
 const heldItemIcons = { ingredients: "#held-ingredients", cooking: "#held-cooking", soup: "#held-soup", stirFry: "#held-stir-fry" };
 const objects = [...document.querySelectorAll(".object")].map((element) => ({ element, name: element.dataset.object, x: Number(element.dataset.x), y: Number(element.dataset.y) }));
 const menus = [{ name: "Garden Soup", tool: "pot" }, { name: "Sizzling Stir-Fry", tool: "pan" }];
-const playerState = { x: 500, y: 350, speed: 4.5, radius: 32 };
+const playerState = { x: 500, y: 350, speed: 2, radius: 32 };
 const playerSprites = {
   down: [
     { href: "animation_walk/Stand%20still.png", width: 108, height: 66 },
@@ -79,10 +93,53 @@ let roomState;
 let selfId;
 let playerDirection = "down";
 let lastSpriteKey = "";
+let soundEnabled = true;
 let multiplayerInput = { left: false, right: false, up: false, down: false };
 
 function showScreen(screen) {
   [startScreen, multiplayerScreen, lobbyScreen, gameScreen, resultsScreen].forEach((item) => { item.hidden = item !== screen; });
+  if (screen !== gameScreen) syncWalkingSound(false);
+  syncLobbyMusic(screen === startScreen);
+  syncGameMusic(screen === gameScreen);
+}
+
+function syncLobbyMusic(active) {
+  if (active) {
+    if (lobbyMusic.paused) lobbyMusic.play().catch(() => {});
+    return;
+  }
+  lobbyMusic.pause();
+  lobbyMusic.currentTime = 0;
+}
+
+function syncGameMusic(active) {
+  if (active) {
+    if (gameMusic.paused) gameMusic.play().catch(() => {});
+    return;
+  }
+  gameMusic.pause();
+  gameMusic.currentTime = 0;
+}
+
+function updateSound() {
+  lobbyMusic.muted = !soundEnabled;
+  gameMusic.muted = !soundEnabled;
+  soundToggles.forEach((soundToggle) => {
+    soundToggle.textContent = soundEnabled ? "🎵 Music" : "🔇 Music Off";
+    soundToggle.setAttribute("aria-pressed", `${!soundEnabled}`);
+    soundToggle.setAttribute("aria-label", soundEnabled ? "Turn music off" : "Turn music on");
+  });
+  if (soundEnabled && !startScreen.hidden) syncLobbyMusic(true);
+  if (soundEnabled && !gameScreen.hidden) syncGameMusic(true);
+}
+
+function syncWalkingSound(moving) {
+  if (moving && gameRunning) {
+    if (walkingSound.paused) walkingSound.play().catch(() => {});
+    return;
+  }
+  walkingSound.pause();
+  walkingSound.currentTime = 0;
 }
 
 function setPlayerPosition() {
@@ -240,7 +297,10 @@ function soloInteract() {
 }
 
 function moveSolo() {
-  if (!gameRunning || mode !== "solo") return;
+  if (!gameRunning || mode !== "solo") {
+    syncWalkingSound(false);
+    return;
+  }
   let dx = 0;
   let dy = 0;
   if (keys.has("arrowleft") || keys.has("a")) dx -= 1;
@@ -255,17 +315,35 @@ function moveSolo() {
     positionCookingStatus();
     updatePrompt();
   }
+  syncWalkingSound(Boolean(dx || dy));
   updatePlayerSprite(dx, dy, Boolean(dx || dy));
   animationId = requestAnimationFrame(moveSolo);
 }
 
 function endSoloGame() {
   gameRunning = false;
+  syncWalkingSound(false);
+  syncGameMusic(false);
   clearInventory();
   cancelAnimationFrame(animationId);
   clearInterval(timerId);
   clearInterval(orderTimerId);
   window.setTimeout(() => showScreen(startScreen), 700);
+}
+
+function exitGame() {
+  gameRunning = false;
+  keys.clear();
+  multiplayerInput = { left: false, right: false, up: false, down: false };
+  syncWalkingSound(false);
+  clearInventory();
+  cancelAnimationFrame(animationId);
+  clearInterval(timerId);
+  clearInterval(orderTimerId);
+  if (mode === "multiplayer") socket?.emit("leave-room");
+  roomState = null;
+  otherPlayers.replaceChildren();
+  showScreen(startScreen);
 }
 
 function startSoloGame() {
@@ -351,7 +429,9 @@ function renderMultiplayerState(state) {
     playerState.y = me.y;
     inventory = me.inventory;
     setPlayerPosition();
-    updatePlayerSprite(dx, dy, Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01, Date.now());
+    const moving = Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01;
+    updatePlayerSprite(dx, dy, moving, Date.now());
+    syncWalkingSound(moving);
     updateHeldItem();
   }
   score = state.score;
@@ -436,8 +516,22 @@ readyButton.addEventListener("click", () => socket?.emit("toggle-ready"));
 startRoundButton.addEventListener("click", () => socket?.emit("start-round"));
 leaveRoomButton.addEventListener("click", () => { socket?.emit("leave-room"); roomState = null; showScreen(startScreen); });
 resultsButton.addEventListener("click", () => { socket?.emit("leave-room"); roomState = null; showScreen(startScreen); });
+soundToggles.forEach((soundToggle) => {
+  soundToggle.addEventListener("click", () => {
+    soundEnabled = !soundEnabled;
+    updateSound();
+  });
+});
+exitGameButton.addEventListener("click", exitGame);
+
+window.addEventListener("pointerdown", () => {
+  if (!startScreen.hidden) syncLobbyMusic(true);
+  if (!gameScreen.hidden) syncGameMusic(true);
+});
 
 window.addEventListener("keydown", (event) => {
+  if (!startScreen.hidden) syncLobbyMusic(true);
+  if (!gameScreen.hidden) syncGameMusic(true);
   const key = event.key.toLowerCase();
   if (["arrowleft", "arrowright", "arrowup", "arrowdown", " "].includes(key)) event.preventDefault();
   if (key === "e") {
