@@ -31,7 +31,7 @@ After 40 seconds, the game stops, clears its timers and animation loop, waits br
 
 ## Visual Design
 
-The game world is drawn entirely with SVG: patterned floor, room border, labels, four kitchen stations, player character, shadows, and interaction prompt. CSS adds a warm cream, brown, coral, blue, and gold palette, responsive sizing, rounded panels, hover states, and mobile-friendly HUD stacking.
+The game world uses inline SVG for the patterned floor, room border, labels, four kitchen stations, player placement, shadows, and interaction prompt. The local player is rendered with `animation_walk/Stand still.png` as a transparent PNG sprite inside the SVG. CSS adds a warm cream, brown, coral, blue, and gold palette, responsive sizing, rounded panels, hover states, and mobile-friendly HUD stacking.
 
 ## Technical Notes
 
@@ -73,6 +73,15 @@ Cooking status is explicitly reset to an empty bar at the start of every cooking
 
 The solo cooking animation now stops updating when cooking completes and cancels its pending animation frame before setting the station to READY. This prevents a final animation frame from overwriting READY with COOKING. Source validation is complete; browser validation should confirm that READY remains visible until the food is picked up.
 
+## Player Sprite Update
+
+The local player's original circle-based SVG avatar has been replaced with the transparent `animation_walk/Stand still.png` sprite. The sprite stays centered on the existing player position and preserves the original movement bounds, collision radius, held-food indicator, and interaction behavior. Source validation confirmed the asset reference and SVG layering; browser visual validation remains recommended because browser control was unavailable in the current environment.
+
+## Directional Walk Animation
+
+The local player now uses the images in `animation_walk` as a directional sprite set. Movement remembers the most recent facing direction, switches to a matching standing pose when movement stops, and cycles walking poses every 140 milliseconds while moving. Per-frame SVG dimensions and a shared bottom-center anchor compensate for the source images having different canvas sizes, reducing visible jumping without modifying the original PNG files. Solo movement animates continuously; multiplayer snapshots select the corresponding local-player direction and walking frame. Source review confirmed all sprite paths, directional selection, idle fallback, and reset behavior. Browser visual validation on desktop and a narrow screen remains recommended.
+
+The left- and right-facing standing sprites are displayed about 10% smaller than their original animation sizing while retaining the same bottom-center foot anchor. This better matches their visual scale to the surrounding walking frames without changing the PNG assets.
 ## Hosted Deployment Preparation
 
 The Node.js server now explicitly listens on `0.0.0.0` and exposes `GET /health` for hosted-service health checks. For Render, configure the repository as a Web Service with root directory `server`, build command `npm install`, and start command `npm start`. The service uses Render's `PORT` environment variable and serves the game and Socket.IO from the same origin. Multiplayer rooms remain in memory and are lost whenever the service restarts or sleeps.

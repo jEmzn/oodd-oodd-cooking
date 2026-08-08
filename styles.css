@@ -67,6 +67,7 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
 .object-label { fill: #493a2c; font-size: 15px; font-weight: 800; letter-spacing: 2px; }
 .object-score { fill: #9b8975; font-size: 13px; }
 .player-shadow { fill: #493a2c; opacity: .2; }
+.player-sprite { pointer-events: none; }
 .remote-player-shadow { fill: #493a2c; opacity: .16; }
 .remote-player-body { fill: #4d8f9d; stroke: #395e66; stroke-width: 4; }
 .remote-player-face { fill: #ffd99d; stroke: #c38a58; stroke-width: 2; }
