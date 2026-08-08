@@ -56,6 +56,7 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
 .hud-stats strong { margin-top: 3px; font-size: 1.5rem; }
 #timer.warning { color: #ba6849; }
 .game-shell { overflow: hidden; border: 4px solid #d7c7b2; border-radius: 28px; background: #f7f1e8; box-shadow: 0 20px 50px #493a2c18; }
+.game-stage { position: relative; }
 #game-world { display: block; width: 100%; height: auto; }
 .mobile-controls { display: none; }
 .room-label { fill: #c4b19b; font-size: 15px; font-weight: 800; letter-spacing: 4px; }
@@ -101,7 +102,7 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
   .orientation-warning span { color: #7e6b59; }
 }
 
-@media (pointer: coarse) and (orientation: landscape) and (max-height: 600px) {
+@media (pointer: coarse) and (orientation: landscape) {
   .screen { padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
   .game-screen { display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 0; padding-top: max(10px, env(safe-area-inset-top)); overflow: hidden; }
   .hud { gap: 8px; margin-bottom: 8px; }
@@ -113,7 +114,8 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
   .order-kicker { margin-bottom: 2px; font-size: .55rem; }
   .hud-stats div { min-width: 62px; padding: 6px 9px; }
   .hud-stats strong { font-size: 1.1rem; }
-  .game-shell { position: relative; display: flex; flex: 1; align-items: center; justify-content: center; min-height: 0; }
+  .game-shell { flex: 1 1 auto; min-height: 0; }
+  .game-stage { display: flex; align-items: center; justify-content: center; height: 100%; min-height: 0; }
   #game-world { width: 100%; height: 100%; object-fit: contain; }
   .game-message { min-height: 18px; margin: 6px 0 0; font-size: .75rem; }
   .mobile-controls { position: absolute; inset: auto 0 8px; margin: 0; padding: 0 14px; }
@@ -130,3 +132,22 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
 .order-card p:not(.order-kicker) { margin: 5px 0 8px; color: #7e6b59; font-size: .85rem; }
 .order-card strong { color: #ba6849; font-size: .9rem; }
 #order-timer.warning { color: #9f332d; }
+
+@media (pointer: coarse) and (orientation: landscape) {
+  .game-screen { height: 100dvh; min-height: 0; padding-top: max(6px, env(safe-area-inset-top)); padding-bottom: max(4px, env(safe-area-inset-bottom)); overflow: hidden; }
+  .hud { flex: 0 0 auto; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .hud > div:first-child { min-width: 0; }
+  .hud h2 { overflow: hidden; font-size: clamp(1rem, 4vw, 1.45rem); text-overflow: ellipsis; white-space: nowrap; }
+  .eyebrow { margin-bottom: 2px; font-size: .55rem; letter-spacing: .12em; }
+  .hud-stats { flex-shrink: 0; gap: 5px; }
+  .hud-stats div { min-width: 52px; padding: 4px 7px; border-radius: 10px; }
+  .hud-stats span { font-size: .52rem; }
+  .hud-stats strong { margin-top: 1px; font-size: .95rem; }
+  .game-stage { height: 100%; }
+  .game-stage > .order-card { position: absolute; z-index: 3; top: 8px; left: 8px; width: clamp(150px, 28vw, 180px); max-width: calc(100% - 16px); margin: 0; padding: 7px 9px; border-width: 1px; border-radius: 10px; box-shadow: 0 4px 10px #493a2c18; }
+  .game-stage > .order-card .order-kicker { margin-bottom: 2px; font-size: .5rem; letter-spacing: .1em; }
+  .game-stage > .order-card h3 { overflow: hidden; font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
+  .game-stage > .order-card p:not(.order-kicker) { margin: 2px 0 3px; font-size: .58rem; line-height: 1.2; }
+  .game-stage > .order-card strong { font-size: .68rem; }
+  .game-message { flex: 0 0 auto; min-height: 12px; margin: 3px 0 0; font-size: .62rem; }
+}

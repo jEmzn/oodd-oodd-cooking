@@ -12,7 +12,7 @@ const menus = [
   { name: "Sizzling Stir-Fry", tool: "pan" }
 ];
 const stations = {
-  ingredients: { x: 180, y: 220 },
+  ingredients: { x: 180, y: 430 },
   pot: { x: 425, y: 205 },
   pan: { x: 750, y: 205 },
   serve: { x: 500, y: 455 }
