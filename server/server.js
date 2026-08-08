@@ -12,16 +12,20 @@ const menus = [
   { name: "Sizzling Stir-Fry", tool: "pan" }
 ];
 const stations = {
-  ingredients: { x: 180, y: 220 },
+  ingredients: { x: 180, y: 430 },
   pot: { x: 425, y: 205 },
   pan: { x: 750, y: 205 },
   serve: { x: 500, y: 455 }
 };
 const startingPosition = { x: 500, y: 350 };
-const playerSpeed = 4.5;
+const playerSpeed = 150;
 const interactionDistance = 104;
 
 app.use(express.static(path.join(__dirname, "..")));
+
+app.get("/health", (request, response) => {
+  response.json({ status: "ok" });
+});
 
 function normalizeName(value) {
   return String(value || "").trim().replace(/\s+/g, " ").slice(0, 18);
@@ -69,7 +73,8 @@ function createRoom(socket, name) {
     players: new Map([[socket.id, player]]),
     game: newGame(),
     timer: null,
-    movementTimer: null
+    movementTimer: null,
+    lastMovementAt: null
   };
   rooms.set(code, room);
   socket.join(code);
@@ -133,12 +138,14 @@ function clearRoomTimers(room) {
   if (room.movementTimer) clearInterval(room.movementTimer);
   room.timer = null;
   room.movementTimer = null;
+  room.lastMovementAt = null;
 }
 
 function startRound(room) {
   resetPlayers(room);
   room.status = "playing";
   room.game = newGame();
+  room.lastMovementAt = Date.now();
   room.timer = setInterval(() => {
     room.game.secondsLeft -= 1;
     room.game.orderSecondsLeft -= 1;
@@ -175,6 +182,9 @@ function expireOrder(room) {
 }
 
 function updateMovement(room) {
+  const now = Date.now();
+  const delta = room.lastMovementAt ? Math.min((now - room.lastMovementAt) / 1000, 0.1) : 0;
+  room.lastMovementAt = now;
   room.players.forEach((player) => {
     let dx = 0;
     let dy = 0;
@@ -184,8 +194,8 @@ function updateMovement(room) {
     if (player.input.down) dy += 1;
     if (!dx && !dy) return;
     const length = Math.hypot(dx, dy);
-    player.x = Math.max(65, Math.min(935, player.x + (dx / length) * playerSpeed));
-    player.y = Math.max(105, Math.min(555, player.y + (dy / length) * playerSpeed));
+    player.x = Math.max(65, Math.min(935, player.x + (dx / length) * playerSpeed * delta));
+    player.y = Math.max(105, Math.min(555, player.y + (dy / length) * playerSpeed * delta));
   });
   io.to(room.code).emit("room-state", publicState(room));
 }
@@ -334,6 +344,15 @@ io.on("connection", (socket) => {
     startRound(room);
   });
 
+  socket.on("play-again", () => {
+    const room = roomFor(socket);
+    if (!room || room.status !== "results" || room.hostId !== socket.id) return socket.emit("game-message", "Only the host can start another round.");
+    resetPlayers(room);
+    room.game = newGame();
+    room.status = "lobby";
+    broadcastRoom(room, "Ready for another shift!");
+  });
+
   socket.on("move-input", (input = {}) => {
     const room = roomFor(socket);
     const player = room && room.players.get(socket.id);
@@ -352,6 +371,7 @@ io.on("connection", (socket) => {
 });
 
 const port = Number(process.env.PORT) || 3000;
-httpServer.listen(port, () => {
+const host = "0.0.0.0";
+httpServer.listen(port, host, () => {
   console.log(`Oodd Oodd Cooking server listening on port ${port}`);
 });
