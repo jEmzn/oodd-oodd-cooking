@@ -52,7 +52,7 @@ gameMusic.volume = 0.35;
 const heldItemIcons = { ingredients: "#held-ingredients", cooking: "#held-cooking", soup: "#held-soup", stirFry: "#held-stir-fry" };
 const objects = [...document.querySelectorAll(".object")].map((element) => ({ element, name: element.dataset.object, x: Number(element.dataset.x), y: Number(element.dataset.y) }));
 const menus = [{ name: "Garden Soup", tool: "pot" }, { name: "Sizzling Stir-Fry", tool: "pan" }];
-const playerState = { x: 500, y: 350, speed: 2, radius: 32 };
+const playerState = { x: 500, y: 350, speed: 4.5, radius: 32 };
 const playerSprites = {
   down: [
     { href: "animation_walk/Stand%20still.png", width: 108, height: 66 },
