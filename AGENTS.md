@@ -35,3 +35,5 @@ No Git history is available, so use short, imperative commit subjects such as `F
 ## Security & Configuration
 
 Do not commit secrets, credentials, or local environment files. Keep the app dependency-free where practical and review any future third-party scripts before adding them.
+
+

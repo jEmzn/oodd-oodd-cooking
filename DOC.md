@@ -117,3 +117,9 @@ Solo rounds now end on the results screen instead of returning directly to the s
 ## Game Text Copy Protection
 
 Text selection, copying, cutting, and context-menu actions are disabled within the game screen, including HUD text, order details, SVG labels, prompts, and status messages. Other screens remain selectable and copyable, and game controls continue to accept keyboard, pointer, and touch input. Source validation was completed; browser validation of desktop selection and mobile long-press behavior remains recommended.
+
+## Timed Order Queue
+
+Solo and multiplayer rounds now maintain a shared-style queue of up to five customer orders. One order appears when a round starts, and the game attempts to add another order every seven seconds while the queue has space. Each order has its own 15-second expiry timer; generation pauses at five queued orders. The game UI displays all waiting orders with individual countdowns.
+
+Cooking is now free-form: players may collect ingredients and cook Garden Soup at the pot or Sizzling Stir-Fry at the pan without following a particular displayed order. Serving removes the oldest waiting order matching the held dish and increases the score. A cooked dish remains in the player inventory when no matching order is available. The multiplayer `room-state` payload now sends an `orders` array instead of a single `currentOrder` and shared `orderSecondsLeft` value. JavaScript syntax validation passes; browser validation of timed queue growth, expiry, serving, and mobile layout remains recommended.

@@ -124,6 +124,24 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
   .interact-button { min-width: 76px; min-height: 48px; }
 }
 
+.order-card { width: min(100%, 440px); max-width: 440px; }
+.order-list { display: grid; gap: 7px; max-height: 250px; overflow-y: auto; }
+.order-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 1px solid #eadfce; border-radius: 10px; background: #fbf8f3; }
+.order-row h3 { margin: 0; font-size: .9rem; }
+.order-row p { margin: 3px 0 0; color: #7e6b59; font-size: .72rem; }
+.order-row strong { flex: 0 0 auto; color: #ba6849; font-size: .78rem; }
+.order-row strong.warning { color: #9f332d; }
+.order-empty { margin: 0; color: #7e6b59; font-size: .85rem; }
+
+@media (pointer: coarse) and (orientation: landscape) {
+  .game-stage > .order-card { max-width: min(440px, calc(100% - 16px)); }
+  .game-stage > .order-card .order-list { max-height: 170px; }
+  .game-stage > .order-card .order-row { gap: 6px; padding: 5px 6px; }
+  .game-stage > .order-card .order-row h3 { font-size: .68rem; }
+  .game-stage > .order-card .order-row p { margin-top: 1px; font-size: .5rem; }
+  .game-stage > .order-card .order-row strong { font-size: .58rem; }
+}
+
 
 
 .order-card { max-width: 360px; margin-top: 16px; padding: 16px 18px; border: 2px solid #eadfce; border-radius: 18px; background: #fffdf9; box-shadow: 0 8px 20px #493a2c10; }
