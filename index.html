@@ -62,9 +62,12 @@
           <p class="eyebrow">Kitchen shift</p>
           <h2>Oodd Oodd Cooking</h2>
         </div>
-        <div class="hud-stats">
-          <div><span>Time</span><strong id="timer">60</strong></div>
-          <div><span>Orders</span><strong id="score">0</strong></div>
+        <div class="hud-actions">
+          <div class="hud-stats">
+            <div><span>Time</span><strong id="timer">40</strong></div>
+            <div><span>Orders</span><strong id="score">0</strong></div>
+          </div>
+          <button id="fullscreen-button" class="button button-secondary fullscreen-button" type="button" aria-label="Enter fullscreen">Fullscreen</button>
         </div>
       </header>
 
@@ -127,7 +130,10 @@
             <text x="0" y="6" text-anchor="middle" class="prompt-label">PRESS E TO INTERACT</text>
           </g>
           </svg>
-          <section class="order-card" aria-live="polite"><p class="order-kicker">Customer order</p><h3 id="order-name">Waiting for an order</h3><p id="order-detail">Collect ingredients to get started.</p><strong><span id="order-timer">15</span>s left</strong></section>
+          <section id="order-card" class="order-card" aria-live="polite">
+            <p class="order-kicker">Customer orders</p>
+            <div id="order-list" class="order-list"></div>
+          </section>
           <div id="mobile-controls" class="mobile-controls" aria-label="Touch controls">
             <div class="direction-pad" aria-label="Movement">
               <button class="control-button direction-button direction-up" type="button" data-direction="up" aria-label="Move up">▲</button>

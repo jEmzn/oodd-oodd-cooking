@@ -13,6 +13,7 @@ const startRoundButton = document.querySelector("#start-round-button");
 const leaveRoomButton = document.querySelector("#leave-room-button");
 const playAgainButton = document.querySelector("#play-again-button");
 const resultsButton = document.querySelector("#results-button");
+const fullscreenButton = document.querySelector("#fullscreen-button");
 const mobileInteractButton = document.querySelector("#mobile-interact-button");
 const directionButtons = [...document.querySelectorAll("[data-direction]")];
 const soundToggles = [...document.querySelectorAll(".sound-toggle")];
@@ -38,9 +39,7 @@ const heldItem = document.querySelector("#held-item");
 const promptElement = document.querySelector("#interaction-prompt");
 const timerElement = document.querySelector("#timer");
 const scoreElement = document.querySelector("#score");
-const orderName = document.querySelector("#order-name");
-const orderDetail = document.querySelector("#order-detail");
-const orderTimer = document.querySelector("#order-timer");
+const orderList = document.querySelector("#order-list");
 const message = document.querySelector("#game-message");
 const socket = typeof io === "function" ? io() : null;
 const walkingSound = new Audio("Sound/walking-for-cartoon.mp3");
@@ -85,22 +84,25 @@ const playerSprites = {
 };
 const keys = new Set();
 let score = 0;
-let secondsLeft = 60;
-let orderSecondsLeft = 15;
-let currentOrder;
+let secondsLeft = 40;
+let orders = [];
 let inventory = "empty";
 let cooking = false;
 let timerId;
 let orderTimerId;
+let orderGenerationId;
 let animationId;
 let cookingTimeoutId;
 let cookingAnimationId;
 let cookingStartedAt;
 let cookingTool;
+let cookingMenu;
+let orderSequence = 0;
 let gameRunning = false;
 let mode = "solo";
 let roomState;
 let selfId;
+let fullscreenFallback = false;
 let playerDirection = "down";
 let lastSpriteKey = "";
 let soundEnabled = true;
@@ -160,8 +162,70 @@ function releaseAllTouchDirections() {
   directionButtons.forEach((button) => releaseTouchDirection(button));
 }
 
+function getFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function updateFullscreenButton() {
+  const active = Boolean(getFullscreenElement()) || fullscreenFallback;
+  fullscreenButton.textContent = active ? "Exit Fullscreen" : "Fullscreen";
+  fullscreenButton.setAttribute("aria-label", active ? "Exit fullscreen" : "Enter fullscreen");
+  fullscreenButton.setAttribute("aria-pressed", `${active}`);
+}
+
+function clearFullscreenFallback() {
+  fullscreenFallback = false;
+  gameScreen.classList.remove("fullscreen-fallback");
+  updateFullscreenButton();
+}
+
+function exitNativeFullscreen() {
+  if (document.fullscreenElement && document.exitFullscreen) return document.exitFullscreen();
+  if (document.webkitFullscreenElement && document.webkitExitFullscreen) return document.webkitExitFullscreen();
+  return null;
+}
+
+function clearFullscreenPresentation() {
+  clearFullscreenFallback();
+  if (getFullscreenElement()) exitNativeFullscreen();
+}
+
+function requestLandscapeLock() {
+  if (screen.orientation?.lock) screen.orientation.lock("landscape").catch(() => {});
+}
+
+async function enterFullscreen() {
+  try {
+    if (gameScreen.requestFullscreen) {
+      await gameScreen.requestFullscreen({ navigationUI: "hide" });
+    } else if (gameScreen.webkitRequestFullscreen) {
+      await gameScreen.webkitRequestFullscreen();
+    } else {
+      throw new Error("Fullscreen is not supported.");
+    }
+    fullscreenFallback = false;
+    gameScreen.classList.remove("fullscreen-fallback");
+    requestLandscapeLock();
+  } catch (error) {
+    fullscreenFallback = true;
+    gameScreen.classList.add("fullscreen-fallback");
+    setMessage("Native fullscreen is unavailable; expanded landscape view is active.");
+  }
+  updateFullscreenButton();
+}
+
+function toggleFullscreen() {
+  if (getFullscreenElement() || fullscreenFallback) {
+    if (getFullscreenElement()) exitNativeFullscreen();
+    clearFullscreenFallback();
+    return;
+  }
+  enterFullscreen();
+}
+
 function showScreen(screen) {
   [startScreen, multiplayerScreen, lobbyScreen, gameScreen, resultsScreen].forEach((item) => { item.hidden = item !== screen; });
+  if (screen !== gameScreen) clearFullscreenPresentation();
   if (screen !== gameScreen) riceChooser.hidden = true;
   if (screen !== gameScreen) syncWalkingSound(false);
   syncLobbyMusic(screen === startScreen);
@@ -294,17 +358,50 @@ function blockGamePageCopy(event) {
 }
 
 function updateOrder() {
-  if (!currentOrder) return;
-  orderName.textContent = currentOrder.name;
-  orderDetail.textContent = `Collect ${currentOrder.ingredients}, cook with the ${currentOrder.tool}, then serve it.`;
-  orderTimer.textContent = orderSecondsLeft;
-  orderTimer.classList.toggle("warning", orderSecondsLeft <= 5);
+  orderList.replaceChildren();
+  if (!orders.length) {
+    const empty = document.createElement("p");
+    empty.className = "order-empty";
+    empty.textContent = "No customers are waiting.";
+    orderList.append(empty);
+    return;
+  }
+  const now = Date.now();
+  orders.forEach((order) => {
+    const row = document.createElement("article");
+    row.className = "order-row";
+    const details = document.createElement("div");
+    const name = document.createElement("h3");
+    name.textContent = order.name;
+    const detail = document.createElement("p");
+    detail.textContent = `Use the ${order.tool}, then serve it.`;
+    const remaining = Math.max(0, Math.ceil((order.expiresAt - now) / 1000));
+    const countdown = document.createElement("strong");
+    countdown.className = remaining <= 5 ? "warning" : "";
+    countdown.textContent = `${remaining}s`;
+    details.append(name, detail);
+    row.append(details, countdown);
+    orderList.append(row);
+  });
 }
 
 function generateOrder() {
-  currentOrder = menus[Math.floor(Math.random() * menus.length)];
-  orderSecondsLeft = 15;
+  if (orders.length >= 5) return false;
+  const menu = menus[Math.floor(Math.random() * menus.length)];
+  const createdAt = Date.now();
+  orders.push({ id: `solo-${createdAt}-${orderSequence++}`, name: menu.name, tool: menu.tool, createdAt, expiresAt: createdAt + 15000 });
   updateOrder();
+  return true;
+}
+
+function expireOrders() {
+  const now = Date.now();
+  const remaining = orders.filter((order) => order.expiresAt > now);
+  if (remaining.length !== orders.length) {
+    orders = remaining;
+    updateOrder();
+    setMessage("A customer left. The remaining orders are still waiting.");
+  }
 }
 
 function clearInventory() {
@@ -331,7 +428,7 @@ function updatePrompt() {
 function cook(tool) {
   if (cooking) return setMessage("Cooking is already in progress.");
   if (inventory !== "ingredients") return setMessage("Collect the ingredients first.");
-  if (currentOrder.tool !== tool) return setMessage(`This order needs the ${currentOrder.tool}, not the ${tool}.`);
+  cookingMenu = menus.find((menu) => menu.tool === tool);
   cooking = true;
   inventory = "cooking";
   cookingTool = tool;
@@ -347,7 +444,7 @@ function cook(tool) {
     window.cancelAnimationFrame(cookingAnimationId);
     inventory = "ready";
     updateCookingStatus(1, "READY");
-    setMessage(`Your ${currentOrder.name} is ready. Pick it up from the ${cookingTool}.`);
+    setMessage(`Your ${cookingMenu.name} is ready. Pick it up from the ${cookingTool}.`);
     updatePrompt();
   }, 2000);
 }
@@ -382,14 +479,23 @@ function soloInteract() {
   }
   if (cookingTools.has(name)) {
     if (inventory === "ready") {
-      if (name === cookingTool) { inventory = `cooked-${currentOrder.name}`; hideCookingStatus(); updateHeldItem(); setMessage(`You picked up the ${currentOrder.name}. Take it to the serve point.`); }
+      if (name === cookingTool) { inventory = `cooked-${cookingMenu.name}`; hideCookingStatus(); updateHeldItem(); setMessage(`You picked up the ${cookingMenu.name}. Take it to the serve point.`); }
       else setMessage(`Your menu is ready at the ${cookingTool}.`);
     } else cook(name);
     return;
   }
-  if (inventory === `cooked-${currentOrder.name}`) { score += 1; scoreElement.textContent = score; clearInventory(); generateOrder(); setMessage("Order served! A new customer is waiting."); }
-  else if (inventory === "cooking") setMessage("The food is still cooking.");
-  else setMessage("Cook the ordered menu before serving it.");
+  const menuName = inventory.startsWith("cooked-") ? inventory.slice(7) : null;
+  const matchingOrder = orders.find((order) => order.name === menuName);
+  if (matchingOrder) {
+    orders = orders.filter((order) => order.id !== matchingOrder.id);
+    score += 1;
+    scoreElement.textContent = score;
+    clearInventory();
+    updateOrder();
+    setMessage("Order served! A new customer is waiting.");
+  } else if (inventory === "cooking") setMessage("The food is still cooking.");
+  else if (menuName) setMessage("No matching customer is waiting for that menu.");
+  else setMessage("Cook a menu before serving it.");
 }
 
 function moveSolo() {
@@ -469,6 +575,7 @@ function endSoloGame() {
   cancelAnimationFrame(animationId);
   clearInterval(timerId);
   clearInterval(orderTimerId);
+  clearInterval(orderGenerationId);
   window.setTimeout(() => showSoloResults(), 700);
 }
 
@@ -506,6 +613,7 @@ function startSoloGame() {
   lastSpriteKey = "";
   updatePlayerSprite();
   clearInventory();
+  orders = [];
   generateOrder();
   setMovementHint();
   setPlayerPosition();
@@ -513,6 +621,7 @@ function startSoloGame() {
   updatePrompt();
   clearInterval(timerId);
   clearInterval(orderTimerId);
+  clearInterval(orderGenerationId);
   timerId = window.setInterval(() => {
     secondsLeft -= 1;
     timerElement.textContent = secondsLeft;
@@ -520,10 +629,10 @@ function startSoloGame() {
     if (secondsLeft <= 0) endSoloGame();
   }, 1000);
   orderTimerId = window.setInterval(() => {
-    orderSecondsLeft -= 1;
+    expireOrders();
     updateOrder();
-    if (orderSecondsLeft <= 0) { clearInventory(); generateOrder(); setMessage("The customer left. A new order is ready."); }
   }, 1000);
+  orderGenerationId = window.setInterval(() => generateOrder(), 7000);
   cancelAnimationFrame(animationId);
   animationId = requestAnimationFrame(moveSolo);
 }
@@ -656,12 +765,11 @@ function renderMultiplayerState(state) {
   if (state.selfId) selfId = state.selfId;
   const me = state.players.find((item) => item.id === selfId);
   if (me) {
-    const dx = me.x - authoritativePosition.x;
-    const dy = me.y - authoritativePosition.y;
-    const startingRound = state.status === "playing" && !gameRunning;
+    const dx = me.x - playerState.x;
+    const dy = me.y - playerState.y;
     authoritativePosition.x = me.x;
     authoritativePosition.y = me.y;
-    if (startingRound) {
+    if (!gameRunning) {
       predictedPosition.x = me.x;
       predictedPosition.y = me.y;
       playerState.x = me.x;
@@ -676,8 +784,7 @@ function renderMultiplayerState(state) {
   }
   score = state.score;
   secondsLeft = state.secondsLeft;
-  orderSecondsLeft = state.orderSecondsLeft;
-  currentOrder = state.currentOrder;
+  orders = state.orders || [];
   scoreElement.textContent = score;
   timerElement.textContent = secondsLeft;
   timerElement.classList.toggle("warning", secondsLeft <= 10);
@@ -797,6 +904,7 @@ playAgainButton.addEventListener("click", () => {
   }
   socket?.emit("play-again");
 });
+fullscreenButton.addEventListener("click", toggleFullscreen);
 riceOptionButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const rice = button.dataset.rice;
@@ -861,5 +969,8 @@ if (socket) {
   socket.on("game-message", (text) => { setMessage(text); lobbyMessage.textContent = text; setupMessage.textContent = text; });
   socket.on("disconnect", () => { if (mode === "multiplayer") { gameRunning = false; stopMultiplayerAnimation(); clearRemotePlayers(); setupMessage.textContent = "Disconnected from the kitchen server."; showScreen(multiplayerScreen); } });
 }
+
+document.addEventListener("fullscreenchange", updateFullscreenButton);
+document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
 
 showScreen(startScreen);

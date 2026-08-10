@@ -31,6 +31,9 @@ const stations = {
 const startingPosition = { x: 500, y: 350 };
 const playerSpeed = 150;
 const interactionDistance = 104;
+const orderLifetime = 15000;
+const orderInterval = 7;
+const maxOrders = 5;
 
 app.use(express.static(path.join(__dirname, "..")));
 
@@ -51,6 +54,12 @@ function createRoomCode() {
   return code;
 }
 
+function createOrder() {
+  const menu = menus[Math.floor(Math.random() * menus.length)];
+  const createdAt = Date.now();
+  return { id: `order-${createdAt}-${Math.random().toString(36).slice(2, 8)}`, name: menu.name, tool: menu.tool, createdAt, expiresAt: createdAt + orderLifetime };
+}
+
 function newPlayer(id, name) {
   return {
     id,
@@ -66,9 +75,9 @@ function newPlayer(id, name) {
 
 function newGame() {
   return {
-    secondsLeft: 60,
-    orderSecondsLeft: 15,
-    currentOrder: menus[Math.floor(Math.random() * menus.length)],
+    secondsLeft: 40,
+    orders: [createOrder()],
+    orderGenerationElapsed: 0,
     score: 0,
     stations: Object.fromEntries([...cookingTools].map((tool) => [tool, null]))
   };
@@ -113,8 +122,7 @@ function publicState(room, selfId) {
       stats: player.stats
     })),
     secondsLeft: room.game.secondsLeft,
-    orderSecondsLeft: room.game.orderSecondsLeft,
-    currentOrder: room.game.currentOrder,
+    orders: room.game.orders,
     score: room.game.score,
     stations: room.game.stations
   };
@@ -159,9 +167,12 @@ function startRound(room) {
   room.lastMovementAt = Date.now();
   room.timer = setInterval(() => {
     room.game.secondsLeft -= 1;
-    room.game.orderSecondsLeft -= 1;
-    if (room.game.orderSecondsLeft <= 0) {
-      expireOrder(room);
+    expireOrders(room);
+    if (room.game.orders.length < maxOrders) room.game.orderGenerationElapsed += 1;
+    if (room.game.orders.length < maxOrders && room.game.orderGenerationElapsed >= orderInterval) {
+      room.game.orders.push(createOrder());
+      room.game.orderGenerationElapsed = 0;
+      io.to(room.code).emit("game-message", "A new customer order is ready.");
     }
     if (room.game.secondsLeft <= 0) {
       endRound(room);
@@ -182,14 +193,13 @@ function endRound(room) {
   broadcastRoom(room, "The shift is over.");
 }
 
-function expireOrder(room) {
-  room.players.forEach((player) => {
-    player.inventory = "empty";
-  });
-  room.game.stations = Object.fromEntries([...cookingTools].map((tool) => [tool, null]));
-  room.game.currentOrder = menus[Math.floor(Math.random() * menus.length)];
-  room.game.orderSecondsLeft = 15;
-  io.to(room.code).emit("game-message", "The customer left. A new order is ready.");
+function expireOrders(room) {
+  const now = Date.now();
+  const remaining = room.game.orders.filter((order) => order.expiresAt > now);
+  if (remaining.length !== room.game.orders.length) {
+    room.game.orders = remaining;
+    io.to(room.code).emit("game-message", "A customer left. The remaining orders are still waiting.");
+  }
 }
 
 function updateMovement(room) {
@@ -306,12 +316,13 @@ function interactWithCookStation(socket, room, player, tool) {
     socket.emit("game-message", "Collect the ingredients first.");
     return;
   }
-  if (room.game.currentOrder.tool !== tool) {
-    socket.emit("game-message", `This order needs the ${room.game.currentOrder.tool}, not the ${tool}.`);
+  if (station) {
+    socket.emit("game-message", "That station is currently in use.");
     return;
   }
   player.inventory = "cooking";
-  room.game.stations[tool] = { playerId: player.id, startedAt: Date.now(), complete: false };
+  const menu = menus.find((item) => item.tool === tool);
+  room.game.stations[tool] = { playerId: player.id, menuName: menu.name, startedAt: Date.now(), complete: false };
   socket.emit("game-message", `Cooking with the ${tool}... 2 seconds.`);
   setTimeout(() => {
     const currentRoom = rooms.get(room.code);
@@ -320,23 +331,26 @@ function interactWithCookStation(socket, room, player, tool) {
     if (!currentRoom || currentRoom.status !== "playing" || !currentPlayer || !currentStation || currentStation.playerId !== player.id) return;
     currentStation.complete = true;
     currentPlayer.inventory = "ready";
-    io.to(room.code).emit("game-message", `${currentPlayer.name}'s ${currentRoom.game.currentOrder.name} is ready.`);
+    io.to(room.code).emit("game-message", `${currentPlayer.name}'s ${currentStation.menuName} is ready.`);
     broadcastRoom(currentRoom);
   }, 2000);
 }
 
 function serveOrder(socket, room, player) {
-  if (player.inventory === `cooked-${room.game.currentOrder.name}`) {
+  const menuName = player.inventory.startsWith("cooked-") ? player.inventory.slice(7) : null;
+  const matchingOrder = room.game.orders.find((order) => order.name === menuName);
+  if (matchingOrder) {
     player.inventory = "empty";
     player.stats.ordersServed += 1;
     room.game.score += 1;
-    room.game.currentOrder = menus[Math.floor(Math.random() * menus.length)];
-    room.game.orderSecondsLeft = 15;
+    room.game.orders = room.game.orders.filter((order) => order.id !== matchingOrder.id);
     socket.emit("game-message", "Order served! A new customer is waiting.");
   } else if (player.inventory === "cooking") {
     socket.emit("game-message", "The food is still cooking.");
+  } else if (menuName) {
+    socket.emit("game-message", "No matching customer is waiting for that menu.");
   } else {
-    socket.emit("game-message", "Cook the ordered menu before serving it.");
+    socket.emit("game-message", "Cook a menu before serving it.");
   }
 }
 

@@ -152,6 +152,27 @@ Solo rounds now end on the results screen instead of returning directly to the s
 
 Text selection, copying, cutting, and context-menu actions are disabled within the game screen, including HUD text, order details, SVG labels, prompts, and status messages. Other screens remain selectable and copyable, and game controls continue to accept keyboard, pointer, and touch input. Source validation was completed; browser validation of desktop selection and mobile long-press behavior remains recommended.
 
+## Timed Order Queue
+
+Solo and multiplayer rounds now maintain a shared-style queue of up to five customer orders. One order appears when a round starts, and the game attempts to add another order every seven seconds while the queue has space. Each order has its own 15-second expiry timer; generation pauses at five queued orders. The game UI displays all waiting orders with individual countdowns.
+
+Cooking is now free-form: players may collect ingredients and cook Garden Soup at the pot or Sizzling Stir-Fry at the pan without following a particular displayed order. Serving removes the oldest waiting order matching the held dish and increases the score. A cooked dish remains in the player inventory when no matching order is available. The multiplayer `room-state` payload now sends an `orders` array instead of a single `currentOrder` and shared `orderSecondsLeft` value. JavaScript syntax validation passes; browser validation of timed queue growth, expiry, serving, and mobile layout remains recommended.
+
+## Repository Guidelines Update
+
+`AGENTS.md` now documents the current client/server structure, sprite assets, multiplayer development commands, 40-second gameplay validation checklist, synchronization requirements, and server-specific security considerations. Syntax validation with `node --check game.js` and `node --check server/server.js` passes; browser validation remains recommended for the full solo and multiplayer flows.
+
+## Mobile Home Screen Fit
+
+The start screen now uses the dynamic viewport and safe-area padding, prevents home-screen scrolling, and reduces title, intro, and button spacing on small screens. Mobile landscape and wider portrait layouts keep Solo Game and Multiplayer side by side; very narrow portrait screens stack the buttons as a fallback. Source validation passed; browser validation at narrow portrait, wider portrait, and 640x360 landscape sizes remains recommended.
+
+## Landscape Fullscreen Gameplay
+
+Gameplay now includes a Fullscreen toggle in the HUD. Solo and multiplayer modes use the standard Fullscreen API when available, with Safari-prefixed support and an expanded dynamic-viewport fallback when native fullscreen is rejected. Fullscreen state synchronizes with browser exit controls, attempts landscape orientation locking where supported, and is cleared when leaving gameplay. Source validation passed; Chrome, Safari, Android landscape, and iOS/iPadOS landscape browser validation remains recommended.
+
+## Mobile Fullscreen Layout Fix
+
+Fullscreen mobile landscape mode now restores the cream game background and compact landscape HUD/order-card styling. The order queue remains bounded and scrollable, preventing multiple orders from covering the pot or player, while the complete kitchen and touch controls retain their landscape placement. Source validation passed; fullscreen screenshot validation on Chrome and Safari landscape devices remains recommended.
 ## Pork Nae Character Update
 
 The local player now uses the four transparent PNG poses from `pork_nae_animation` instead of the previous `animation_walk` character. The standing, forward, left, and right poses are mapped to the existing directional movement system with a shared bottom-center anchor and consistent frame size. Source validation confirmed that the initial SVG sprite and all runtime sprite references use the new asset folder; browser visual validation remains recommended.
