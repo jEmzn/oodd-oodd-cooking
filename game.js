@@ -15,6 +15,11 @@ const playAgainButton = document.querySelector("#play-again-button");
 const resultsButton = document.querySelector("#results-button");
 const mobileInteractButton = document.querySelector("#mobile-interact-button");
 const directionButtons = [...document.querySelectorAll("[data-direction]")];
+const soundToggles = [...document.querySelectorAll(".sound-toggle")];
+const exitGameButton = document.querySelector("#exit-game-button");
+const riceChooser = document.querySelector("#rice-chooser");
+const riceOptionButtons = [...document.querySelectorAll("[data-rice]")];
+const closeRiceChooserButton = document.querySelector("#close-rice-chooser");
 const playerNameInput = document.querySelector("#player-name");
 const roomCodeInput = document.querySelector("#room-code");
 const setupMessage = document.querySelector("#setup-message");
@@ -38,33 +43,49 @@ const orderDetail = document.querySelector("#order-detail");
 const orderTimer = document.querySelector("#order-timer");
 const message = document.querySelector("#game-message");
 const socket = typeof io === "function" ? io() : null;
-const heldItemIcons = { ingredients: "#held-ingredients", cooking: "#held-cooking", soup: "#held-soup", stirFry: "#held-stir-fry" };
+const walkingSound = new Audio("Sound/walking-for-cartoon.mp3");
+walkingSound.loop = true;
+walkingSound.preload = "auto";
+walkingSound.volume = 0.8;
+const lobbyMusic = new Audio("Sound/background-music-lobby.mp3");
+lobbyMusic.loop = true;
+lobbyMusic.preload = "auto";
+lobbyMusic.volume = 0.35;
+const gameMusic = new Audio("Sound/background-music-map2.mp3");
+gameMusic.loop = true;
+gameMusic.preload = "auto";
+gameMusic.volume = 0.35;
+const heldItemIcons = { ingredients: "#held-ingredients", cooking: "#held-cooking", soup: "#held-soup", stirFry: "#held-stir-fry", grilledPork: "#held-grilled-pork", steamedRice: "#held-steamed-rice", stickyRice: "#held-sticky-rice", meat: "#held-meat", vegetable: "#held-vegetable", egg: "#held-egg", sauce: "#held-sauce", plate: "#held-plate" };
 const objects = [...document.querySelectorAll(".object")].map((element) => ({ element, name: element.dataset.object, x: Number(element.dataset.x), y: Number(element.dataset.y) }));
-const menus = [{ name: "Garden Soup", tool: "pot" }, { name: "Sizzling Stir-Fry", tool: "pan" }];
+const menus = [
+  { name: "Garden Soup", tool: "pot", ingredients: "vegetables and herbs" },
+  { name: "Sizzling Stir-Fry", tool: "pan", ingredients: "vegetables and sauce" },
+  { name: "Grilled Pork Skewers", tool: "grill", ingredients: "pork, bell pepper, and onion" }
+];
+const cookingTools = new Set(["pot", "pan", "grill"]);
+const standalonePickupItems = { meat: "meat", vegetable: "vegetable", egg: "egg", sauce: "sauce", plate: "plate" };
 const playerState = { x: 500, y: 350, speed: 4.5, radius: 32 };
 const playerSprites = {
   down: [
-    { href: "animation_walk/Stand%20still.png", width: 108, height: 66 },
-    { href: "animation_walk/Walk%20towards%20the%20right%20side2.png", width: 104, height: 68 }
+    { href: "pork_nae_animation/Stand%20Still.png", width: 132, height: 74 },
+    { href: "pork_nae_animation/Stand%20Still.png", width: 132, height: 74 }
   ],
   up: [
-    { href: "animation_walk/Stand_facing_forward.png", width: 105, height: 64 },
-    { href: "animation_walk/Walk%20forward.-Photoroom.png", width: 105, height: 72 }
+    { href: "pork_nae_animation/Stand%20Still.png", width: 132, height: 74 },
+    { href: "pork_nae_animation/Walk%20Forward.png", width: 132, height: 74 }
   ],
   left: [
-    { href: "animation_walk/Stand%20facing%20left.png", width: 69, height: 75 },
-    { href: "animation_walk/Walk%20towards%20the%20left%20side.png", width: 94, height: 75 },
-    { href: "animation_walk/Walk%20towards%20the%20left%20side2.png", width: 104, height: 68 }
+    { href: "pork_nae_animation/Stand%20Still.png", width: 132, height: 74 },
+    { href: "pork_nae_animation/Walk%20towards%20the%20left%20side.png", width: 132, height: 74 }
   ],
   right: [
-    { href: "animation_walk/Stand%20facing%20right.png", width: 68, height: 75 },
-    { href: "animation_walk/Walk%20towards%20the%20right%20side.png", width: 93, height: 75 },
-    { href: "animation_walk/Walk%20towards%20the%20right%20side2.png", width: 104, height: 68 }
+    { href: "pork_nae_animation/Stand%20Still.png", width: 132, height: 74 },
+    { href: "pork_nae_animation/Walk%20towards%20the%20right%20side.png", width: 132, height: 74 }
   ]
 };
 const keys = new Set();
 let score = 0;
-let secondsLeft = 40;
+let secondsLeft = 60;
 let orderSecondsLeft = 15;
 let currentOrder;
 let inventory = "empty";
@@ -82,6 +103,7 @@ let roomState;
 let selfId;
 let playerDirection = "down";
 let lastSpriteKey = "";
+let soundEnabled = true;
 let multiplayerInput = { left: false, right: false, up: false, down: false };
 const multiplayerSpeed = 150;
 const authoritativePosition = { x: 500, y: 350 };
@@ -140,6 +162,49 @@ function releaseAllTouchDirections() {
 
 function showScreen(screen) {
   [startScreen, multiplayerScreen, lobbyScreen, gameScreen, resultsScreen].forEach((item) => { item.hidden = item !== screen; });
+  if (screen !== gameScreen) riceChooser.hidden = true;
+  if (screen !== gameScreen) syncWalkingSound(false);
+  syncLobbyMusic(screen === startScreen);
+  syncGameMusic(screen === gameScreen);
+}
+
+function syncLobbyMusic(active) {
+  if (active) {
+    if (lobbyMusic.paused) lobbyMusic.play().catch(() => {});
+    return;
+  }
+  lobbyMusic.pause();
+  lobbyMusic.currentTime = 0;
+}
+
+function syncGameMusic(active) {
+  if (active) {
+    if (gameMusic.paused) gameMusic.play().catch(() => {});
+    return;
+  }
+  gameMusic.pause();
+  gameMusic.currentTime = 0;
+}
+
+function updateSound() {
+  lobbyMusic.muted = !soundEnabled;
+  gameMusic.muted = !soundEnabled;
+  soundToggles.forEach((soundToggle) => {
+    soundToggle.textContent = soundEnabled ? "🎵 Music" : "🔇 Music Off";
+    soundToggle.setAttribute("aria-pressed", `${!soundEnabled}`);
+    soundToggle.setAttribute("aria-label", soundEnabled ? "Turn music off" : "Turn music on");
+  });
+  if (soundEnabled && !startScreen.hidden) syncLobbyMusic(true);
+  if (soundEnabled && !gameScreen.hidden) syncGameMusic(true);
+}
+
+function syncWalkingSound(moving) {
+  if (moving && gameRunning) {
+    if (walkingSound.paused) walkingSound.play().catch(() => {});
+    return;
+  }
+  walkingSound.pause();
+  walkingSound.currentTime = 0;
 }
 
 function setPlayerPosition() {
@@ -201,6 +266,14 @@ function updateHeldItem() {
   if (inventory === "cooking") icon = heldItemIcons.cooking;
   if (inventory === `cooked-${menus[0].name}`) icon = heldItemIcons.soup;
   if (inventory === `cooked-${menus[1].name}`) icon = heldItemIcons.stirFry;
+  if (inventory === `cooked-${menus[2].name}`) icon = heldItemIcons.grilledPork;
+  if (inventory === "rice-steamed") icon = heldItemIcons.steamedRice;
+  if (inventory === "rice-sticky") icon = heldItemIcons.stickyRice;
+  if (inventory === "item-meat") icon = heldItemIcons.meat;
+  if (inventory === "item-vegetable") icon = heldItemIcons.vegetable;
+  if (inventory === "item-egg") icon = heldItemIcons.egg;
+  if (inventory === "item-sauce") icon = heldItemIcons.sauce;
+  if (inventory === "item-plate") icon = heldItemIcons.plate;
   heldItem.setAttribute("opacity", icon ? "1" : "0");
   if (icon) document.querySelector(icon).setAttribute("opacity", "1");
 }
@@ -223,7 +296,7 @@ function blockGamePageCopy(event) {
 function updateOrder() {
   if (!currentOrder) return;
   orderName.textContent = currentOrder.name;
-  orderDetail.textContent = `Cook with the ${currentOrder.tool}, then serve it.`;
+  orderDetail.textContent = `Collect ${currentOrder.ingredients}, cook with the ${currentOrder.tool}, then serve it.`;
   orderTimer.textContent = orderSecondsLeft;
   orderTimer.classList.toggle("warning", orderSecondsLeft <= 5);
 }
@@ -251,7 +324,7 @@ function updatePrompt() {
   }
   promptElement.setAttribute("transform", `translate(${nearest.object.x} ${nearest.object.y - 95})`);
   promptElement.setAttribute("opacity", "1");
-  const labels = { ingredients: "collect ingredients", pot: "cook with the pot", pan: "cook with the pan", serve: "serve the menu" };
+  const labels = { ingredients: "collect ingredients", rice: "choose rice", meat: "collect meat", vegetable: "collect vegetables", egg: "collect an egg", sauce: "collect sauce", plate: "collect a plate", pot: "cook with the pot", pan: "cook with the pan", grill: "cook with the grill", trash: "discard the held item", serve: "serve the menu" };
   setMessage(`Press E to ${labels[nearest.object.name]}.`);
 }
 
@@ -283,12 +356,31 @@ function soloInteract() {
   const nearest = nearestObject();
   if (!nearest.object || nearest.distance >= playerState.radius + 72) return setMessage("Move closer to a kitchen station first.");
   const name = nearest.object.name;
+  if (name === "trash") {
+    if (inventory === "empty") return setMessage("There is nothing in your hands to discard.");
+    if (inventory === "cooking" || inventory === "ready") return setMessage("That food is still at the cooking station.");
+    clearInventory();
+    setMessage("Held item discarded.");
+    return;
+  }
+  if (name === "rice") {
+    if (inventory !== "empty") return setMessage("Your hands are already full.");
+    riceChooser.hidden = false;
+    return;
+  }
+  if (standalonePickupItems[name]) {
+    if (inventory !== "empty") return setMessage("Your hands are already full.");
+    inventory = `item-${standalonePickupItems[name]}`;
+    updateHeldItem();
+    setMessage(`${standalonePickupItems[name]} collected.`);
+    return;
+  }
   if (name === "ingredients") {
-    if (inventory === "empty") { inventory = "ingredients"; updateHeldItem(); setMessage("Ingredients collected. Follow the customer order."); }
+    if (inventory === "empty") { inventory = "ingredients"; updateHeldItem(); setMessage(`${currentOrder.ingredients} collected. Take them to the ${currentOrder.tool}.`); }
     else setMessage("Your hands are already full.");
     return;
   }
-  if (name === "pot" || name === "pan") {
+  if (cookingTools.has(name)) {
     if (inventory === "ready") {
       if (name === cookingTool) { inventory = `cooked-${currentOrder.name}`; hideCookingStatus(); updateHeldItem(); setMessage(`You picked up the ${currentOrder.name}. Take it to the serve point.`); }
       else setMessage(`Your menu is ready at the ${cookingTool}.`);
@@ -301,7 +393,10 @@ function soloInteract() {
 }
 
 function moveSolo() {
-  if (!gameRunning || mode !== "solo") return;
+  if (!gameRunning || mode !== "solo") {
+    syncWalkingSound(false);
+    return;
+  }
   let dx = 0;
   let dy = 0;
   if (keys.has("arrowleft") || keys.has("a") || keys.has("touch-left")) dx -= 1;
@@ -316,6 +411,7 @@ function moveSolo() {
     positionCookingStatus();
     updatePrompt();
   }
+  syncWalkingSound(Boolean(dx || dy));
   updatePlayerSprite(dx, dy, Boolean(dx || dy));
   animationId = requestAnimationFrame(moveSolo);
 }
@@ -367,11 +463,28 @@ function stopMultiplayerAnimation() {
 
 function endSoloGame() {
   gameRunning = false;
+  syncWalkingSound(false);
+  syncGameMusic(false);
   clearInventory();
   cancelAnimationFrame(animationId);
   clearInterval(timerId);
   clearInterval(orderTimerId);
   window.setTimeout(() => showSoloResults(), 700);
+}
+
+function exitGame() {
+  gameRunning = false;
+  keys.clear();
+  multiplayerInput = { left: false, right: false, up: false, down: false };
+  syncWalkingSound(false);
+  clearInventory();
+  cancelAnimationFrame(animationId);
+  clearInterval(timerId);
+  clearInterval(orderTimerId);
+  if (mode === "multiplayer") socket?.emit("leave-room");
+  roomState = null;
+  otherPlayers.replaceChildren();
+  showScreen(startScreen);
 }
 
 function startSoloGame() {
@@ -383,7 +496,7 @@ function startSoloGame() {
   showScreen(gameScreen);
   gameRunning = true;
   score = 0;
-  secondsLeft = 40;
+  secondsLeft = 60;
   scoreElement.textContent = score;
   timerElement.textContent = secondsLeft;
   timerElement.classList.remove("warning");
@@ -421,6 +534,27 @@ function sendInput() {
 
 function createRemotePlayer(item) {
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  const held = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  held.setAttribute("transform", "translate(0 -56)");
+  held.setAttribute("opacity", "0");
+  const heldCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  heldCircle.setAttribute("class", "held-item-circle");
+  heldCircle.setAttribute("r", "17");
+  const heldIcon = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  heldIcon.setAttribute("y", "6");
+  heldIcon.setAttribute("text-anchor", "middle");
+  heldIcon.setAttribute("font-size", "18");
+  heldIcon.setAttribute("aria-hidden", "true");
+  const heldRice = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  heldRice.setAttribute("x", "-10");
+  heldRice.setAttribute("y", "-10");
+  heldRice.setAttribute("width", "20");
+  heldRice.setAttribute("height", "20");
+  heldRice.setAttribute("rx", "4");
+  heldRice.setAttribute("stroke", "#716e69");
+  heldRice.setAttribute("stroke-width", "2");
+  heldRice.setAttribute("opacity", "0");
+  held.append(heldCircle, heldRice, heldIcon);
   const shadow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
   shadow.setAttribute("class", "remote-player-shadow"); shadow.setAttribute("cy", "27"); shadow.setAttribute("r", "23");
   const body = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -429,9 +563,32 @@ function createRemotePlayer(item) {
   face.setAttribute("class", "remote-player-face"); face.setAttribute("cy", "-4"); face.setAttribute("r", "13");
   const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
   label.setAttribute("class", "remote-player-label"); label.setAttribute("y", "-32"); label.setAttribute("text-anchor", "middle"); label.textContent = item.name;
-  group.append(shadow, body, face, label);
+  group.append(held, shadow, body, face, label);
   otherPlayers.append(group);
-  remoteElements.set(item.id, { group, label });
+  remoteElements.set(item.id, { group, label, held, heldIcon, heldRice });
+  updateRemoteHeldItem(item);
+}
+
+function updateRemoteHeldItem(item) {
+  const element = remoteElements.get(item.id);
+  if (!element) return;
+  const icons = {
+    ingredients: "🥕",
+    [`cooked-${menus[0].name}`]: "🍲",
+    [`cooked-${menus[1].name}`]: "🍳",
+    [`cooked-${menus[2].name}`]: "🥩",
+    "item-meat": "🥩",
+    "item-vegetable": "🥬",
+    "item-egg": "🥚",
+    "item-sauce": "🫙",
+    "item-plate": "🍽️"
+  };
+  const icon = icons[item.inventory];
+  const riceColor = item.inventory === "rice-steamed" ? "#fff" : item.inventory === "rice-sticky" ? "#999" : null;
+  element.held.setAttribute("opacity", icon || riceColor ? "1" : "0");
+  element.heldIcon.textContent = icon || "";
+  element.heldRice.setAttribute("fill", riceColor || "transparent");
+  element.heldRice.setAttribute("opacity", riceColor ? "1" : "0");
 }
 
 function clearRemotePlayers() {
@@ -448,6 +605,7 @@ function renderRemotePlayers() {
     if (!remoteRendered.has(item.id)) remoteRendered.set(item.id, { x: item.x, y: item.y });
     if (!remoteElements.has(item.id)) createRemotePlayer(item);
     remoteElements.get(item.id).label.textContent = item.name;
+    updateRemoteHeldItem(item);
   });
   [...remoteTargets.keys()].forEach((id) => {
     if (remoteTargets.has(id) && roomState.players.some((item) => item.id === id)) return;
@@ -480,13 +638,17 @@ function animateRemotePlayers(timestamp) {
 
 function renderCookingStatus() {
   if (mode !== "multiplayer" || !roomState) return;
-  const active = Object.entries(roomState.stations || {}).find(([, value]) => value && value.playerId === selfId);
+  const active = Object.entries(roomState.stations || {}).find(([, value]) => value);
   if (!active) return hideCookingStatus();
   const [tool, station] = active;
   cookingTool = tool;
   positionCookingStatus();
   const progress = station.complete ? 1 : Math.min(1, (Date.now() - station.startedAt) / 2000);
-  updateCookingStatus(progress, station.complete ? "READY" : "COOKING");
+  const isMine = station.playerId === selfId;
+  const label = station.complete
+    ? (isMine ? "READY" : "FOOD READY")
+    : (isMine ? "COOKING" : "IN USE");
+  updateCookingStatus(progress, label);
 }
 
 function renderMultiplayerState(state) {
@@ -494,13 +656,22 @@ function renderMultiplayerState(state) {
   if (state.selfId) selfId = state.selfId;
   const me = state.players.find((item) => item.id === selfId);
   if (me) {
-    const dx = me.x - playerState.x;
-    const dy = me.y - playerState.y;
-    playerState.x = me.x;
-    playerState.y = me.y;
+    const dx = me.x - authoritativePosition.x;
+    const dy = me.y - authoritativePosition.y;
+    const startingRound = state.status === "playing" && !gameRunning;
+    authoritativePosition.x = me.x;
+    authoritativePosition.y = me.y;
+    if (startingRound) {
+      predictedPosition.x = me.x;
+      predictedPosition.y = me.y;
+      playerState.x = me.x;
+      playerState.y = me.y;
+      setPlayerPosition();
+    }
     inventory = me.inventory;
-    setPlayerPosition();
-    updatePlayerSprite(dx, dy, Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01, Date.now());
+    const moving = Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01;
+    updatePlayerSprite(dx, dy, moving, Date.now());
+    syncWalkingSound(moving);
     updateHeldItem();
   }
   score = state.score;
@@ -626,9 +797,44 @@ playAgainButton.addEventListener("click", () => {
   }
   socket?.emit("play-again");
 });
+riceOptionButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const rice = button.dataset.rice;
+    if (mode === "multiplayer") {
+      socket?.emit("select-rice", { rice });
+    } else if (mode === "solo" && gameRunning && inventory === "empty") {
+      inventory = `rice-${rice}`;
+      updateHeldItem();
+      setMessage(rice === "steamed" ? "Steamed rice selected." : "Sticky rice selected.");
+    }
+    riceChooser.hidden = true;
+  });
+});
+closeRiceChooserButton.addEventListener("click", () => { riceChooser.hidden = true; });
+leaveRoomButton.addEventListener("click", () => { socket?.emit("leave-room"); roomState = null; showScreen(startScreen); });
+resultsButton.addEventListener("click", () => { socket?.emit("leave-room"); roomState = null; showScreen(startScreen); });
+soundToggles.forEach((soundToggle) => {
+  soundToggle.addEventListener("click", () => {
+    soundEnabled = !soundEnabled;
+    updateSound();
+  });
+});
+exitGameButton.addEventListener("click", exitGame);
+
+window.addEventListener("pointerdown", () => {
+  if (!startScreen.hidden) syncLobbyMusic(true);
+  if (!gameScreen.hidden) syncGameMusic(true);
+});
 
 window.addEventListener("keydown", (event) => {
+  if (!startScreen.hidden) syncLobbyMusic(true);
+  if (!gameScreen.hidden) syncGameMusic(true);
   const key = event.key.toLowerCase();
+  if (!riceChooser.hidden) {
+    if (key === "escape") riceChooser.hidden = true;
+    if (["arrowleft", "arrowright", "arrowup", "arrowdown", "w", "a", "s", "d", "e", " "].includes(key)) event.preventDefault();
+    return;
+  }
   if (["arrowleft", "arrowright", "arrowup", "arrowdown", " "].includes(key)) event.preventDefault();
   if (key === "e") {
     interact();
@@ -651,6 +857,7 @@ window.addEventListener("contextmenu", blockGamePageCopy);
 
 if (socket) {
   socket.on("room-state", renderMultiplayerState);
+  socket.on("choose-rice", () => { riceChooser.hidden = false; });
   socket.on("game-message", (text) => { setMessage(text); lobbyMessage.textContent = text; setupMessage.textContent = text; });
   socket.on("disconnect", () => { if (mode === "multiplayer") { gameRunning = false; stopMultiplayerAnimation(); clearRemotePlayers(); setupMessage.textContent = "Disconnected from the kitchen server."; showScreen(multiplayerScreen); } });
 }
