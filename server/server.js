@@ -8,9 +8,9 @@ const httpServer = http.createServer(app);
 const io = new Server(httpServer);
 const rooms = new Map();
 const menus = [
-  { name: "Garden Soup", tool: "pot", ingredients: "vegetables and herbs" },
-  { name: "Sizzling Stir-Fry", tool: "pan", ingredients: "vegetables and sauce" },
-  { name: "Grilled Pork Skewers", tool: "grill", ingredients: "pork, bell pepper, and onion" }
+  { name: "ซุปผักสวนครัว", tool: "pot", ingredients: "ผักและสมุนไพร" },
+  { name: "ผัดผักกระทะร้อน", tool: "pan", ingredients: "ผักและซอส" },
+  { name: "หมูย่างเสียบไม้", tool: "grill", ingredients: "หมู พริกหวาน และหัวหอม" }
 ];
 const cookingTools = new Set(menus.map((menu) => menu.tool));
 const standalonePickupItems = new Set(["meat", "vegetable", "egg", "sauce", "plate"]);
@@ -34,6 +34,8 @@ const interactionDistance = 104;
 const orderLifetime = 15000;
 const orderInterval = 7;
 const maxOrders = 2;
+const roundDurationSeconds = 40;
+const stationItemLabels = { meat: "เนื้อ", vegetable: "ผัก", egg: "ไข่", sauce: "ซอส", plate: "จาน" };
 
 app.use(express.static(path.join(__dirname, "..")));
 
@@ -75,7 +77,7 @@ function newPlayer(id, name) {
 
 function newGame() {
   return {
-    secondsLeft: 40,
+    secondsLeft: roundDurationSeconds,
     orders: [createOrder()],
     orderGenerationElapsed: 0,
     score: 0,
@@ -172,7 +174,7 @@ function startRound(room) {
     if (room.game.orders.length < maxOrders && room.game.orderGenerationElapsed >= orderInterval) {
       room.game.orders.push(createOrder());
       room.game.orderGenerationElapsed = 0;
-      io.to(room.code).emit("game-message", "A new customer order is ready.");
+      io.to(room.code).emit("game-message", "มีออเดอร์ลูกค้าใหม่แล้ว");
     }
     if (room.game.secondsLeft <= 0) {
       endRound(room);
@@ -180,7 +182,7 @@ function startRound(room) {
     broadcastRoom(room);
   }, 1000);
   room.movementTimer = setInterval(() => updateMovement(room), 50);
-  broadcastRoom(room, "The kitchen is open!");
+    broadcastRoom(room, "ครัวเปิดให้บริการแล้ว!");
 }
 
 function endRound(room) {
@@ -190,7 +192,7 @@ function endRound(room) {
   room.players.forEach((player) => {
     player.input = { left: false, right: false, up: false, down: false };
   });
-  broadcastRoom(room, "The shift is over.");
+  broadcastRoom(room, "จบรอบการทำอาหารแล้ว");
 }
 
 function expireOrders(room) {
@@ -198,7 +200,7 @@ function expireOrders(room) {
   const remaining = room.game.orders.filter((order) => order.expiresAt > now);
   if (remaining.length !== room.game.orders.length) {
     room.game.orders = remaining;
-    io.to(room.code).emit("game-message", "A customer left. The remaining orders are still waiting.");
+    io.to(room.code).emit("game-message", "ลูกค้ากลับไปแล้ว ออเดอร์ที่เหลือยังรออยู่");
   }
 }
 
@@ -234,35 +236,35 @@ function interact(socket, requestedStation) {
   if (!room || !player || room.status !== "playing") return;
   const nearest = nearestStation(player);
   if (nearest.name !== requestedStation || nearest.distance >= interactionDistance) {
-    socket.emit("game-message", "Move closer to that kitchen station first.");
+    socket.emit("game-message", "เดินเข้าใกล้สถานีก่อน");
     return;
   }
 
   if (requestedStation === "trash") {
     if (player.inventory === "empty") {
-      socket.emit("game-message", "There is nothing in your hands to discard.");
+      socket.emit("game-message", "ไม่มีอะไรให้ทิ้ง");
     } else if (player.inventory === "cooking" || player.inventory === "ready") {
-      socket.emit("game-message", "That food is still at the cooking station.");
+      socket.emit("game-message", "อาหารยังอยู่ที่สถานีทำอาหาร");
     } else {
       player.inventory = "empty";
-      socket.emit("game-message", "Held item discarded.");
+      socket.emit("game-message", "ทิ้งของที่ถืออยู่แล้ว");
     }
   } else if (requestedStation === "rice") {
     if (player.inventory === "empty") socket.emit("choose-rice");
-    else socket.emit("game-message", "Your hands are already full.");
+    else socket.emit("game-message", "มือของคุณไม่ว่าง");
   } else if (standalonePickupItems.has(requestedStation)) {
     if (player.inventory === "empty") {
       player.inventory = `item-${requestedStation}`;
-      socket.emit("game-message", `${requestedStation} collected.`);
+      socket.emit("game-message", `เก็บ${stationItemLabels[requestedStation]}แล้ว`);
     } else {
-      socket.emit("game-message", "Your hands are already full.");
+      socket.emit("game-message", "มือของคุณไม่ว่าง");
     }
   } else if (requestedStation === "ingredients") {
     if (player.inventory === "empty") {
       player.inventory = "ingredients";
-      socket.emit("game-message", `${room.game.currentOrder.ingredients} collected. Take them to the ${room.game.currentOrder.tool}.`);
+      socket.emit("game-message", "เก็บวัตถุดิบแล้ว นำไปที่สถานีทำอาหาร");
     } else {
-      socket.emit("game-message", "Your hands are already full.");
+      socket.emit("game-message", "มือของคุณไม่ว่าง");
     }
   } else if (cookingTools.has(requestedStation)) {
     interactWithCookStation(socket, room, player, requestedStation);
@@ -279,15 +281,15 @@ function selectRice(socket, requestedRice) {
   if (requestedRice !== "steamed" && requestedRice !== "sticky") return;
   const distance = Math.hypot(player.x - stations.rice.x, player.y - stations.rice.y);
   if (distance >= interactionDistance) {
-    socket.emit("game-message", "Move closer to the rice station first.");
+    socket.emit("game-message", "เดินเข้าใกล้สถานีข้าวก่อน");
     return;
   }
   if (player.inventory !== "empty") {
-    socket.emit("game-message", "Your hands are already full.");
+    socket.emit("game-message", "มือของคุณไม่ว่าง");
     return;
   }
   player.inventory = `rice-${requestedRice}`;
-  socket.emit("game-message", requestedRice === "steamed" ? "Steamed rice selected." : "Sticky rice selected.");
+  socket.emit("game-message", requestedRice === "steamed" ? "เลือกข้าวสวยแล้ว" : "เลือกข้าวเหนียวแล้ว");
   broadcastRoom(room);
 }
 
@@ -298,32 +300,32 @@ function interactWithCookStation(socket, room, player, tool) {
     const isCook = station.playerId === player.id;
     const canPickUp = player.inventory === "empty" || (isCook && player.inventory === "ready");
     if (!canPickUp) {
-      socket.emit("game-message", "Your hands are full. Clear them before picking up the finished food.");
+      socket.emit("game-message", "มือของคุณเต็มอยู่ กรุณานำของไปทิ้งก่อนรับอาหาร");
       return;
     }
     if (cook && cook.id !== player.id && cook.inventory === "ready") cook.inventory = "empty";
-    player.inventory = `cooked-${room.game.currentOrder.name}`;
+    player.inventory = `cooked-${station.menuName}`;
     room.game.stations[tool] = null;
-    io.to(room.code).emit("game-message", `${player.name} picked up the ${room.game.currentOrder.name}. Take it to the serve point.`);
+    io.to(room.code).emit("game-message", `${player.name} รับ${station.menuName}แล้ว นำไปที่จุดเสิร์ฟ`);
     return;
   }
   if (station) {
     const owner = room.players.get(station.playerId);
-    socket.emit("game-message", `${owner?.name || "Another player"} is cooking at the ${tool}.`);
+    socket.emit("game-message", `${owner?.name || "ผู้เล่นคนอื่น"} กำลังทำอาหารที่${tool === "pot" ? "หม้อ" : tool === "pan" ? "กระทะ" : "เตาย่าง"}`);
     return;
   }
   if (player.inventory !== "ingredients") {
-    socket.emit("game-message", "Collect the ingredients first.");
+    socket.emit("game-message", "เก็บวัตถุดิบก่อน");
     return;
   }
   if (station) {
-    socket.emit("game-message", "That station is currently in use.");
+    socket.emit("game-message", "สถานีนี้กำลังถูกใช้งาน");
     return;
   }
   player.inventory = "cooking";
   const menu = menus.find((item) => item.tool === tool);
   room.game.stations[tool] = { playerId: player.id, menuName: menu.name, startedAt: Date.now(), complete: false };
-  socket.emit("game-message", `Cooking with the ${tool}... 2 seconds.`);
+  socket.emit("game-message", `กำลังทำอาหารด้วย${tool === "pot" ? "หม้อ" : tool === "pan" ? "กระทะ" : "เตาย่าง"}... 2 วินาที`);
   setTimeout(() => {
     const currentRoom = rooms.get(room.code);
     const currentPlayer = currentRoom && currentRoom.players.get(player.id);
@@ -331,7 +333,7 @@ function interactWithCookStation(socket, room, player, tool) {
     if (!currentRoom || currentRoom.status !== "playing" || !currentPlayer || !currentStation || currentStation.playerId !== player.id) return;
     currentStation.complete = true;
     currentPlayer.inventory = "ready";
-    io.to(room.code).emit("game-message", `${currentPlayer.name}'s ${currentStation.menuName} is ready.`);
+    io.to(room.code).emit("game-message", `${currentPlayer.name} ทำ${currentStation.menuName}เสร็จแล้ว`);
     broadcastRoom(currentRoom);
   }, 2000);
 }
@@ -344,13 +346,13 @@ function serveOrder(socket, room, player) {
     player.stats.ordersServed += 1;
     room.game.score += 1;
     room.game.orders = room.game.orders.filter((order) => order.id !== matchingOrder.id);
-    socket.emit("game-message", "Order served! A new customer is waiting.");
+    socket.emit("game-message", "เสิร์ฟออเดอร์แล้ว มีลูกค้ารอออเดอร์ใหม่");
   } else if (player.inventory === "cooking") {
-    socket.emit("game-message", "The food is still cooking.");
+    socket.emit("game-message", "อาหารยังทำไม่เสร็จ");
   } else if (menuName) {
-    socket.emit("game-message", "No matching customer is waiting for that menu.");
+    socket.emit("game-message", "ไม่มีลูกค้ารอเมนูนี้");
   } else {
-    socket.emit("game-message", "Cook a menu before serving it.");
+    socket.emit("game-message", "ทำอาหารก่อนนำไปเสิร์ฟ");
   }
 }
 
@@ -368,14 +370,14 @@ function leaveRoom(socket) {
     clearRoomTimers(room);
     rooms.delete(room.code);
   } else {
-    broadcastRoom(room, `${socket.data.playerName || "A player"} left the room.`);
+    broadcastRoom(room, `${socket.data.playerName || "ผู้เล่นคนหนึ่ง"} ออกจากห้องแล้ว`);
   }
 }
 
 io.on("connection", (socket) => {
   socket.on("create-room", ({ name } = {}, reply) => {
     const cleanName = normalizeName(name);
-    if (!cleanName) return reply?.({ error: "Enter a display name first." });
+    if (!cleanName) return reply?.({ error: "กรุณาใส่ชื่อผู้เล่นก่อน" });
     const room = createRoom(socket, cleanName);
     socket.data.playerName = cleanName;
     sendRoomState(socket, room);
@@ -386,18 +388,18 @@ io.on("connection", (socket) => {
     const cleanName = normalizeName(name);
     const code = String(roomCode || "").trim().toUpperCase();
     const room = rooms.get(code);
-    if (!cleanName) return reply?.({ error: "Enter a display name first." });
-    if (!room) return reply?.({ error: "Room not found." });
-    if (room.status !== "lobby") return reply?.({ error: "This round has already started." });
-    if (room.players.size >= 5) return reply?.({ error: "This room is full." });
-    if ([...room.players.values()].some((player) => player.name.toLowerCase() === cleanName.toLowerCase())) return reply?.({ error: "That name is already in use." });
+    if (!cleanName) return reply?.({ error: "กรุณาใส่ชื่อผู้เล่นก่อน" });
+    if (!room) return reply?.({ error: "ไม่พบห้องนี้" });
+    if (room.status !== "lobby") return reply?.({ error: "รอบนี้เริ่มไปแล้ว" });
+    if (room.players.size >= 5) return reply?.({ error: "ห้องนี้เต็มแล้ว" });
+    if ([...room.players.values()].some((player) => player.name.toLowerCase() === cleanName.toLowerCase())) return reply?.({ error: "ชื่อนี้ถูกใช้ไปแล้ว" });
     const player = newPlayer(socket.id, cleanName);
     room.players.set(socket.id, player);
     socket.join(code);
     socket.data.roomCode = code;
     socket.data.playerName = cleanName;
     sendRoomState(socket, room);
-    broadcastRoom(room, `${cleanName} joined the room.`);
+    broadcastRoom(room, `${cleanName} เข้าร่วมห้องแล้ว`);
     reply?.({ ok: true, roomCode: code });
   });
 
@@ -411,18 +413,18 @@ io.on("connection", (socket) => {
 
   socket.on("start-round", () => {
     const room = roomFor(socket);
-    if (!room || room.status !== "lobby" || room.hostId !== socket.id) return socket.emit("game-message", "Only the host can start the round.");
-    if (!allPlayersReady(room)) return socket.emit("game-message", "Every player must be Ready before the round starts.");
+    if (!room || room.status !== "lobby" || room.hostId !== socket.id) return socket.emit("game-message", "เฉพาะเจ้าของห้องเท่านั้นที่เริ่มรอบได้");
+    if (!allPlayersReady(room)) return socket.emit("game-message", "ผู้เล่นทุกคนต้องกดพร้อมก่อนเริ่มรอบ");
     startRound(room);
   });
 
   socket.on("play-again", () => {
     const room = roomFor(socket);
-    if (!room || room.status !== "results" || room.hostId !== socket.id) return socket.emit("game-message", "Only the host can start another round.");
+    if (!room || room.status !== "results" || room.hostId !== socket.id) return socket.emit("game-message", "เฉพาะเจ้าของห้องเท่านั้นที่เริ่มรอบใหม่ได้");
     resetPlayers(room);
     room.game = newGame();
     room.status = "lobby";
-    broadcastRoom(room, "Ready for another shift!");
+    broadcastRoom(room, "พร้อมสำหรับรอบใหม่แล้ว!");
   });
 
   socket.on("move-input", (input = {}) => {

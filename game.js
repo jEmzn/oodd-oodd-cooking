@@ -56,14 +56,21 @@ gameMusic.preload = "auto";
 gameMusic.volume = 0.35;
 const heldItemIcons = { ingredients: "#held-ingredients", cooking: "#held-cooking", soup: "#held-soup", stirFry: "#held-stir-fry", grilledPork: "#held-grilled-pork", steamedRice: "#held-steamed-rice", stickyRice: "#held-sticky-rice", meat: "#held-meat", vegetable: "#held-vegetable", egg: "#held-egg", sauce: "#held-sauce", plate: "#held-plate" };
 const objects = [...document.querySelectorAll(".object")].map((element) => ({ element, name: element.dataset.object, x: Number(element.dataset.x), y: Number(element.dataset.y) }));
+const stationLabels = { trash: "ถังขยะ", pan: "กระทะ", pot: "หม้อ", grill: "เตาย่าง", rice: "ข้าว", ingredients: "วัตถุดิบ", meat: "เนื้อ", vegetable: "ผัก", egg: "ไข่", sauce: "ซอส", plate: "จาน", serve: "จุดเสิร์ฟ" };
+objects.forEach(({ element, name }) => {
+  const label = element.querySelector(".object-label");
+  if (label && stationLabels[name]) label.textContent = stationLabels[name];
+});
 const menus = [
-  { name: "Garden Soup", tool: "pot", ingredients: "vegetables and herbs" },
-  { name: "Sizzling Stir-Fry", tool: "pan", ingredients: "vegetables and sauce" },
-  { name: "Grilled Pork Skewers", tool: "grill", ingredients: "pork, bell pepper, and onion" }
+  { name: "ซุปผักสวนครัว", tool: "pot", ingredients: "ผักและสมุนไพร" },
+  { name: "ผัดผักกระทะร้อน", tool: "pan", ingredients: "ผักและซอส" },
+  { name: "หมูย่างเสียบไม้", tool: "grill", ingredients: "หมู พริกหวาน และหัวหอม" }
 ];
+const toolLabels = { pot: "หม้อ", pan: "กระทะ", grill: "เตาย่าง" };
 const cookingTools = new Set(["pot", "pan", "grill"]);
 const standalonePickupItems = { meat: "meat", vegetable: "vegetable", egg: "egg", sauce: "sauce", plate: "plate" };
 const maxOrders = 2;
+const roundDurationSeconds = 40;
 const playerState = { x: 500, y: 350, speed: 4.5, radius: 32 };
 const playerSprites = {
   down: [
@@ -85,7 +92,7 @@ const playerSprites = {
 };
 const keys = new Set();
 let score = 0;
-let secondsLeft = 40;
+let secondsLeft = roundDurationSeconds;
 let orders = [];
 let inventory = "empty";
 let cooking = false;
@@ -137,7 +144,7 @@ function interact() {
 }
 
 function setMovementHint() {
-  setMessage(window.matchMedia("(pointer: coarse)").matches ? "Use the touch controls to move and interact." : "Use WASD or arrow keys to move.");
+  setMessage(window.matchMedia("(pointer: coarse)").matches ? "ใช้ปุ่มสัมผัสเพื่อเดินและโต้ตอบ" : "ใช้ WASD หรือลูกศรเพื่อเดิน");
 }
 
 function releaseTouchDirection(button) {
@@ -169,8 +176,8 @@ function getFullscreenElement() {
 
 function updateFullscreenButton() {
   const active = Boolean(getFullscreenElement()) || fullscreenFallback;
-  fullscreenButton.textContent = active ? "Exit Fullscreen" : "Fullscreen";
-  fullscreenButton.setAttribute("aria-label", active ? "Exit fullscreen" : "Enter fullscreen");
+  fullscreenButton.textContent = active ? "ออกจากเต็มจอ" : "เต็มจอ";
+  fullscreenButton.setAttribute("aria-label", active ? "ออกจากโหมดเต็มจอ" : "เข้าโหมดเต็มจอ");
   fullscreenButton.setAttribute("aria-pressed", `${active}`);
 }
 
@@ -202,7 +209,7 @@ async function enterFullscreen() {
     } else if (gameScreen.webkitRequestFullscreen) {
       await gameScreen.webkitRequestFullscreen();
     } else {
-      throw new Error("Fullscreen is not supported.");
+      throw new Error("ไม่รองรับโหมดเต็มจอ");
     }
     fullscreenFallback = false;
     gameScreen.classList.remove("fullscreen-fallback");
@@ -210,7 +217,7 @@ async function enterFullscreen() {
   } catch (error) {
     fullscreenFallback = true;
     gameScreen.classList.add("fullscreen-fallback");
-    setMessage("Native fullscreen is unavailable; expanded landscape view is active.");
+    setMessage("ไม่รองรับโหมดเต็มจอ จึงเปิดมุมมองแนวนอนแบบขยายแทน");
   }
   updateFullscreenButton();
 }
@@ -255,9 +262,9 @@ function updateSound() {
   lobbyMusic.muted = !soundEnabled;
   gameMusic.muted = !soundEnabled;
   soundToggles.forEach((soundToggle) => {
-    soundToggle.textContent = soundEnabled ? "🎵 Music" : "🔇 Music Off";
+    soundToggle.textContent = soundEnabled ? "🎵 เพลง" : "🔇 ปิดเพลง";
     soundToggle.setAttribute("aria-pressed", `${!soundEnabled}`);
-    soundToggle.setAttribute("aria-label", soundEnabled ? "Turn music off" : "Turn music on");
+    soundToggle.setAttribute("aria-label", soundEnabled ? "ปิดเพลง" : "เปิดเพลง");
   });
   if (soundEnabled && !startScreen.hidden) syncLobbyMusic(true);
   if (soundEnabled && !gameScreen.hidden) syncGameMusic(true);
@@ -306,7 +313,7 @@ function hideCookingStatus() {
   window.cancelAnimationFrame(cookingAnimationId);
   cookingStatus.setAttribute("opacity", "0");
   cookingProgress.setAttribute("width", "0");
-  cookingStatusLabel.textContent = "COOKING";
+  cookingStatusLabel.textContent = "กำลังทำ";
   cookingTool = null;
 }
 
@@ -314,7 +321,7 @@ function animateCooking() {
   if (!cooking) return;
 
   const progress = Math.min(1, (performance.now() - cookingStartedAt) / 2000);
-  updateCookingStatus(progress, "COOKING");
+  updateCookingStatus(progress, "กำลังทำ");
   if (progress < 1) cookingAnimationId = window.requestAnimationFrame(animateCooking);
 }
 
@@ -363,7 +370,7 @@ function updateOrder() {
   if (!orders.length) {
     const empty = document.createElement("p");
     empty.className = "order-empty";
-    empty.textContent = "No customers are waiting.";
+    empty.textContent = "ไม่มีลูกค้ารออยู่";
     orderList.append(empty);
     return;
   }
@@ -375,11 +382,11 @@ function updateOrder() {
     const name = document.createElement("h3");
     name.textContent = order.name;
     const detail = document.createElement("p");
-    detail.textContent = `Use the ${order.tool}, then serve it.`;
+    detail.textContent = `ใช้${toolLabels[order.tool]} แล้วนำไปเสิร์ฟ`;
     const remaining = Math.max(0, Math.ceil((order.expiresAt - now) / 1000));
     const countdown = document.createElement("strong");
     countdown.className = remaining <= 5 ? "warning" : "";
-    countdown.textContent = `${remaining}s`;
+    countdown.textContent = `${remaining} วินาที`;
     details.append(name, detail);
     row.append(details, countdown);
     orderList.append(row);
@@ -401,7 +408,7 @@ function expireOrders() {
   if (remaining.length !== orders.length) {
     orders = remaining;
     updateOrder();
-    setMessage("A customer left. The remaining orders are still waiting.");
+    setMessage("ลูกค้ากลับไปแล้ว ออเดอร์ที่เหลือยังรออยู่");
   }
 }
 
@@ -422,13 +429,13 @@ function updatePrompt() {
   }
   promptElement.setAttribute("transform", `translate(${nearest.object.x} ${nearest.object.y - 95})`);
   promptElement.setAttribute("opacity", "1");
-  const labels = { ingredients: "collect ingredients", rice: "choose rice", meat: "collect meat", vegetable: "collect vegetables", egg: "collect an egg", sauce: "collect sauce", plate: "collect a plate", pot: "cook with the pot", pan: "cook with the pan", grill: "cook with the grill", trash: "discard the held item", serve: "serve the menu" };
-  setMessage(`Press E to ${labels[nearest.object.name]}.`);
+  const labels = { ingredients: "เก็บวัตถุดิบ", rice: "เลือกข้าว", meat: "เก็บเนื้อ", vegetable: "เก็บผัก", egg: "เก็บไข่", sauce: "เก็บซอส", plate: "หยิบจาน", pot: "ทำอาหารด้วยหม้อ", pan: "ทำอาหารด้วยกระทะ", grill: "ทำอาหารด้วยเตาย่าง", trash: "ทิ้งของที่ถืออยู่", serve: "เสิร์ฟอาหาร" };
+  setMessage(`กด E เพื่อ${labels[nearest.object.name]}`);
 }
 
 function cook(tool) {
-  if (cooking) return setMessage("Cooking is already in progress.");
-  if (inventory !== "ingredients") return setMessage("Collect the ingredients first.");
+  if (cooking) return setMessage("กำลังทำอาหารอยู่");
+  if (inventory !== "ingredients") return setMessage("เก็บวัตถุดิบก่อน");
   cookingMenu = menus.find((menu) => menu.tool === tool);
   cooking = true;
   inventory = "cooking";
@@ -436,52 +443,52 @@ function cook(tool) {
   cookingStartedAt = performance.now();
   positionCookingStatus();
   window.cancelAnimationFrame(cookingAnimationId);
-  updateCookingStatus(0, "COOKING");
+  updateCookingStatus(0, "กำลังทำ");
   cookingAnimationId = window.requestAnimationFrame(animateCooking);
   updateHeldItem();
-  setMessage(`Cooking with the ${tool}... 2 seconds.`);
+  setMessage(`กำลังทำอาหารด้วย${toolLabels[tool]}... 2 วินาที`);
   cookingTimeoutId = window.setTimeout(() => {
     cooking = false;
     window.cancelAnimationFrame(cookingAnimationId);
     inventory = "ready";
-    updateCookingStatus(1, "READY");
-    setMessage(`Your ${cookingMenu.name} is ready. Pick it up from the ${cookingTool}.`);
+    updateCookingStatus(1, "พร้อมรับ");
+    setMessage(`${cookingMenu.name} พร้อมแล้ว ไปรับที่${toolLabels[cookingTool]}`);
     updatePrompt();
   }, 2000);
 }
 
 function soloInteract() {
   const nearest = nearestObject();
-  if (!nearest.object || nearest.distance >= playerState.radius + 72) return setMessage("Move closer to a kitchen station first.");
+  if (!nearest.object || nearest.distance >= playerState.radius + 72) return setMessage("เดินเข้าใกล้สถานีก่อน");
   const name = nearest.object.name;
   if (name === "trash") {
-    if (inventory === "empty") return setMessage("There is nothing in your hands to discard.");
-    if (inventory === "cooking" || inventory === "ready") return setMessage("That food is still at the cooking station.");
+    if (inventory === "empty") return setMessage("ไม่มีอะไรให้ทิ้ง");
+    if (inventory === "cooking" || inventory === "ready") return setMessage("อาหารยังอยู่ที่สถานีทำอาหาร");
     clearInventory();
-    setMessage("Held item discarded.");
+    setMessage("ทิ้งของที่ถืออยู่แล้ว");
     return;
   }
   if (name === "rice") {
-    if (inventory !== "empty") return setMessage("Your hands are already full.");
+    if (inventory !== "empty") return setMessage("มือของคุณไม่ว่าง");
     riceChooser.hidden = false;
     return;
   }
   if (standalonePickupItems[name]) {
-    if (inventory !== "empty") return setMessage("Your hands are already full.");
+    if (inventory !== "empty") return setMessage("มือของคุณไม่ว่าง");
     inventory = `item-${standalonePickupItems[name]}`;
     updateHeldItem();
-    setMessage(`${standalonePickupItems[name]} collected.`);
+    setMessage(`เก็บ${stationLabels[name]}แล้ว`);
     return;
   }
   if (name === "ingredients") {
-    if (inventory === "empty") { inventory = "ingredients"; updateHeldItem(); setMessage(`${currentOrder.ingredients} collected. Take them to the ${currentOrder.tool}.`); }
-    else setMessage("Your hands are already full.");
+    if (inventory === "empty") { inventory = "ingredients"; updateHeldItem(); setMessage("เก็บวัตถุดิบแล้ว นำไปที่สถานีทำอาหาร"); }
+    else setMessage("มือของคุณไม่ว่าง");
     return;
   }
   if (cookingTools.has(name)) {
     if (inventory === "ready") {
-      if (name === cookingTool) { inventory = `cooked-${cookingMenu.name}`; hideCookingStatus(); updateHeldItem(); setMessage(`You picked up the ${cookingMenu.name}. Take it to the serve point.`); }
-      else setMessage(`Your menu is ready at the ${cookingTool}.`);
+      if (name === cookingTool) { inventory = `cooked-${cookingMenu.name}`; hideCookingStatus(); updateHeldItem(); setMessage(`รับ${cookingMenu.name}แล้ว นำไปที่จุดเสิร์ฟ`); }
+      else setMessage(`อาหารพร้อมรับที่${toolLabels[cookingTool]}`);
     } else cook(name);
     return;
   }
@@ -493,10 +500,10 @@ function soloInteract() {
     scoreElement.textContent = score;
     clearInventory();
     updateOrder();
-    setMessage("Order served! A new customer is waiting.");
-  } else if (inventory === "cooking") setMessage("The food is still cooking.");
-  else if (menuName) setMessage("No matching customer is waiting for that menu.");
-  else setMessage("Cook a menu before serving it.");
+    setMessage("เสิร์ฟออเดอร์แล้ว มีลูกค้ารอออเดอร์ใหม่");
+  } else if (inventory === "cooking") setMessage("อาหารยังทำไม่เสร็จ");
+  else if (menuName) setMessage("ไม่มีลูกค้ารอเมนูนี้");
+  else setMessage("ทำอาหารก่อนนำไปเสิร์ฟ");
 }
 
 function moveSolo() {
@@ -604,7 +611,7 @@ function startSoloGame() {
   showScreen(gameScreen);
   gameRunning = true;
   score = 0;
-  secondsLeft = 60;
+  secondsLeft = roundDurationSeconds;
   scoreElement.textContent = score;
   timerElement.textContent = secondsLeft;
   timerElement.classList.remove("warning");
@@ -756,8 +763,8 @@ function renderCookingStatus() {
   const progress = station.complete ? 1 : Math.min(1, (Date.now() - station.startedAt) / 2000);
   const isMine = station.playerId === selfId;
   const label = station.complete
-    ? (isMine ? "READY" : "FOOD READY")
-    : (isMine ? "COOKING" : "IN USE");
+    ? (isMine ? "พร้อมรับ" : "อาหารพร้อม")
+    : (isMine ? "กำลังทำ" : "กำลังใช้งาน");
   updateCookingStatus(progress, label);
 }
 
@@ -821,18 +828,18 @@ function showLobby() {
     name.textContent = item.name;
     if (item.id === roomState.hostId) {
       const host = document.createElement("small");
-      host.textContent = " HOST";
+      host.textContent = " เจ้าของห้อง";
       name.append(host);
     }
     const status = document.createElement("strong");
-    status.textContent = item.ready ? "READY" : "WAITING";
+    status.textContent = item.ready ? "พร้อม" : "รออยู่";
     row.append(name, status);
     playerList.append(row);
   });
   const me = roomState.players.find((item) => item.id === selfId);
-  readyButton.textContent = me && me.ready ? "Not Ready" : "Ready";
+  readyButton.textContent = me && me.ready ? "ไม่พร้อม" : "พร้อม";
   startRoundButton.hidden = roomState.hostId !== selfId;
-  lobbyMessage.textContent = roomState.players.length < 2 ? "Waiting for at least one more player." : "Everyone must be Ready before the host starts.";
+  lobbyMessage.textContent = roomState.players.length < 2 ? "กำลังรอผู้เล่นเพิ่มอย่างน้อยหนึ่งคน" : "ผู้เล่นทุกคนต้องกดพร้อมก่อนเจ้าของห้องจะเริ่มรอบ";
 }
 
 function showResults(state) {
@@ -846,7 +853,7 @@ function showResults(state) {
     const name = document.createElement("span");
     name.textContent = item.name;
     const stats = document.createElement("strong");
-    stats.textContent = `${item.stats.ordersServed} served`;
+    stats.textContent = `เสิร์ฟแล้ว ${item.stats.ordersServed} ออเดอร์`;
     row.append(name, stats);
     resultsList.append(row);
   });
@@ -859,15 +866,15 @@ function showSoloResults() {
   const row = document.createElement("div");
   row.className = "player-row";
   const name = document.createElement("span");
-  name.textContent = "You";
+  name.textContent = "คุณ";
   const stats = document.createElement("strong");
-  stats.textContent = `${score} served`;
+  stats.textContent = `เสิร์ฟแล้ว ${score} ออเดอร์`;
   row.append(name, stats);
   resultsList.append(row);
 }
 
 function setupMultiplayer() {
-  if (!socket) { setupMessage.textContent = "Start the game through the Node server to use multiplayer."; return; }
+  if (!socket) { setupMessage.textContent = "กรุณาเปิดเกมผ่าน Node server เพื่อใช้โหมดหลายคน"; return; }
   mode = "multiplayer";
   clearRemotePlayers();
   showScreen(multiplayerScreen);
@@ -876,7 +883,7 @@ function setupMultiplayer() {
 
 function requestRoom(eventName, payload) {
   if (!socket) return;
-  setupMessage.textContent = "Connecting to the kitchen...";
+  setupMessage.textContent = "กำลังเชื่อมต่อกับครัว...";
   socket.emit(eventName, payload, (result) => {
     if (result && result.error) setupMessage.textContent = result.error;
   });
@@ -914,7 +921,7 @@ riceOptionButtons.forEach((button) => {
     } else if (mode === "solo" && gameRunning && inventory === "empty") {
       inventory = `rice-${rice}`;
       updateHeldItem();
-      setMessage(rice === "steamed" ? "Steamed rice selected." : "Sticky rice selected.");
+      setMessage(rice === "steamed" ? "เลือกข้าวสวยแล้ว" : "เลือกข้าวเหนียวแล้ว");
     }
     riceChooser.hidden = true;
   });
@@ -968,7 +975,7 @@ if (socket) {
   socket.on("room-state", renderMultiplayerState);
   socket.on("choose-rice", () => { riceChooser.hidden = false; });
   socket.on("game-message", (text) => { setMessage(text); lobbyMessage.textContent = text; setupMessage.textContent = text; });
-  socket.on("disconnect", () => { if (mode === "multiplayer") { gameRunning = false; stopMultiplayerAnimation(); clearRemotePlayers(); setupMessage.textContent = "Disconnected from the kitchen server."; showScreen(multiplayerScreen); } });
+  socket.on("disconnect", () => { if (mode === "multiplayer") { gameRunning = false; stopMultiplayerAnimation(); clearRemotePlayers(); setupMessage.textContent = "ขาดการเชื่อมต่อกับเซิร์ฟเวอร์ครัว"; showScreen(multiplayerScreen); } });
 }
 
 document.addEventListener("fullscreenchange", updateFullscreenButton);

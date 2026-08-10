@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="th">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -10,70 +10,70 @@
     <main id="start-screen" class="screen start-screen">
       <div class="title-card">
         <div class="mode-actions">
-          <button id="play-button" class="button" type="button">Solo Game</button>
-          <button id="multiplayer-button" class="button button-secondary" type="button">Multiplayer</button>
+          <button id="play-button" class="button" type="button">เล่นคนเดียว</button>
+          <button id="multiplayer-button" class="button button-secondary" type="button">เล่นหลายคน</button>
         </div>
       </div>
-      <button id="sound-toggle" class="sound-toggle" type="button" aria-pressed="false" aria-label="Turn music off">🎵 Music</button>
+      <button id="sound-toggle" class="sound-toggle" type="button" aria-pressed="false" aria-label="ปิดเพลง">🎵 เพลง</button>
     </main>
 
     <main id="multiplayer-screen" class="screen setup-screen" hidden>
       <section class="setup-panel">
-        <p class="eyebrow">Kitchen co-op</p>
-        <h2>Join the shift</h2>
-        <p class="setup-copy">Choose a temporary name, then create a room or join your team.</p>
-        <label for="player-name">Display name</label>
-        <input id="player-name" maxlength="18" autocomplete="off" placeholder="Your name" />
+        <p class="eyebrow">ครัวร่วมมือ</p>
+        <h2>เข้าร่วมกะทำอาหาร</h2>
+        <p class="setup-copy">ตั้งชื่อชั่วคราว จากนั้นสร้างห้องหรือเข้าร่วมทีม</p>
+        <label for="player-name">ชื่อผู้เล่น</label>
+        <input id="player-name" maxlength="18" autocomplete="off" placeholder="ชื่อของคุณ" />
         <div class="room-actions">
-          <button id="create-room-button" class="button" type="button">Create Room</button>
+          <button id="create-room-button" class="button" type="button">สร้างห้อง</button>
           <div class="join-row">
-            <input id="room-code" maxlength="6" autocomplete="off" placeholder="Room code" aria-label="Room code" />
-            <button id="join-room-button" class="button button-secondary" type="button">Join</button>
+            <input id="room-code" maxlength="6" autocomplete="off" placeholder="รหัสห้อง" aria-label="รหัสห้อง" />
+            <button id="join-room-button" class="button button-secondary" type="button">เข้าร่วม</button>
           </div>
         </div>
         <p id="setup-message" class="form-message" aria-live="polite"></p>
-        <button id="back-button" class="text-button" type="button">Back</button>
+        <button id="back-button" class="text-button" type="button">ย้อนกลับ</button>
       </section>
     </main>
 
     <main id="lobby-screen" class="screen setup-screen" hidden>
       <section class="setup-panel lobby-panel">
-        <p class="eyebrow">Multiplayer kitchen</p>
-        <h2>Room <span id="room-code-label"></span></h2>
-        <p id="lobby-message" class="setup-copy">Ready up with your team.</p>
+        <p class="eyebrow">ครัวหลายคน</p>
+        <h2>ห้อง <span id="room-code-label"></span></h2>
+        <p id="lobby-message" class="setup-copy">เตรียมพร้อมกับทีมของคุณ</p>
         <div id="player-list" class="player-list" aria-live="polite"></div>
         <div class="lobby-actions">
-          <button id="ready-button" class="button" type="button">Ready</button>
-          <button id="start-round-button" class="button button-secondary" type="button" hidden>Start Round</button>
+          <button id="ready-button" class="button" type="button">พร้อม</button>
+          <button id="start-round-button" class="button button-secondary" type="button" hidden>เริ่มรอบ</button>
         </div>
-        <button id="leave-room-button" class="text-button" type="button">Leave room</button>
+        <button id="leave-room-button" class="text-button" type="button">ออกจากห้อง</button>
       </section>
     </main>
 
     <main id="game-screen" class="screen game-screen" hidden>
       <div id="orientation-warning" class="orientation-warning" role="status">
-        <strong>Rotate your device</strong>
-        <span>Landscape mode gives you room to cook.</span>
+        <strong>กรุณาหมุนอุปกรณ์</strong>
+        <span>โหมดแนวนอนช่วยให้มีพื้นที่ทำอาหารมากขึ้น</span>
       </div>
-      <button class="sound-toggle game-sound-toggle" type="button" aria-pressed="false" aria-label="Turn music off">🎵 Music</button>
+      <button class="sound-toggle game-sound-toggle" type="button" aria-pressed="false" aria-label="ปิดเพลง">🎵 เพลง</button>
       <header class="hud">
         <div>
-          <p class="eyebrow">Kitchen shift</p>
+          <p class="eyebrow">กะทำอาหาร</p>
           <h2>Oodd Oodd Cooking</h2>
         </div>
         <div class="hud-actions">
           <div class="hud-stats">
-            <div><span>Time</span><strong id="timer">40</strong></div>
-            <div><span>Orders</span><strong id="score">0</strong></div>
+            <div><span>เวลา</span><strong id="timer">40</strong></div>
+            <div><span>เสิร์ฟแล้ว</span><strong id="score">0</strong></div>
           </div>
-          <button id="fullscreen-button" class="button button-secondary fullscreen-button" type="button" aria-label="Enter fullscreen">Fullscreen</button>
-          <button id="exit-game-button" class="button button-secondary fullscreen-button exit-game-button" type="button">Exit Game</button>
+          <button id="fullscreen-button" class="button button-secondary fullscreen-button" type="button" aria-label="เข้าโหมดเต็มจอ">เต็มจอ</button>
+          <button id="exit-game-button" class="button button-secondary fullscreen-button exit-game-button" type="button">ออกจากเกม</button>
         </div>
       </header>
 
-      <section class="game-shell" aria-label="Top-down kitchen game">
+      <section class="game-shell" aria-label="เกมทำอาหารมุมมองด้านบน">
         <div class="game-stage">
-          <svg id="game-world" viewBox="0 0 1000 620" role="img" aria-label="Top-down kitchen with ingredient, cooking, serving, and utility stations">
+          <svg id="game-world" viewBox="0 0 1000 620" role="img" aria-label="ครัวมุมมองด้านบนพร้อมสถานีวัตถุดิบ ทำอาหาร เสิร์ฟ และสถานีอำนวยความสะดวก">
           <defs>
             <pattern id="floor-pattern" width="44" height="44" patternUnits="userSpaceOnUse">
               <rect width="44" height="44" fill="#f7f1e8" />
@@ -86,14 +86,14 @@
 
           <rect width="1000" height="620" rx="26" fill="url(#floor-pattern)" />
           <rect x="30" y="30" width="940" height="560" rx="18" fill="none" stroke="#d7c7b2" stroke-width="3" />
-          <text x="54" y="80" class="room-label">OODD OODD KITCHEN</text>
+          <text x="54" y="80" class="room-label">ครัว OODD OODD</text>
 
-          <g class="object station" data-object="trash" data-x="90" data-y="100" transform="translate(-810 -105)" tabindex="0"><rect x="883" y="185" width="34" height="40" rx="7" class="object-shadow" /><rect x="885" y="182" width="30" height="38" rx="6" fill="#7e8b83" stroke="#4f5d55" stroke-width="2" /><path d="M882 184h36M891 178h18" fill="none" stroke="#4f5d55" stroke-width="4" stroke-linecap="round" /><path d="M893 192v20M900 192v20M907 192v20" stroke="#b9c2bc" stroke-width="2" stroke-linecap="round" /><text x="900" y="245" class="object-label">TRASH</text></g>
-          <g class="object station" data-object="pan" data-x="480" data-y="160" transform="translate(-270 -45)" tabindex="0"><rect x="685" y="135" width="130" height="140" rx="20" class="object-shadow" /><rect x="685" y="125" width="130" height="140" rx="20" fill="#e4a94f" stroke="#b87c2b" stroke-width="5" /><ellipse cx="740" cy="190" rx="40" ry="25" fill="#8b6650" stroke="#624633" stroke-width="5" /><path d="M770 185l32-24" stroke="#624633" stroke-width="10" stroke-linecap="round" /><text x="750" y="315" class="object-label">PAN</text></g>
-          <g class="object station" data-object="pot" data-x="600" data-y="160" transform="translate(175 -45)" tabindex="0"><rect x="360" y="135" width="130" height="140" rx="20" class="object-shadow" /><rect x="360" y="125" width="130" height="140" rx="20" fill="#9bc9d1" stroke="#4d8f9d" stroke-width="5" /><ellipse cx="425" cy="190" rx="40" ry="25" fill="#6c8990" stroke="#395e66" stroke-width="5" /><text x="425" y="315" class="object-label">POT</text></g>
-          <g class="object station" data-object="grill" data-x="720" data-y="160" transform="translate(-100 -270)" tabindex="0"><rect x="750" y="365" width="140" height="130" rx="20" class="object-shadow" /><rect x="750" y="355" width="140" height="130" rx="20" fill="#ba6849" stroke="#8d5038" stroke-width="5" /><rect x="775" y="382" width="90" height="62" rx="12" fill="#493a2c" stroke="#2f241c" stroke-width="4" /><path d="M790 386v54M810 386v54M830 386v54M850 386v54" stroke="#d7c7b2" stroke-width="5" /><circle cx="785" cy="466" r="7" fill="#e4a94f" /><circle cx="855" cy="466" r="7" fill="#e4a94f" /><text x="820" y="525" class="object-label">GRILL</text></g>
-          <g class="object station" data-object="rice" data-x="100" data-y="300" transform="translate(-80 95)" tabindex="0"><rect x="110" y="140" width="140" height="130" rx="20" class="object-shadow" /><rect x="110" y="130" width="140" height="130" rx="20" fill="#d7c7b2" stroke="#9b8975" stroke-width="5" /><rect x="135" y="166" width="38" height="38" rx="7" fill="#fffdf9" stroke="#9b8975" stroke-width="3" /><rect x="188" y="166" width="38" height="38" rx="7" fill="#a9a6a1" stroke="#716e69" stroke-width="3" /><text x="180" y="300" class="object-label">RICE</text></g>
-          <g class="object station" data-object="ingredients" data-x="240" data-y="300" transform="translate(60 -130)" tabindex="0"><rect x="105" y="365" width="150" height="130" rx="20" class="object-shadow" /><rect x="105" y="355" width="150" height="130" rx="20" fill="#bd764f" stroke="#8d5038" stroke-width="5" /><circle cx="140" cy="408" r="21" fill="#8fbf70" /><circle cx="182" cy="408" r="21" fill="#e4a94f" /><path d="M205 430c-13-8-13-29 2-37 14-8 35 2 37 17 2 14-10 28-24 29-6 0-11-3-15-9Z" fill="#e99282" stroke="#9f4f48" stroke-width="4" /><path d="M211 405c7-5 16-4 22 2M210 416c8-4 17-2 22 4" fill="none" stroke="#fff1df" stroke-width="3" stroke-linecap="round" /><text x="180" y="525" class="object-label">INGREDIENTS</text></g>
+          <g class="object station" data-object="trash" data-x="90" data-y="100" transform="translate(-810 -105)" tabindex="0"><rect x="883" y="185" width="34" height="40" rx="7" class="object-shadow" /><rect x="885" y="182" width="30" height="38" rx="6" fill="#7e8b83" stroke="#4f5d55" stroke-width="2" /><path d="M882 184h36M891 178h18" fill="none" stroke="#4f5d55" stroke-width="4" stroke-linecap="round" /><path d="M893 192v20M900 192v20M907 192v20" stroke="#b9c2bc" stroke-width="2" stroke-linecap="round" /><text x="900" y="245" class="object-label">ถังขยะ</text></g>
+          <g class="object station" data-object="pan" data-x="480" data-y="160" transform="translate(-270 -45)" tabindex="0"><rect x="685" y="135" width="130" height="140" rx="20" class="object-shadow" /><rect x="685" y="125" width="130" height="140" rx="20" fill="#e4a94f" stroke="#b87c2b" stroke-width="5" /><ellipse cx="740" cy="190" rx="40" ry="25" fill="#8b6650" stroke="#624633" stroke-width="5" /><path d="M770 185l32-24" stroke="#624633" stroke-width="10" stroke-linecap="round" /><text x="750" y="315" class="object-label">กระทะ</text></g>
+          <g class="object station" data-object="pot" data-x="600" data-y="160" transform="translate(175 -45)" tabindex="0"><rect x="360" y="135" width="130" height="140" rx="20" class="object-shadow" /><rect x="360" y="125" width="130" height="140" rx="20" fill="#9bc9d1" stroke="#4d8f9d" stroke-width="5" /><ellipse cx="425" cy="190" rx="40" ry="25" fill="#6c8990" stroke="#395e66" stroke-width="5" /><text x="425" y="315" class="object-label">หม้อ</text></g>
+          <g class="object station" data-object="grill" data-x="720" data-y="160" transform="translate(-100 -270)" tabindex="0"><rect x="750" y="365" width="140" height="130" rx="20" class="object-shadow" /><rect x="750" y="355" width="140" height="130" rx="20" fill="#ba6849" stroke="#8d5038" stroke-width="5" /><rect x="775" y="382" width="90" height="62" rx="12" fill="#493a2c" stroke="#2f241c" stroke-width="4" /><path d="M790 386v54M810 386v54M830 386v54M850 386v54" stroke="#d7c7b2" stroke-width="5" /><circle cx="785" cy="466" r="7" fill="#e4a94f" /><circle cx="855" cy="466" r="7" fill="#e4a94f" /><text x="820" y="525" class="object-label">เตาย่าง</text></g>
+          <g class="object station" data-object="rice" data-x="100" data-y="300" transform="translate(-80 95)" tabindex="0"><rect x="110" y="140" width="140" height="130" rx="20" class="object-shadow" /><rect x="110" y="130" width="140" height="130" rx="20" fill="#d7c7b2" stroke="#9b8975" stroke-width="5" /><rect x="135" y="166" width="38" height="38" rx="7" fill="#fffdf9" stroke="#9b8975" stroke-width="3" /><rect x="188" y="166" width="38" height="38" rx="7" fill="#a9a6a1" stroke="#716e69" stroke-width="3" /><text x="180" y="300" class="object-label">ข้าว</text></g>
+          <g class="object station" data-object="ingredients" data-x="240" data-y="300" transform="translate(60 -130)" tabindex="0"><rect x="105" y="365" width="150" height="130" rx="20" class="object-shadow" /><rect x="105" y="355" width="150" height="130" rx="20" fill="#bd764f" stroke="#8d5038" stroke-width="5" /><circle cx="140" cy="408" r="21" fill="#8fbf70" /><circle cx="182" cy="408" r="21" fill="#e4a94f" /><path d="M205 430c-13-8-13-29 2-37 14-8 35 2 37 17 2 14-10 28-24 29-6 0-11-3-15-9Z" fill="#e99282" stroke="#9f4f48" stroke-width="4" /><path d="M211 405c7-5 16-4 22 2M210 416c8-4 17-2 22 4" fill="none" stroke="#fff1df" stroke-width="3" stroke-linecap="round" /><text x="180" y="525" class="object-label">วัตถุดิบ</text></g>
           <g class="object station" data-object="meat" data-x="380" data-y="300" tabindex="0"><rect x="345" y="270" width="70" height="65" rx="12" fill="#d98b80" stroke="#9f4f48" stroke-width="4" /><path d="M359 310c-9-11 1-29 16-27 11-10 30-1 28 14 7 12-5 26-19 23-9 7-20 1-25-10Z" fill="#f2a095" stroke="#9f4f48" stroke-width="3" /><text x="380" y="350" class="object-label">MEAT</text></g>
           <g class="object station" data-object="vegetable" data-x="100" data-y="470" tabindex="0"><rect x="65" y="440" width="70" height="65" rx="12" fill="#a8c98c" stroke="#64834f" stroke-width="4" /><circle cx="91" cy="470" r="13" fill="#79a85d" /><circle cx="113" cy="474" r="12" fill="#e4a94f" /><text x="100" y="520" class="object-label">VEGETABLE</text></g>
           <g class="object station" data-object="egg" data-x="240" data-y="470" tabindex="0"><rect x="205" y="440" width="70" height="65" rx="12" fill="#f2dfad" stroke="#b99555" stroke-width="4" /><ellipse cx="240" cy="472" rx="19" ry="23" fill="#fffdf9" stroke="#d7c7b2" stroke-width="3" /><circle cx="240" cy="476" r="9" fill="#e4a94f" /><text x="240" y="520" class="object-label">EGG</text></g>
@@ -101,7 +101,7 @@
           <g class="object station" data-object="plate" data-x="850" data-y="160" transform="translate(0 -340)" tabindex="0"><rect x="815" y="470" width="70" height="65" rx="12" fill="#9bc9d1" stroke="#4d8f9d" stroke-width="4" /><ellipse cx="850" cy="502" rx="24" ry="15" fill="#fffdf9" stroke="#d7c7b2" stroke-width="4" /><text x="850" y="550" class="object-label">PLATE</text></g>
           <g class="object station" data-object="serve" data-x="500" data-y="470" transform="translate(0 15)" tabindex="0"><rect x="425" y="390" width="150" height="125" rx="18" class="object-shadow" /><rect x="425" y="380" width="150" height="125" rx="18" fill="#e4a94f" stroke="#b87c2b" stroke-width="5" /><ellipse cx="500" cy="442" rx="48" ry="24" fill="#fffaf2" stroke="#b87c2b" stroke-width="4" /><text x="500" y="550" class="object-label">SERVE</text></g>          <g id="cooking-status" transform="translate(600 160)" opacity="0" aria-label="Cooking progress">
             <rect x="-62" y="-128" width="124" height="42" rx="14" class="cooking-status-card" />
-            <text id="cooking-status-label" x="0" y="-111" class="cooking-status-label">COOKING</text>
+            <text id="cooking-status-label" x="0" y="-111" class="cooking-status-label">กำลังทำ</text>
             <rect x="-53" y="-103" width="106" height="8" rx="4" class="cooking-progress-track" />
             <rect id="cooking-progress" x="-53" y="-103" width="0" height="8" rx="4" class="cooking-progress-fill" />
           </g>
@@ -127,46 +127,46 @@
           <g id="other-players"></g>
           <g id="interaction-prompt" transform="translate(490 105)" opacity="0">
             <rect x="-98" y="-20" width="196" height="38" rx="19" fill="#493a2c" />
-            <text x="0" y="6" text-anchor="middle" class="prompt-label">PRESS E TO INTERACT</text>
+            <text x="0" y="6" text-anchor="middle" class="prompt-label">กด E เพื่อโต้ตอบ</text>
           </g>
           </svg>
           <section id="order-card" class="order-card" aria-live="polite">
-            <p class="order-kicker">Customer orders</p>
+            <p class="order-kicker">ออเดอร์ลูกค้า</p>
             <div id="order-list" class="order-list"></div>
           </section>
           <div id="mobile-controls" class="mobile-controls" aria-label="Touch controls">
             <div class="direction-pad" aria-label="Movement">
-              <button class="control-button direction-button direction-up" type="button" data-direction="up" aria-label="Move up">▲</button>
-              <button class="control-button direction-button direction-left" type="button" data-direction="left" aria-label="Move left">◀</button>
-              <button class="control-button direction-button direction-down" type="button" data-direction="down" aria-label="Move down">▼</button>
-              <button class="control-button direction-button direction-right" type="button" data-direction="right" aria-label="Move right">▶</button>
+              <button class="control-button direction-button direction-up" type="button" data-direction="up" aria-label="เดินขึ้น">▲</button>
+              <button class="control-button direction-button direction-left" type="button" data-direction="left" aria-label="เดินไปทางซ้าย">◀</button>
+              <button class="control-button direction-button direction-down" type="button" data-direction="down" aria-label="เดินลง">▼</button>
+              <button class="control-button direction-button direction-right" type="button" data-direction="right" aria-label="เดินไปทางขวา">▶</button>
             </div>
-            <button id="mobile-interact-button" class="control-button interact-button" type="button">Interact</button>
+            <button id="mobile-interact-button" class="control-button interact-button" type="button">โต้ตอบ</button>
           </div>
           <section id="rice-chooser" class="rice-chooser" role="dialog" aria-modal="true" aria-labelledby="rice-chooser-title" hidden>
             <div class="rice-chooser-card">
-              <h3 id="rice-chooser-title">Choose rice</h3>
+              <h3 id="rice-chooser-title">เลือกข้าว</h3>
               <div class="rice-options">
                 <button class="rice-option" type="button" data-rice="steamed"><span class="rice-swatch steamed-rice"></span>ข้าวสวย</button>
                 <button class="rice-option" type="button" data-rice="sticky"><span class="rice-swatch sticky-rice"></span>ข้าวเหนียว</button>
               </div>
-              <button id="close-rice-chooser" class="text-button" type="button">Cancel</button>
+              <button id="close-rice-chooser" class="text-button" type="button">ยกเลิก</button>
             </div>
           </section>
         </div>
       </div>
-      <p id="game-message" class="game-message">Use WASD or arrow keys to move.</p>
+      <p id="game-message" class="game-message">ใช้ WASD หรือลูกศรเพื่อเดิน</p>
     </main>
 
     <main id="results-screen" class="screen setup-screen" hidden>
       <section class="setup-panel results-panel">
-        <p class="eyebrow">Shift complete</p>
-        <h2>Kitchen results</h2>
-        <p class="results-score">Orders served <strong id="results-score">0</strong></p>
+        <p class="eyebrow">จบรอบการทำอาหาร</p>
+        <h2>ผลการแข่งขัน</h2>
+        <p class="results-score">เสิร์ฟออเดอร์สำเร็จ <strong id="results-score">0</strong></p>
         <div id="results-list" class="player-list"></div>
         <div class="results-actions">
-          <button id="play-again-button" class="button" type="button">Play Again</button>
-          <button id="results-button" class="button button-secondary" type="button">Return to Start</button>
+          <button id="play-again-button" class="button" type="button">เล่นอีกครั้ง</button>
+          <button id="results-button" class="button button-secondary" type="button">กลับหน้าเริ่มต้น</button>
         </div>
       </section>
     </main>

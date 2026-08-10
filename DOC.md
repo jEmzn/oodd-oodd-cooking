@@ -18,7 +18,7 @@ Oodd Oodd Cooking is a browser cooking game built with HTML, CSS, JavaScript, in
 
 When the page opens, the start screen offers Solo Game and Multiplayer. Solo starts immediately. Multiplayer asks for a temporary display name and lets players create or join a short room code. The lobby supports 2 to 5 players; every player must be Ready before the host can start the shared round. The explicit `[hidden]` CSS rule ensures only the active screen is visible.
 
-After 60 seconds, the game stops, clears its timers and animation loop, waits briefly for a transition, and returns to the start screen. Starting a new round resets the player position, timer, and total score.
+After 40 seconds, the game stops, clears its timers and animation loop, waits briefly for a transition, and returns to the results screen. Starting a new round resets the player position, timer, and total score.
 
 ## Gameplay
 
@@ -47,12 +47,12 @@ This summary was updated alongside `AGENTS.md` to document the current flat proj
 
 ## Multiplayer Update
 
-Multiplayer mode now supports temporary names, 5-character room codes, 2 to 5 players, a Ready lobby, host-controlled round start, shared 60-second rounds, 15-second orders, server-authoritative movement, personal inventories, shared stations and score, disconnect removal, and a results screen. Active room data is in-memory and resets when the server restarts.
+Multiplayer mode now supports temporary names, 5-character room codes, 2 to 5 players, a Ready lobby, host-controlled round start, shared 40-second rounds, 15-second orders, server-authoritative movement, personal inventories, shared stations and score, disconnect removal, and a results screen. Active room data is in-memory and resets when the server restarts.
 
 
 ## Gameplay Update
 
-The game uses a cooking loop with a 60-second round timer and 15-second customer orders. Garden Soup requires vegetables and herbs at the pot, Sizzling Stir-Fry requires vegetables and sauce at the pan, and Grilled Pork Skewers require pork, bell pepper, and onion at the grill. The shared ingredient station visually includes vegetables and pork and supplies the ingredient bundle for the current order. Players collect ingredients, cook for 2 seconds, and serve the finished menu. Successful service increases the completed-order score and immediately generates a new order. An unserved order expires after 15 seconds, clears unfinished inventory, and immediately generates the next order. Source validation was completed; browser gameplay validation remains recommended for the full timed flow.
+The game uses a cooking loop with a 40-second round timer and 15-second customer orders. Garden Soup requires vegetables and herbs at the pot, Sizzling Stir-Fry requires vegetables and sauce at the pan, and Grilled Pork Skewers require pork, bell pepper, and onion at the grill. The shared ingredient station supplies a generic ingredient bundle; players may choose a cooking station, cook for 2 seconds, and serve the finished menu. Successful service increases the completed-order score and immediately generates a new order. An unserved order expires after 15 seconds, clears unfinished inventory, and immediately generates the next order. Source validation was completed; browser gameplay validation remains recommended for the full timed flow.
 
 
 ## Held Food Indicator
@@ -228,3 +228,11 @@ Exit Game now sits directly to the right of Fullscreen in the gameplay HUD, usin
 ## Two-Order Queue Limit
 
 Solo and multiplayer customer queues now hold at most two orders. Both the client order generator and authoritative server generation use the same cap, while the existing 15-second expiry and serving behavior remain unchanged. JavaScript syntax validation passed; timed browser and multi-client queue validation remains recommended.
+
+## Order Queue Reference Fix
+
+Ingredient collection no longer references the removed single `currentOrder` state; it gives a generic instruction because cooking is free-form with the shared order queue. Finished food pickup uses the menu stored on the cooking station, so Solo and Multiplayer can correctly transfer the completed dish even when multiple orders are waiting. The Solo round duration now uses the same 40-second value shown by the HUD and used by the server. `node --check game.js` and `node --check server/server.js` pass; browser validation of collection, cooking pickup, serving, and timeout remains recommended.
+
+## Thai Game Text
+
+ผู้เล่นจะเห็นข้อความภาษาไทยในหน้าเริ่มต้น การตั้งค่า Multiplayer Lobby ฉากครัว HUD ออเดอร์ สถานะทำอาหาร ข้อความโต้ตอบ ผลลัพธ์ และข้อความจากเซิร์ฟเวอร์ โดยคงชื่อเกม `Oodd Oodd Cooking` ไว้ตามเดิม เมนูและชื่อสถานีในเกมใช้ภาษาไทย และชื่อเมนูใน Client กับ Server ถูกปรับให้ตรงกันแล้ว ตรวจสอบ Syntax ผ่าน; ควรทดสอบการแสดงผลภาษาไทยบน Desktop และอุปกรณ์มือถือเพิ่มเติม
