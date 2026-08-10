@@ -18,12 +18,12 @@ Oodd Oodd Cooking is a browser cooking game built with HTML, CSS, JavaScript, in
 
 When the page opens, the start screen offers Solo Game and Multiplayer. Solo starts immediately. Multiplayer asks for a temporary display name and lets players create or join a short room code. The lobby supports 2 to 5 players; every player must be Ready before the host can start the shared round. The explicit `[hidden]` CSS rule ensures only the active screen is visible.
 
-After 40 seconds, the game stops, clears its timers and animation loop, waits briefly for a transition, and returns to the start screen. Starting a new round resets the player position, timer, and total score.
+After 60 seconds, the game stops, clears its timers and animation loop, waits briefly for a transition, and returns to the start screen. Starting a new round resets the player position, timer, and total score.
 
 ## Gameplay
 
 - Move with `WASD` or the arrow keys.
-- Walk close to the ingredients, pot, pan, or serve station.
+- Walk close to the ingredients, rice, pot, pan, grill, trash, or serve station.
 - Press `E` to interact with the nearest object.
 - Each successfully served order increases the shared team score.
 - A "PRESS E TO INTERACT" prompt appears when an object is within range.
@@ -31,7 +31,7 @@ After 40 seconds, the game stops, clears its timers and animation loop, waits br
 
 ## Visual Design
 
-The game world uses inline SVG for the patterned floor, room border, labels, four kitchen stations, player placement, shadows, and interaction prompt. The local player is rendered with `animation_walk/Stand still.png` as a transparent PNG sprite inside the SVG. CSS adds a warm cream, brown, coral, blue, and gold palette, responsive sizing, rounded panels, hover states, and mobile-friendly HUD stacking.
+The game world uses inline SVG for the patterned floor, room border, labels, four kitchen stations, player placement, shadows, and interaction prompt. The local player is rendered with transparent PNG sprites from `pork_nae_animation` inside the SVG. CSS adds a warm cream, brown, coral, blue, and gold palette, responsive sizing, rounded panels, hover states, and mobile-friendly HUD stacking.
 
 ## Technical Notes
 
@@ -47,12 +47,12 @@ This summary was updated alongside `AGENTS.md` to document the current flat proj
 
 ## Multiplayer Update
 
-Multiplayer mode now supports temporary names, 5-character room codes, 2 to 5 players, a Ready lobby, host-controlled round start, shared 40-second rounds, 15-second orders, server-authoritative movement, personal inventories, shared stations and score, disconnect removal, and a results screen. Active room data is in-memory and resets when the server restarts.
+Multiplayer mode now supports temporary names, 5-character room codes, 2 to 5 players, a Ready lobby, host-controlled round start, shared 60-second rounds, 15-second orders, server-authoritative movement, personal inventories, shared stations and score, disconnect removal, and a results screen. Active room data is in-memory and resets when the server restarts.
 
 
 ## Gameplay Update
 
-The game now uses a cooking loop with a 40-second round timer and 15-second customer orders. Garden Soup requires the pot and Sizzling Stir-Fry requires the pan. Players collect ingredients, cook for 2 seconds, and serve the finished menu. Successful service increases the completed-order score and immediately generates a new order. An unserved order expires after 15 seconds, clears unfinished inventory, and immediately generates the next order. Source validation was completed; browser gameplay validation remains recommended for the full timed flow.
+The game uses a cooking loop with a 60-second round timer and 15-second customer orders. Garden Soup requires vegetables and herbs at the pot, Sizzling Stir-Fry requires vegetables and sauce at the pan, and Grilled Pork Skewers require pork, bell pepper, and onion at the grill. The shared ingredient station visually includes vegetables and pork and supplies the ingredient bundle for the current order. Players collect ingredients, cook for 2 seconds, and serve the finished menu. Successful service increases the completed-order score and immediately generates a new order. An unserved order expires after 15 seconds, clears unfinished inventory, and immediately generates the next order. Source validation was completed; browser gameplay validation remains recommended for the full timed flow.
 
 
 ## Held Food Indicator
@@ -62,7 +62,7 @@ The player displays a small circular SVG food indicator above the avatar while h
 
 ## Cooking Progress Status
 
-While cooking, a realtime loading bar appears above the active pot or pan and fills over the two-second cooking duration. It reaches 100% and changes to READY at the cooking station. The player must interact with that same pot or pan to pick up the menu; only then does the station status disappear. The status also resets when an order expires or the round ends.
+While cooking, a realtime loading bar appears above the active pot, pan, or grill and fills over the two-second cooking duration. It reaches 100% and changes to READY at the cooking station. The player must interact with that same station to pick up the menu; only then does the station status disappear. The status also resets when an order expires or the round ends.
 
 
 ## Cooking Status Reset
@@ -75,13 +75,13 @@ The solo cooking animation now stops updating when cooking completes and cancels
 
 ## Player Sprite Update
 
-The local player's original circle-based SVG avatar has been replaced with the transparent `animation_walk/Stand still.png` sprite. The sprite stays centered on the existing player position and preserves the original movement bounds, collision radius, held-food indicator, and interaction behavior. Source validation confirmed the asset reference and SVG layering; browser visual validation remains recommended because browser control was unavailable in the current environment.
+The local player's original circle-based SVG avatar was replaced with a transparent PNG sprite. The current sprite stays centered on the existing player position and preserves the original movement bounds, collision radius, held-food indicator, and interaction behavior.
 
 ## Directional Walk Animation
 
-The local player now uses the images in `animation_walk` as a directional sprite set. Movement remembers the most recent facing direction, switches to a matching standing pose when movement stops, and cycles walking poses every 140 milliseconds while moving. Per-frame SVG dimensions and a shared bottom-center anchor compensate for the source images having different canvas sizes, reducing visible jumping without modifying the original PNG files. Solo movement animates continuously; multiplayer snapshots select the corresponding local-player direction and walking frame. Source review confirmed all sprite paths, directional selection, idle fallback, and reset behavior. Browser visual validation on desktop and a narrow screen remains recommended.
+The local player uses a directional sprite set. Movement remembers the most recent facing direction, switches to the standing pose when movement stops, and cycles directional poses every 140 milliseconds while moving. A shared bottom-center anchor reduces visible jumping without modifying the original PNG files. Solo movement animates continuously; multiplayer snapshots select the corresponding local-player direction and walking frame.
 
-The left- and right-facing standing sprites are displayed about 10% smaller than their original animation sizing while retaining the same bottom-center foot anchor. This better matches their visual scale to the surrounding walking frames without changing the PNG assets.
+All current Pork Nae poses use a consistent SVG frame size while retaining the same bottom-center foot anchor.
 
 ## Walking Sound
 
@@ -151,3 +151,51 @@ Solo rounds now end on the results screen instead of returning directly to the s
 ## Game Text Copy Protection
 
 Text selection, copying, cutting, and context-menu actions are disabled within the game screen, including HUD text, order details, SVG labels, prompts, and status messages. Other screens remain selectable and copyable, and game controls continue to accept keyboard, pointer, and touch input. Source validation was completed; browser validation of desktop selection and mobile long-press behavior remains recommended.
+
+## Pork Nae Character Update
+
+The local player now uses the four transparent PNG poses from `pork_nae_animation` instead of the previous `animation_walk` character. The standing, forward, left, and right poses are mapped to the existing directional movement system with a shared bottom-center anchor and consistent frame size. Source validation confirmed that the initial SVG sprite and all runtime sprite references use the new asset folder; browser visual validation remains recommended.
+
+## Shared Multiplayer Cooking Stations
+
+The multiplayer pot, pan, and grill are shared room resources. Once a player starts cooking, every other player sees the station's cooking or ready status and cannot use that station until its owner picks up the finished food or the order resets. The server checks station occupancy before inventory requirements and reports which player is using the station. JavaScript syntax validation passed; multi-client browser validation remains recommended.
+
+## Shared Multiplayer Held Items
+
+Remote players now display their held item above their character. Ingredients, completed soup, and completed stir-fry are derived from each player's server-synchronized inventory, so everyone in the room can see what the other players are carrying. The indicator disappears while the food is at a cooking station and after it is served or reset. JavaScript syntax and whitespace validation passed; multi-client visual validation remains recommended.
+
+## Local Multiplayer Movement Rendering Fix
+
+The local multiplayer client now copies each server movement snapshot into its authoritative position before reconciling the predicted position. Prediction is initialized from the server only when a round starts, preventing the animation loop from repeatedly pulling the local character back to the spawn point while other clients can still see it moving. JavaScript syntax and whitespace validation passed; multi-client browser validation remains recommended.
+
+## Grill Cooking Station
+
+The kitchen now includes a grill station in the lower-right area. It behaves as the same cooking-station type as the pot and pan in Solo and Multiplayer modes, including proximity interaction, two-second cooking progress, shared multiplayer locking, ready-food pickup, and order reset behavior. The Grilled Pork Skewers order uses pork, bell pepper, and onion from the ingredient station and has local and remote held-food indicators. Cooking-tool checks and multiplayer station initialization derive from a shared tool collection so additional cooking stations require fewer hardcoded branches. JavaScript syntax and whitespace validation passed; browser layout and multi-client gameplay validation remain recommended.
+
+## Cooperative Finished-Food Pickup
+
+Finished multiplayer food at the pot, pan, or grill can now be picked up by any player with empty hands, rather than only by the player who started cooking. When a teammate collects the dish, the original cook's ready inventory is cleared, ownership transfers to the teammate as the cooked dish, and the cooking station becomes available again. Players carrying ingredients or another dish must clear their hands before collecting finished food. Server syntax and whitespace validation passed; multi-client handoff testing remains recommended.
+
+## Standalone Rice Selection Station
+
+A standalone rice station now offers steamed rice and sticky rice without connecting either choice to recipes, cooking stations, or serving validation. Interacting with the station while empty-handed opens a choice popup. Steamed rice appears as a white square above the carrier, while sticky rice appears as a gray square; the synchronized inventory state makes these indicators visible to other multiplayer users as well. The server revalidates the player's distance and empty hands when a multiplayer choice is submitted. JavaScript syntax and whitespace validation passed; popup and multi-client visual testing remain recommended.
+
+## Trash Station
+
+A trash station now lets Solo and Multiplayer players discard an ingredient bundle, rice choice, or completed dish currently held by their character. Empty-handed interactions show a message, while food that is still cooking or waiting at a shared cooking station cannot be removed from the trash station. Multiplayer discard requests use the existing server-authoritative proximity check and synchronize the cleared inventory with every player. JavaScript syntax and whitespace validation passed; browser and multi-client discard testing remain recommended.
+
+## Organized Kitchen Station Layout
+
+Kitchen stations are now grouped by purpose. The top cooking row is ordered pan, pot, and grill; the left side contains rice above the general ingredient station; the serve point is centered at the bottom; and the trash station occupies the upper-left corner. Matching coordinates are used by the SVG client scene and the authoritative multiplayer server so proximity interactions remain aligned. JavaScript syntax and whitespace validation passed; desktop and landscape-mobile visual validation remain recommended.
+
+The trash-station artwork is approximately half the size of its previous reduced version while retaining its upper-left center point and existing interaction coordinates. This gives the corner more visual space without changing Solo or Multiplayer proximity behavior.
+
+The pan, pot, grill, rice, and ingredient station artwork was reduced to 50% of its previous size around each station's existing center point. Their client and server interaction coordinates remain unchanged, so only the visual scale is affected.
+
+The top cooking row was tightened into a centered group with pan, pot, and grill spaced evenly at 120 world units. Client SVG positions and server interaction coordinates were updated together.
+
+## Standalone Ingredient and Supply Stations
+
+Five standalone pickup stations were added without connecting their items to recipes or serving validation. Meat, vegetable, and egg join rice and the general ingredient station in an evenly spaced left-side grid, while sauce and plate occupy a separate right-side column. Empty-handed players can carry one selected item, see its indicator above their character, share that state with other multiplayer clients, and discard it at the trash station. Matching client and server coordinates preserve authoritative proximity validation. JavaScript syntax and whitespace validation passed; desktop and landscape-mobile visual testing remain recommended.
+
+The plate station is positioned at `850,160`, directly above the sauce station. Its vertical column aligns with sauce, while its horizontal row aligns with grill.

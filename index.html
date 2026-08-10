@@ -63,14 +63,14 @@
           <h2>Oodd Oodd Cooking</h2>
         </div>
         <div class="hud-stats">
-          <div><span>Time</span><strong id="timer">40</strong></div>
+          <div><span>Time</span><strong id="timer">60</strong></div>
           <div><span>Orders</span><strong id="score">0</strong></div>
         </div>
       </header>
 
       <section class="game-shell" aria-label="Top-down kitchen game">
         <div class="game-stage">
-          <svg id="game-world" viewBox="0 0 1000 620" role="img" aria-label="Top-down kitchen with a player and four cooking stations">
+          <svg id="game-world" viewBox="0 0 1000 620" role="img" aria-label="Top-down kitchen with ingredient, cooking, serving, and utility stations">
           <defs>
             <pattern id="floor-pattern" width="44" height="44" patternUnits="userSpaceOnUse">
               <rect width="44" height="44" fill="#f7f1e8" />
@@ -85,10 +85,18 @@
           <rect x="30" y="30" width="940" height="560" rx="18" fill="none" stroke="#d7c7b2" stroke-width="3" />
           <text x="54" y="80" class="room-label">OODD OODD KITCHEN</text>
 
-          <g class="object station" data-object="ingredients" data-x="180" data-y="430" tabindex="0"><rect x="105" y="365" width="150" height="130" rx="20" class="object-shadow" /><rect x="105" y="355" width="150" height="130" rx="20" fill="#bd764f" stroke="#8d5038" stroke-width="5" /><circle cx="145" cy="415" r="25" fill="#8fbf70" /><circle cx="195" cy="415" r="25" fill="#e4a94f" /><text x="180" y="525" class="object-label">INGREDIENTS</text></g>
-          <g class="object station" data-object="pot" data-x="425" data-y="205" tabindex="0"><rect x="360" y="135" width="130" height="140" rx="20" class="object-shadow" /><rect x="360" y="125" width="130" height="140" rx="20" fill="#9bc9d1" stroke="#4d8f9d" stroke-width="5" /><ellipse cx="425" cy="190" rx="40" ry="25" fill="#6c8990" stroke="#395e66" stroke-width="5" /><text x="425" y="315" class="object-label">POT</text></g>
-          <g class="object station" data-object="pan" data-x="750" data-y="205" tabindex="0"><rect x="685" y="135" width="130" height="140" rx="20" class="object-shadow" /><rect x="685" y="125" width="130" height="140" rx="20" fill="#e4a94f" stroke="#b87c2b" stroke-width="5" /><ellipse cx="740" cy="190" rx="40" ry="25" fill="#8b6650" stroke="#624633" stroke-width="5" /><path d="M770 185l32-24" stroke="#624633" stroke-width="10" stroke-linecap="round" /><text x="750" y="315" class="object-label">PAN</text></g>
-          <g class="object station" data-object="serve" data-x="500" data-y="455" tabindex="0"><rect x="425" y="390" width="150" height="125" rx="18" class="object-shadow" /><rect x="425" y="380" width="150" height="125" rx="18" fill="#e4a94f" stroke="#b87c2b" stroke-width="5" /><ellipse cx="500" cy="442" rx="48" ry="24" fill="#fffaf2" stroke="#b87c2b" stroke-width="4" /><text x="500" y="550" class="object-label">SERVE</text></g>          <g id="cooking-status" transform="translate(425 205)" opacity="0" aria-label="Cooking progress">
+          <g class="object station" data-object="trash" data-x="90" data-y="100" transform="translate(-810 -105)" tabindex="0"><rect x="883" y="185" width="34" height="40" rx="7" class="object-shadow" /><rect x="885" y="182" width="30" height="38" rx="6" fill="#7e8b83" stroke="#4f5d55" stroke-width="2" /><path d="M882 184h36M891 178h18" fill="none" stroke="#4f5d55" stroke-width="4" stroke-linecap="round" /><path d="M893 192v20M900 192v20M907 192v20" stroke="#b9c2bc" stroke-width="2" stroke-linecap="round" /><text x="900" y="245" class="object-label">TRASH</text></g>
+          <g class="object station" data-object="pan" data-x="480" data-y="160" transform="translate(-270 -45)" tabindex="0"><rect x="685" y="135" width="130" height="140" rx="20" class="object-shadow" /><rect x="685" y="125" width="130" height="140" rx="20" fill="#e4a94f" stroke="#b87c2b" stroke-width="5" /><ellipse cx="740" cy="190" rx="40" ry="25" fill="#8b6650" stroke="#624633" stroke-width="5" /><path d="M770 185l32-24" stroke="#624633" stroke-width="10" stroke-linecap="round" /><text x="750" y="315" class="object-label">PAN</text></g>
+          <g class="object station" data-object="pot" data-x="600" data-y="160" transform="translate(175 -45)" tabindex="0"><rect x="360" y="135" width="130" height="140" rx="20" class="object-shadow" /><rect x="360" y="125" width="130" height="140" rx="20" fill="#9bc9d1" stroke="#4d8f9d" stroke-width="5" /><ellipse cx="425" cy="190" rx="40" ry="25" fill="#6c8990" stroke="#395e66" stroke-width="5" /><text x="425" y="315" class="object-label">POT</text></g>
+          <g class="object station" data-object="grill" data-x="720" data-y="160" transform="translate(-100 -270)" tabindex="0"><rect x="750" y="365" width="140" height="130" rx="20" class="object-shadow" /><rect x="750" y="355" width="140" height="130" rx="20" fill="#ba6849" stroke="#8d5038" stroke-width="5" /><rect x="775" y="382" width="90" height="62" rx="12" fill="#493a2c" stroke="#2f241c" stroke-width="4" /><path d="M790 386v54M810 386v54M830 386v54M850 386v54" stroke="#d7c7b2" stroke-width="5" /><circle cx="785" cy="466" r="7" fill="#e4a94f" /><circle cx="855" cy="466" r="7" fill="#e4a94f" /><text x="820" y="525" class="object-label">GRILL</text></g>
+          <g class="object station" data-object="rice" data-x="100" data-y="300" transform="translate(-80 95)" tabindex="0"><rect x="110" y="140" width="140" height="130" rx="20" class="object-shadow" /><rect x="110" y="130" width="140" height="130" rx="20" fill="#d7c7b2" stroke="#9b8975" stroke-width="5" /><rect x="135" y="166" width="38" height="38" rx="7" fill="#fffdf9" stroke="#9b8975" stroke-width="3" /><rect x="188" y="166" width="38" height="38" rx="7" fill="#a9a6a1" stroke="#716e69" stroke-width="3" /><text x="180" y="300" class="object-label">RICE</text></g>
+          <g class="object station" data-object="ingredients" data-x="240" data-y="300" transform="translate(60 -130)" tabindex="0"><rect x="105" y="365" width="150" height="130" rx="20" class="object-shadow" /><rect x="105" y="355" width="150" height="130" rx="20" fill="#bd764f" stroke="#8d5038" stroke-width="5" /><circle cx="140" cy="408" r="21" fill="#8fbf70" /><circle cx="182" cy="408" r="21" fill="#e4a94f" /><path d="M205 430c-13-8-13-29 2-37 14-8 35 2 37 17 2 14-10 28-24 29-6 0-11-3-15-9Z" fill="#e99282" stroke="#9f4f48" stroke-width="4" /><path d="M211 405c7-5 16-4 22 2M210 416c8-4 17-2 22 4" fill="none" stroke="#fff1df" stroke-width="3" stroke-linecap="round" /><text x="180" y="525" class="object-label">INGREDIENTS</text></g>
+          <g class="object station" data-object="meat" data-x="380" data-y="300" tabindex="0"><rect x="345" y="270" width="70" height="65" rx="12" fill="#d98b80" stroke="#9f4f48" stroke-width="4" /><path d="M359 310c-9-11 1-29 16-27 11-10 30-1 28 14 7 12-5 26-19 23-9 7-20 1-25-10Z" fill="#f2a095" stroke="#9f4f48" stroke-width="3" /><text x="380" y="350" class="object-label">MEAT</text></g>
+          <g class="object station" data-object="vegetable" data-x="100" data-y="470" tabindex="0"><rect x="65" y="440" width="70" height="65" rx="12" fill="#a8c98c" stroke="#64834f" stroke-width="4" /><circle cx="91" cy="470" r="13" fill="#79a85d" /><circle cx="113" cy="474" r="12" fill="#e4a94f" /><text x="100" y="520" class="object-label">VEGETABLE</text></g>
+          <g class="object station" data-object="egg" data-x="240" data-y="470" tabindex="0"><rect x="205" y="440" width="70" height="65" rx="12" fill="#f2dfad" stroke="#b99555" stroke-width="4" /><ellipse cx="240" cy="472" rx="19" ry="23" fill="#fffdf9" stroke="#d7c7b2" stroke-width="3" /><circle cx="240" cy="476" r="9" fill="#e4a94f" /><text x="240" y="520" class="object-label">EGG</text></g>
+          <g class="object station" data-object="sauce" data-x="850" data-y="330" tabindex="0"><rect x="815" y="300" width="70" height="65" rx="12" fill="#c98963" stroke="#8d5038" stroke-width="4" /><path d="M838 348v-27h24v27Z" fill="#8d5038" stroke="#fff1df" stroke-width="3" /><path d="M843 321v-10h14v10" fill="#e4a94f" stroke="#8d5038" stroke-width="3" /><text x="850" y="380" class="object-label">SAUCE</text></g>
+          <g class="object station" data-object="plate" data-x="850" data-y="160" transform="translate(0 -340)" tabindex="0"><rect x="815" y="470" width="70" height="65" rx="12" fill="#9bc9d1" stroke="#4d8f9d" stroke-width="4" /><ellipse cx="850" cy="502" rx="24" ry="15" fill="#fffdf9" stroke="#d7c7b2" stroke-width="4" /><text x="850" y="550" class="object-label">PLATE</text></g>
+          <g class="object station" data-object="serve" data-x="500" data-y="470" transform="translate(0 15)" tabindex="0"><rect x="425" y="390" width="150" height="125" rx="18" class="object-shadow" /><rect x="425" y="380" width="150" height="125" rx="18" fill="#e4a94f" stroke="#b87c2b" stroke-width="5" /><ellipse cx="500" cy="442" rx="48" ry="24" fill="#fffaf2" stroke="#b87c2b" stroke-width="4" /><text x="500" y="550" class="object-label">SERVE</text></g>          <g id="cooking-status" transform="translate(600 160)" opacity="0" aria-label="Cooking progress">
             <rect x="-62" y="-128" width="124" height="42" rx="14" class="cooking-status-card" />
             <text id="cooking-status-label" x="0" y="-111" class="cooking-status-label">COOKING</text>
             <rect x="-53" y="-103" width="106" height="8" rx="4" class="cooking-progress-track" />
@@ -101,9 +109,17 @@
               <g id="held-cooking" opacity="0"><path d="M-7 5h14" stroke="#fffaf2" stroke-width="3" stroke-linecap="round" /><path d="M-5 1Q-8-3-5-7M2 1Q-1-3 2-7" fill="none" stroke="#fffaf2" stroke-width="2" stroke-linecap="round" /></g>
               <g id="held-soup" opacity="0"><path d="M-9 1Q0 12 9 1Z" fill="#e4a94f" stroke="#fffaf2" stroke-width="2" /><path d="M-6-2Q0-7 6-2" fill="none" stroke="#fffaf2" stroke-width="2" stroke-linecap="round" /></g>
               <g id="held-stir-fry" opacity="0"><ellipse cx="0" cy="2" rx="9" ry="5" fill="#8b6650" stroke="#fffaf2" stroke-width="2" /><path d="M6 0l7-6" stroke="#fffaf2" stroke-width="2" stroke-linecap="round" /><circle cx="-3" cy="1" r="2" fill="#8fbf70" /><circle cx="3" cy="3" r="2" fill="#e4a94f" /></g>
+              <g id="held-grilled-pork" opacity="0"><ellipse cx="0" cy="3" rx="10" ry="6" fill="#8d5038" stroke="#fffaf2" stroke-width="2" /><path d="M-6 0l4 3M0-1l4 3M5-1l3 2" stroke="#e4a94f" stroke-width="1.5" stroke-linecap="round" /></g>
+              <g id="held-steamed-rice" opacity="0"><rect x="-10" y="-10" width="20" height="20" rx="4" fill="#fff" stroke="#9b8975" stroke-width="2" /></g>
+              <g id="held-sticky-rice" opacity="0"><rect x="-10" y="-10" width="20" height="20" rx="4" fill="#999" stroke="#625f5a" stroke-width="2" /></g>
+              <g id="held-meat" opacity="0"><ellipse cx="0" cy="1" rx="10" ry="7" fill="#e99282" stroke="#9f4f48" stroke-width="2" /></g>
+              <g id="held-vegetable" opacity="0"><circle cx="-4" cy="1" r="7" fill="#79a85d" /><circle cx="5" cy="3" r="6" fill="#e4a94f" /></g>
+              <g id="held-egg" opacity="0"><ellipse cx="0" cy="1" rx="9" ry="11" fill="#fff" stroke="#d7c7b2" stroke-width="2" /><circle cx="0" cy="3" r="4" fill="#e4a94f" /></g>
+              <g id="held-sauce" opacity="0"><rect x="-7" y="-9" width="14" height="19" rx="3" fill="#8d5038" stroke="#fff1df" stroke-width="2" /></g>
+              <g id="held-plate" opacity="0"><ellipse cx="0" cy="2" rx="11" ry="7" fill="#fff" stroke="#9bc9d1" stroke-width="3" /></g>
             </g>
-            <circle class="player-shadow" cx="0" cy="27" r="23" />
-            <image id="player-sprite" class="player-sprite" href="animation_walk/Stand%20still.png" x="-54" y="-36" width="108" height="66" preserveAspectRatio="xMidYMid meet" />
+            <circle class="player-shadow" cx="0" cy="27" r="15" />
+            <image id="player-sprite" class="player-sprite" href="pork_nae_animation/Stand%20Still.png" x="-66" y="-44" width="132" height="74" preserveAspectRatio="xMidYMid meet" />
           </g>
           <g id="other-players"></g>
           <g id="interaction-prompt" transform="translate(490 105)" opacity="0">
@@ -121,6 +137,16 @@
             </div>
             <button id="mobile-interact-button" class="control-button interact-button" type="button">Interact</button>
           </div>
+          <section id="rice-chooser" class="rice-chooser" role="dialog" aria-modal="true" aria-labelledby="rice-chooser-title" hidden>
+            <div class="rice-chooser-card">
+              <h3 id="rice-chooser-title">Choose rice</h3>
+              <div class="rice-options">
+                <button class="rice-option" type="button" data-rice="steamed"><span class="rice-swatch steamed-rice"></span>ข้าวสวย</button>
+                <button class="rice-option" type="button" data-rice="sticky"><span class="rice-swatch sticky-rice"></span>ข้าวเหนียว</button>
+              </div>
+              <button id="close-rice-chooser" class="text-button" type="button">Cancel</button>
+            </div>
+          </section>
         </div>
       </div>
       <p id="game-message" class="game-message">Use WASD or arrow keys to move.</p>
