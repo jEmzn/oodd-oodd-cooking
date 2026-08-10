@@ -8,14 +8,25 @@ const httpServer = http.createServer(app);
 const io = new Server(httpServer);
 const rooms = new Map();
 const menus = [
-  { name: "Garden Soup", tool: "pot" },
-  { name: "Sizzling Stir-Fry", tool: "pan" }
+  { name: "Garden Soup", tool: "pot", ingredients: "vegetables and herbs" },
+  { name: "Sizzling Stir-Fry", tool: "pan", ingredients: "vegetables and sauce" },
+  { name: "Grilled Pork Skewers", tool: "grill", ingredients: "pork, bell pepper, and onion" }
 ];
+const cookingTools = new Set(menus.map((menu) => menu.tool));
+const standalonePickupItems = new Set(["meat", "vegetable", "egg", "sauce", "plate"]);
 const stations = {
-  ingredients: { x: 180, y: 430 },
-  pot: { x: 425, y: 205 },
-  pan: { x: 750, y: 205 },
-  serve: { x: 500, y: 455 }
+  ingredients: { x: 240, y: 300 },
+  rice: { x: 100, y: 300 },
+  meat: { x: 380, y: 300 },
+  vegetable: { x: 100, y: 470 },
+  egg: { x: 240, y: 470 },
+  sauce: { x: 850, y: 330 },
+  plate: { x: 850, y: 160 },
+  pot: { x: 600, y: 160 },
+  pan: { x: 480, y: 160 },
+  trash: { x: 90, y: 100 },
+  grill: { x: 720, y: 160 },
+  serve: { x: 500, y: 470 }
 };
 const startingPosition = { x: 500, y: 350 };
 const playerSpeed = 150;
@@ -68,7 +79,7 @@ function newGame() {
     orders: [createOrder()],
     orderGenerationElapsed: 0,
     score: 0,
-    stations: { pot: null, pan: null }
+    stations: Object.fromEntries([...cookingTools].map((tool) => [tool, null]))
   };
 }
 
@@ -227,14 +238,33 @@ function interact(socket, requestedStation) {
     return;
   }
 
-  if (requestedStation === "ingredients") {
+  if (requestedStation === "trash") {
     if (player.inventory === "empty") {
-      player.inventory = "ingredients";
-      socket.emit("game-message", "Ingredients collected. Follow the customer order.");
+      socket.emit("game-message", "There is nothing in your hands to discard.");
+    } else if (player.inventory === "cooking" || player.inventory === "ready") {
+      socket.emit("game-message", "That food is still at the cooking station.");
+    } else {
+      player.inventory = "empty";
+      socket.emit("game-message", "Held item discarded.");
+    }
+  } else if (requestedStation === "rice") {
+    if (player.inventory === "empty") socket.emit("choose-rice");
+    else socket.emit("game-message", "Your hands are already full.");
+  } else if (standalonePickupItems.has(requestedStation)) {
+    if (player.inventory === "empty") {
+      player.inventory = `item-${requestedStation}`;
+      socket.emit("game-message", `${requestedStation} collected.`);
     } else {
       socket.emit("game-message", "Your hands are already full.");
     }
-  } else if (requestedStation === "pot" || requestedStation === "pan") {
+  } else if (requestedStation === "ingredients") {
+    if (player.inventory === "empty") {
+      player.inventory = "ingredients";
+      socket.emit("game-message", `${room.game.currentOrder.ingredients} collected. Take them to the ${room.game.currentOrder.tool}.`);
+    } else {
+      socket.emit("game-message", "Your hands are already full.");
+    }
+  } else if (cookingTools.has(requestedStation)) {
     interactWithCookStation(socket, room, player, requestedStation);
   } else {
     serveOrder(socket, room, player);
@@ -242,12 +272,44 @@ function interact(socket, requestedStation) {
   broadcastRoom(room);
 }
 
+function selectRice(socket, requestedRice) {
+  const room = roomFor(socket);
+  const player = room && room.players.get(socket.id);
+  if (!room || !player || room.status !== "playing") return;
+  if (requestedRice !== "steamed" && requestedRice !== "sticky") return;
+  const distance = Math.hypot(player.x - stations.rice.x, player.y - stations.rice.y);
+  if (distance >= interactionDistance) {
+    socket.emit("game-message", "Move closer to the rice station first.");
+    return;
+  }
+  if (player.inventory !== "empty") {
+    socket.emit("game-message", "Your hands are already full.");
+    return;
+  }
+  player.inventory = `rice-${requestedRice}`;
+  socket.emit("game-message", requestedRice === "steamed" ? "Steamed rice selected." : "Sticky rice selected.");
+  broadcastRoom(room);
+}
+
 function interactWithCookStation(socket, room, player, tool) {
   const station = room.game.stations[tool];
-  if (player.inventory === "ready" && station && station.playerId === player.id && station.complete) {
-    player.inventory = `cooked-${station.menuName}`;
+  if (station?.complete) {
+    const cook = room.players.get(station.playerId);
+    const isCook = station.playerId === player.id;
+    const canPickUp = player.inventory === "empty" || (isCook && player.inventory === "ready");
+    if (!canPickUp) {
+      socket.emit("game-message", "Your hands are full. Clear them before picking up the finished food.");
+      return;
+    }
+    if (cook && cook.id !== player.id && cook.inventory === "ready") cook.inventory = "empty";
+    player.inventory = `cooked-${room.game.currentOrder.name}`;
     room.game.stations[tool] = null;
-    socket.emit("game-message", `You picked up the ${station.menuName}. Take it to the serve point.`);
+    io.to(room.code).emit("game-message", `${player.name} picked up the ${room.game.currentOrder.name}. Take it to the serve point.`);
+    return;
+  }
+  if (station) {
+    const owner = room.players.get(station.playerId);
+    socket.emit("game-message", `${owner?.name || "Another player"} is cooking at the ${tool}.`);
     return;
   }
   if (player.inventory !== "ingredients") {
@@ -376,6 +438,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("interact", ({ station } = {}) => interact(socket, station));
+  socket.on("select-rice", ({ rice } = {}) => selectRice(socket, rice));
   socket.on("leave-room", () => leaveRoom(socket));
   socket.on("disconnect", () => leaveRoom(socket));
 });
