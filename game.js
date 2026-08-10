@@ -63,6 +63,7 @@ const menus = [
 ];
 const cookingTools = new Set(["pot", "pan", "grill"]);
 const standalonePickupItems = { meat: "meat", vegetable: "vegetable", egg: "egg", sauce: "sauce", plate: "plate" };
+const maxOrders = 2;
 const playerState = { x: 500, y: 350, speed: 4.5, radius: 32 };
 const playerSprites = {
   down: [
@@ -386,7 +387,7 @@ function updateOrder() {
 }
 
 function generateOrder() {
-  if (orders.length >= 5) return false;
+  if (orders.length >= maxOrders) return false;
   const menu = menus[Math.floor(Math.random() * menus.length)];
   const createdAt = Date.now();
   orders.push({ id: `solo-${createdAt}-${orderSequence++}`, name: menu.name, tool: menu.tool, createdAt, expiresAt: createdAt + 15000 });

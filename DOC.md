@@ -154,7 +154,7 @@ Text selection, copying, cutting, and context-menu actions are disabled within t
 
 ## Timed Order Queue
 
-Solo and multiplayer rounds now maintain a shared-style queue of up to five customer orders. One order appears when a round starts, and the game attempts to add another order every seven seconds while the queue has space. Each order has its own 15-second expiry timer; generation pauses at five queued orders. The game UI displays all waiting orders with individual countdowns.
+Solo and multiplayer rounds now maintain a shared-style queue of up to two customer orders. One order appears when a round starts, and the game attempts to add another order every seven seconds while the queue has space. Each order has its own 15-second expiry timer; generation pauses at two queued orders. The game UI displays all waiting orders with individual countdowns.
 
 Cooking is now free-form: players may collect ingredients and cook Garden Soup at the pot or Sizzling Stir-Fry at the pan without following a particular displayed order. Serving removes the oldest waiting order matching the held dish and increases the score. A cooked dish remains in the player inventory when no matching order is available. The multiplayer `room-state` payload now sends an `orders` array instead of a single `currentOrder` and shared `orderSecondsLeft` value. JavaScript syntax validation passes; browser validation of timed queue growth, expiry, serving, and mobile layout remains recommended.
 
@@ -220,3 +220,11 @@ The top cooking row was tightened into a centered group with pan, pot, and grill
 Five standalone pickup stations were added without connecting their items to recipes or serving validation. Meat, vegetable, and egg join rice and the general ingredient station in an evenly spaced left-side grid, while sauce and plate occupy a separate right-side column. Empty-handed players can carry one selected item, see its indicator above their character, share that state with other multiplayer clients, and discard it at the trash station. Matching client and server coordinates preserve authoritative proximity validation. JavaScript syntax and whitespace validation passed; desktop and landscape-mobile visual testing remain recommended.
 
 The plate station is positioned at `850,160`, directly above the sauce station. Its vertical column aligns with sauce, while its horizontal row aligns with grill.
+
+## Mobile Gameplay Control Spacing
+
+Exit Game now sits directly to the right of Fullscreen in the gameplay HUD, using the same responsive button layout instead of floating over the HUD. The gameplay Music toggle remains positioned above the touch Interact button on coarse-pointer landscape screens. The same behavior applies to native and fallback fullscreen layouts while the start-screen Music control remains unchanged. Source validation passed; browser validation at the supplied landscape viewport and 640x360 remains recommended.
+
+## Two-Order Queue Limit
+
+Solo and multiplayer customer queues now hold at most two orders. Both the client order generator and authoritative server generation use the same cap, while the existing 15-second expiry and serving behavior remain unchanged. JavaScript syntax validation passed; timed browser and multi-client queue validation remains recommended.

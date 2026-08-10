@@ -33,7 +33,7 @@ const playerSpeed = 150;
 const interactionDistance = 104;
 const orderLifetime = 15000;
 const orderInterval = 7;
-const maxOrders = 5;
+const maxOrders = 2;
 
 app.use(express.static(path.join(__dirname, "..")));
 
