@@ -13,6 +13,7 @@ const startRoundButton = document.querySelector("#start-round-button");
 const leaveRoomButton = document.querySelector("#leave-room-button");
 const playAgainButton = document.querySelector("#play-again-button");
 const resultsButton = document.querySelector("#results-button");
+const fullscreenButton = document.querySelector("#fullscreen-button");
 const mobileInteractButton = document.querySelector("#mobile-interact-button");
 const directionButtons = [...document.querySelectorAll("[data-direction]")];
 const playerNameInput = document.querySelector("#player-name");
@@ -80,6 +81,7 @@ let gameRunning = false;
 let mode = "solo";
 let roomState;
 let selfId;
+let fullscreenFallback = false;
 let playerDirection = "down";
 let lastSpriteKey = "";
 let multiplayerInput = { left: false, right: false, up: false, down: false };
@@ -138,8 +140,70 @@ function releaseAllTouchDirections() {
   directionButtons.forEach((button) => releaseTouchDirection(button));
 }
 
+function getFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function updateFullscreenButton() {
+  const active = Boolean(getFullscreenElement()) || fullscreenFallback;
+  fullscreenButton.textContent = active ? "Exit Fullscreen" : "Fullscreen";
+  fullscreenButton.setAttribute("aria-label", active ? "Exit fullscreen" : "Enter fullscreen");
+  fullscreenButton.setAttribute("aria-pressed", `${active}`);
+}
+
+function clearFullscreenFallback() {
+  fullscreenFallback = false;
+  gameScreen.classList.remove("fullscreen-fallback");
+  updateFullscreenButton();
+}
+
+function exitNativeFullscreen() {
+  if (document.fullscreenElement && document.exitFullscreen) return document.exitFullscreen();
+  if (document.webkitFullscreenElement && document.webkitExitFullscreen) return document.webkitExitFullscreen();
+  return null;
+}
+
+function clearFullscreenPresentation() {
+  clearFullscreenFallback();
+  if (getFullscreenElement()) exitNativeFullscreen();
+}
+
+function requestLandscapeLock() {
+  if (screen.orientation?.lock) screen.orientation.lock("landscape").catch(() => {});
+}
+
+async function enterFullscreen() {
+  try {
+    if (gameScreen.requestFullscreen) {
+      await gameScreen.requestFullscreen({ navigationUI: "hide" });
+    } else if (gameScreen.webkitRequestFullscreen) {
+      await gameScreen.webkitRequestFullscreen();
+    } else {
+      throw new Error("Fullscreen is not supported.");
+    }
+    fullscreenFallback = false;
+    gameScreen.classList.remove("fullscreen-fallback");
+    requestLandscapeLock();
+  } catch (error) {
+    fullscreenFallback = true;
+    gameScreen.classList.add("fullscreen-fallback");
+    setMessage("Native fullscreen is unavailable; expanded landscape view is active.");
+  }
+  updateFullscreenButton();
+}
+
+function toggleFullscreen() {
+  if (getFullscreenElement() || fullscreenFallback) {
+    if (getFullscreenElement()) exitNativeFullscreen();
+    clearFullscreenFallback();
+    return;
+  }
+  enterFullscreen();
+}
+
 function showScreen(screen) {
   [startScreen, multiplayerScreen, lobbyScreen, gameScreen, resultsScreen].forEach((item) => { item.hidden = item !== screen; });
+  if (screen !== gameScreen) clearFullscreenPresentation();
 }
 
 function setPlayerPosition() {
@@ -676,6 +740,7 @@ playAgainButton.addEventListener("click", () => {
   }
   socket?.emit("play-again");
 });
+fullscreenButton.addEventListener("click", toggleFullscreen);
 
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
@@ -704,5 +769,8 @@ if (socket) {
   socket.on("game-message", (text) => { setMessage(text); lobbyMessage.textContent = text; setupMessage.textContent = text; });
   socket.on("disconnect", () => { if (mode === "multiplayer") { gameRunning = false; stopMultiplayerAnimation(); clearRemotePlayers(); setupMessage.textContent = "Disconnected from the kitchen server."; showScreen(multiplayerScreen); } });
 }
+
+document.addEventListener("fullscreenchange", updateFullscreenButton);
+document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
 
 showScreen(startScreen);
