@@ -11,42 +11,50 @@
       <div class="title-card">
         <div class="mode-actions">
           <button id="play-button" class="button" type="button">เล่นคนเดียว</button>
-          <button id="multiplayer-button" class="button button-secondary" type="button">เล่นหลายคน</button>
+          <button id="multiplayer-button" class="button button-secondary" type="button">เล่นหลายคนเครื่องเดียว</button>
         </div>
       </div>
       <button id="sound-toggle" class="sound-toggle" type="button" aria-pressed="false" aria-label="ปิดเพลง">🎵 เพลง</button>
     </main>
 
     <main id="multiplayer-screen" class="screen setup-screen" hidden>
-      <section class="setup-panel">
-        <p class="eyebrow">ครัวร่วมมือ</p>
-        <h2>เข้าร่วมกะทำอาหาร</h2>
-        <p class="setup-copy">ตั้งชื่อชั่วคราว จากนั้นสร้างห้องหรือเข้าร่วมทีม</p>
-        <label for="player-name">ชื่อผู้เล่น</label>
-        <input id="player-name" maxlength="18" autocomplete="off" placeholder="ชื่อของคุณ" />
-        <div class="room-actions">
-          <button id="create-room-button" class="button" type="button">สร้างห้อง</button>
-          <div class="join-row">
-            <input id="room-code" maxlength="6" autocomplete="off" placeholder="รหัสห้อง" aria-label="รหัสห้อง" />
-            <button id="join-room-button" class="button button-secondary" type="button">เข้าร่วม</button>
+      <section class="setup-panel local-setup-panel">
+        <p class="eyebrow">LOCAL CO-OP</p>
+        <h2>จัดทีมหน้าเครื่อง</h2>
+        <p class="setup-copy">เลือกผู้เล่นคีย์บอร์ด หรือเชื่อมโทรศัพท์เป็นจอยผ่าน Wi-Fi เดียวกัน รวมได้ 2–5 คน</p>
+        <div class="keyboard-slots">
+          <label class="keyboard-slot">
+            <input id="keyboard-1-enabled" type="checkbox" checked />
+            <span><strong>คีย์บอร์ด 1</strong><small>WASD + E</small></span>
+            <input id="keyboard-1-name" maxlength="18" value="ผู้เล่น 1" aria-label="ชื่อผู้เล่นคีย์บอร์ด 1" />
+          </label>
+          <label class="keyboard-slot">
+            <input id="keyboard-2-enabled" type="checkbox" checked />
+            <span><strong>คีย์บอร์ด 2</strong><small>ลูกศร + Enter</small></span>
+            <input id="keyboard-2-name" maxlength="18" value="ผู้เล่น 2" aria-label="ชื่อผู้เล่นคีย์บอร์ด 2" />
+          </label>
+        </div>
+        <div class="phone-connect-panel">
+          <div>
+            <h3>ใช้โทรศัพท์เป็นจอย</h3>
+            <p>เปิดเกมด้วย local server แล้วให้โทรศัพท์สแกน QR</p>
           </div>
+          <button id="connect-phones-button" class="button button-secondary" type="button">สร้าง QR</button>
         </div>
+        <div id="phone-join-panel" class="phone-join-panel" hidden>
+          <label for="lan-address">ที่อยู่เครือข่าย</label>
+          <select id="lan-address"></select>
+          <img id="controller-qr" alt="QR สำหรับเชื่อมโทรศัพท์เป็นจอย" />
+          <a id="controller-url" target="_blank" rel="noreferrer"></a>
+          <p>รหัสห้อง <strong id="local-session-code"></strong></p>
+        </div>
+        <h3 class="local-roster-title">ผู้เล่น <span id="local-player-count">2/5</span></h3>
+        <div id="local-player-list" class="player-list" aria-live="polite"></div>
         <p id="setup-message" class="form-message" aria-live="polite"></p>
-        <button id="back-button" class="text-button" type="button">ย้อนกลับ</button>
-      </section>
-    </main>
-
-    <main id="lobby-screen" class="screen setup-screen" hidden>
-      <section class="setup-panel lobby-panel">
-        <p class="eyebrow">ครัวหลายคน</p>
-        <h2>ห้อง <span id="room-code-label"></span></h2>
-        <p id="lobby-message" class="setup-copy">เตรียมพร้อมกับทีมของคุณ</p>
-        <div id="player-list" class="player-list" aria-live="polite"></div>
         <div class="lobby-actions">
-          <button id="ready-button" class="button" type="button">พร้อม</button>
-          <button id="start-round-button" class="button button-secondary" type="button" hidden>เริ่มรอบ</button>
+          <button id="start-local-button" class="button" type="button">เริ่มเกม</button>
+          <button id="back-button" class="button button-secondary" type="button">ย้อนกลับ</button>
         </div>
-        <button id="leave-room-button" class="text-button" type="button">ออกจากห้อง</button>
       </section>
     </main>
 
@@ -103,19 +111,7 @@
           <g class="object station" data-object="plate" data-x="850" data-y="160" transform="translate(0 -340)" tabindex="0"><rect x="815" y="470" width="70" height="65" rx="12" fill="#9bc9d1" stroke="#4d8f9d" stroke-width="4" /><ellipse cx="850" cy="502" rx="24" ry="15" fill="#fffdf9" stroke="#d7c7b2" stroke-width="4" /><text x="850" y="550" class="object-label">PLATE</text></g>
           <g class="object station" data-object="serve" data-x="500" data-y="470" transform="translate(0 15)" tabindex="0"><rect x="425" y="390" width="150" height="125" rx="18" class="object-shadow" /><rect x="425" y="380" width="150" height="125" rx="18" fill="#e4a94f" stroke="#b87c2b" stroke-width="5" /><ellipse cx="500" cy="442" rx="48" ry="24" fill="#fffaf2" stroke="#b87c2b" stroke-width="4" /><text x="500" y="550" class="object-label">SERVE</text></g>
           <g id="cooking-statuses" aria-label="Cooking progress"></g>
-          <g id="player" transform="translate(490 150)">
-            <g id="held-item" transform="translate(0 -48)" opacity="0" aria-label="Held food">
-              <circle class="held-item-circle" cx="0" cy="0" r="17" />
-              <g id="held-images"></g>
-            </g>
-            <circle class="player-shadow" cx="0" cy="27" r="15" />
-            <image id="player-sprite" class="player-sprite" href="pork_nae_animation/Stand%20Still.png" x="-66" y="-44" width="132" height="74" preserveAspectRatio="xMidYMid meet" />
-          </g>
-          <g id="other-players"></g>
-          <g id="interaction-prompt" transform="translate(490 105)" opacity="0">
-            <rect x="-98" y="-20" width="196" height="38" rx="19" fill="#493a2c" />
-            <text x="0" y="6" text-anchor="middle" class="prompt-label">กด E เพื่อโต้ตอบ</text>
-          </g>
+          <g id="players"></g>
           </svg>
           <section id="order-card" class="order-card" aria-live="polite">
             <p class="order-kicker">ออเดอร์ลูกค้า</p>
@@ -130,16 +126,7 @@
             </div>
             <button id="mobile-interact-button" class="control-button interact-button" type="button">โต้ตอบ</button>
           </div>
-          <section id="rice-chooser" class="rice-chooser" role="dialog" aria-modal="true" aria-labelledby="rice-chooser-title" hidden>
-            <div class="rice-chooser-card">
-              <h3 id="rice-chooser-title">เลือกข้าว</h3>
-              <div class="rice-options">
-                <button class="rice-option" type="button" data-rice="steamed"><span class="rice-swatch steamed-rice"></span>ข้าวสวย</button>
-                <button class="rice-option" type="button" data-rice="sticky"><span class="rice-swatch sticky-rice"></span>ข้าวเหนียว</button>
-              </div>
-              <button id="close-rice-chooser" class="text-button" type="button">ยกเลิก</button>
-            </div>
-          </section>
+          <section id="rice-choices" class="rice-choices" aria-live="polite"></section>
         </div>
       </div>
       <p id="game-message" class="game-message">ใช้ WASD หรือลูกศรเพื่อเดิน</p>
@@ -158,7 +145,6 @@
       </section>
     </main>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script src="recipes.js"></script>
     <script src="game.js"></script>
   </body>
