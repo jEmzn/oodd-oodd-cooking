@@ -44,7 +44,7 @@ Manually verify:
 
 - Start screen, solo start, results screen, Play Again, and Return to Start.
 - WASD/arrow movement, touch movement, interaction prompts, and `E`/touch interaction.
-- Ingredient collection, two-second pot/pan cooking, READY pickup, serving, score updates, order queue growth, order expiry, and the 40-second timeout.
+- Ingredient collection, two-second pot/pan cooking, READY pickup, serving, score updates, order queue growth, order expiry, and the two-minute timeout.
 - Desktop layout, narrow layout, landscape touch controls, portrait rotate-device warning, and sprite direction changes.
 - Multiplayer name entry, room creation/joining, 2–5 player capacity, readiness gating, host start permissions, movement synchronization, shared orders/stations/score, disconnect cleanup, results, and replay.
 

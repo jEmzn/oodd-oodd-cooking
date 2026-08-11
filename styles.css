@@ -22,7 +22,8 @@ button { font: inherit; }
   position: relative;
   display: grid;
   place-items: end center;
-  padding-bottom: clamp(90px, 16vh, 250px);
+  min-height: 100vh; min-height: 100dvh;
+  /* padding-bottom: clamp(90px, 16vh, 250px); */
   background-color: #6f3418;
   background-image: linear-gradient(to top, rgb(38 17 7 / .42), transparent 30%), url("image/Postergame\(new\).png");
   background-position: center;
@@ -107,11 +108,12 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
 .sticky-rice { background: #999; }
 .room-label { fill: #c4b19b; font-size: 15px; font-weight: 800; letter-spacing: 4px; }
 .object { cursor: default; outline: none; }
-#game-world [data-object="pan"] { transform: matrix(.5, 0, 0, .5, 105, 57.5); }
-#game-world [data-object="pot"] { transform: matrix(.5, 0, 0, .5, 387.5, 57.5); }
-#game-world [data-object="grill"] { transform: matrix(.5, 0, 0, .5, 310, -55); }
+#game-world [data-object="pan-1"] { transform: matrix(.5, 0, 0, .5, -75, 57.5); }
+#game-world [data-object="pan-2"] { transform: matrix(.5, 0, 0, .5, 35, 57.5); }
+#game-world [data-object="pot-1"] { transform: matrix(.5, 0, 0, .5, 307.5, 57.5); }
+#game-world [data-object="pot-2"] { transform: matrix(.5, 0, 0, .5, 417.5, 57.5); }
+#game-world [data-object="grill"] { transform: matrix(.5, 0, 0, .5, 330, -55); }
 #game-world [data-object="rice"] { transform: matrix(.5, 0, 0, .5, 10, 197.5); }
-#game-world [data-object="ingredients"] { transform: matrix(.5, 0, 0, .5, 150, 85); }
 .object-shadow { fill: #493a2c; opacity: .12; transform: translateY(9px); }
 .object-label, .object-score { text-anchor: middle; pointer-events: none; }
 .object-label { fill: #493a2c; font-size: 15px; font-weight: 800; letter-spacing: 2px; }
@@ -123,8 +125,11 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
 .remote-player-face { fill: #ffd99d; stroke: #c38a58; stroke-width: 2; }
 .remote-player-label { fill: #493a2c; font-size: 12px; font-weight: 800; }
 .held-item-circle { fill: #fffdf9; stroke: #d7c7b2; stroke-width: 3; filter: url(#soft-shadow); }
+.held-food-image { pointer-events: none; }
 .cooking-status-card { fill: #493a2c; opacity: .95; filter: url(#soft-shadow); }
 .cooking-status-label { fill: #fffaf2; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-anchor: middle; }
+.station-ingredient-background { fill: #fffdf9; stroke: #d7c7b2; stroke-width: 2; }
+.station-ingredient-image { clip-path: circle(50%); pointer-events: none; }
 .cooking-progress-track { fill: #7e6b59; }
 .cooking-progress-fill { fill: #e4a94f; }
 .prompt-label { fill: #fffaf2; font-size: 13px; font-weight: 800; letter-spacing: 1px; }
@@ -220,7 +225,11 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
 .order-list { display: grid; gap: 7px; max-height: 250px; overflow-y: auto; }
 .order-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 1px solid #eadfce; border-radius: 10px; background: #fbf8f3; }
 .order-row h3 { margin: 0; font-size: .9rem; }
-.order-row p { margin: 3px 0 0; color: #7e6b59; font-size: .72rem; }
+.order-recipe { display: flex; align-items: flex-end; gap: 7px; min-height: 34px; margin-top: 4px; }
+.order-step { position: relative; display: flex; align-items: center; gap: 6px; padding-top: 12px; }
+.order-step.compound { gap: 0; }
+.order-ingredient-icon { width: 25px; height: 25px; border: 2px solid #eadfce; border-radius: 50%; background: #fff; object-fit: cover; }
+.order-tool-icon { position: absolute; top: -2px; left: 50%; width: 16px; height: 16px; transform: translateX(-50%); border-radius: 50%; background: #fff7e8; }
 .order-row strong { flex: 0 0 auto; color: #ba6849; font-size: .78rem; }
 .order-row strong.warning { color: #9f332d; }
 .order-empty { margin: 0; color: #7e6b59; font-size: .85rem; }
@@ -230,7 +239,11 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
   .game-stage > .order-card .order-list { max-height: 170px; }
   .game-stage > .order-card .order-row { gap: 6px; padding: 5px 6px; }
   .game-stage > .order-card .order-row h3 { font-size: .68rem; }
-  .game-stage > .order-card .order-row p { margin-top: 1px; font-size: .5rem; }
+  .game-stage > .order-card .order-recipe { min-height: 25px; gap: 4px; margin-top: 1px; }
+  .game-stage > .order-card .order-step { gap: 3px; padding-top: 8px; }
+  .game-stage > .order-card .order-step.compound { gap: 0; }
+  .game-stage > .order-card .order-ingredient-icon { width: 17px; height: 17px; border-width: 1px; }
+  .game-stage > .order-card .order-tool-icon { top: 0; width: 11px; height: 11px; }
   .game-stage > .order-card .order-row strong { font-size: .58rem; }
 }
 

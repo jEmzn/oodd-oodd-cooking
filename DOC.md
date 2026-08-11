@@ -8,9 +8,12 @@ Oodd Oodd Cooking is a browser cooking game built with HTML, CSS, JavaScript, in
 
 - `index.html` defines the start screen, game screen, HUD, and SVG kitchen scene.
 - `styles.css` controls the warm visual theme, layout, responsive behavior, buttons, HUD, SVG labels, and screen switching.
-- `game.js` contains movement, proximity detection, interaction scoring, timer management, and game lifecycle logic.
+- `game.js` contains Solo movement, ingredient handling, station staging, cooking, plate assembly, scoring, timers, responsive controls, and multiplayer client synchronization.
+- `recipes.js` contains the shared ingredients, cooking transformations, six menus, plate assembly rules, and food asset paths used by both client and server.
 - `server/server.js` serves the frontend and manages authoritative multiplayer rooms and gameplay through Socket.IO.
 - `server/package.json` defines the Node.js server dependencies and start commands.
+- `pork_nae_animation/` contains the active player animation frames, `animation_walk/` retains the earlier sprite set, and `image/food/` contains food/station artwork.
+- `test/` contains shared-recipe, headless-browser, and multi-client Socket.IO integration checks.
 - `AGENTS.md` contains contributor guidance for this repository.
 - `DOC.md` is this project summary.
 
@@ -18,20 +21,22 @@ Oodd Oodd Cooking is a browser cooking game built with HTML, CSS, JavaScript, in
 
 When the page opens, the start screen offers Solo Game and Multiplayer. Solo starts immediately. Multiplayer asks for a temporary display name and lets players create or join a short room code. The lobby supports 2 to 5 players; every player must be Ready before the host can start the shared round. The explicit `[hidden]` CSS rule ensures only the active screen is visible.
 
-After 40 seconds, the game stops, clears its timers and animation loop, waits briefly for a transition, and returns to the results screen. Starting a new round resets the player position, timer, and total score.
+After 120 seconds, the game stops, clears its timers and animation loop, waits briefly for a transition, and returns to the results screen. Starting a new round resets the player position, timer, and total score.
 
 ## Gameplay
 
 - Move with `WASD` or the arrow keys.
-- Walk close to the ingredients, rice, pot, pan, grill, trash, or serve station.
+- Walk close to a raw ingredient, rice, plate, cooking, trash, or serve station.
 - Press `E` to interact with the nearest object.
+- Carry raw ingredients to a compatible station, deposit each ingredient, then press `E` empty-handed to cook.
+- Use a plate only to collect cooked components, combine the completed menu, and serve it.
 - Each successfully served order increases the shared team score.
 - A "PRESS E TO INTERACT" prompt appears when an object is within range.
 - The HUD displays remaining time and total score; the timer changes color during the final 10 seconds.
 
 ## Visual Design
 
-The game world uses inline SVG for the patterned floor, room border, labels, four kitchen stations, player placement, shadows, and interaction prompt. The local player is rendered with transparent PNG sprites from `pork_nae_animation` inside the SVG. CSS adds a warm cream, brown, coral, blue, and gold palette, responsive sizing, rounded panels, hover states, and mobile-friendly HUD stacking.
+The game world uses inline SVG for the patterned floor, room border, station labels, player placement, shadows, and interaction prompt. The local player is rendered with transparent directional PNG sprites from `pork_nae_animation/` inside the SVG. CSS adds a warm cream, brown, coral, blue, and gold palette, responsive sizing, rounded panels, hover states, and mobile-friendly HUD stacking.
 
 ## Technical Notes
 
@@ -39,7 +44,7 @@ Solo mode remains dependency-free in the browser. Multiplayer runs through the N
 
 ## Validation
 
-`node --check game.js` and `node --check server/server.js` pass. The package manifest parses successfully. Source review covered solo mode, room creation and joining, readiness gating, host start permissions, room capacity, server movement bounds, personal inventory, shared cooking and score, order expiry, disconnect cleanup, results rendering, and the explicit hidden-screen CSS rule. Full multiplayer browser validation requires installing the server dependencies and connecting multiple browser sessions.
+Syntax checks pass for the client, server, shared recipe module, and test scripts. Unit tests, six-menu Chromium Solo validation, responsive keyboard/touch validation, two-tab browser multiplayer, and a real multi-client Socket.IO round all pass. The multiplayer run covers five admitted players, rejection of a sixth, readiness and host permissions, authoritative movement, shared stations, raw-ingredient handoff, plate assembly, score synchronization, results, replay, host transfer, and disconnect cleanup.
 
 ## Documentation Update
 
@@ -47,22 +52,22 @@ This summary was updated alongside `AGENTS.md` to document the current flat proj
 
 ## Multiplayer Update
 
-Multiplayer mode now supports temporary names, 5-character room codes, 2 to 5 players, a Ready lobby, host-controlled round start, shared 40-second rounds, 15-second orders, server-authoritative movement, personal inventories, shared stations and score, disconnect removal, and a results screen. Active room data is in-memory and resets when the server restarts.
+Multiplayer mode supports temporary names, 5-character room codes, 2 to 5 players, a Ready lobby, host-controlled round start, shared 120-second rounds, 35-second orders, server-authoritative movement, per-player raw inventory and assembly plate state, shared cooking stations and score, disconnect removal, and a results screen. Active room data is in-memory and resets when the server restarts.
 
 
 ## Gameplay Update
 
-The game uses a cooking loop with a 40-second round timer and 15-second customer orders. Garden Soup requires vegetables and herbs at the pot, Sizzling Stir-Fry requires vegetables and sauce at the pan, and Grilled Pork Skewers require pork, bell pepper, and onion at the grill. The shared ingredient station supplies a generic ingredient bundle; players may choose a cooking station, cook for 2 seconds, and serve the finished menu. Successful service increases the completed-order score and immediately generates a new order. An unserved order expires after 15 seconds, clears unfinished inventory, and immediately generates the next order. Source validation was completed; browser gameplay validation remains recommended for the full timed flow.
+The game uses a 120-second cooking round with customer orders that each last 35 seconds. Six Thai menus are assembled from rice and outputs produced by the pot, pan, or grill. Raw ingredients are collected individually without a plate, staged at a compatible station, and cooked for 2 seconds after an empty-handed interaction. A plate is required only to collect cooked outputs, combine them with rice in recipe order, and serve the completed dish. Successful service increases the team score; an expired order is removed without clearing the players' held items or assembly plates.
 
 
 ## Held Food Indicator
 
-The player displays a small circular SVG food indicator above the avatar while holding ingredients, cooking food, soup, or stir-fry. The indicator follows the player and clears when food is served, an order expires, or a round resets. Source validation was completed; browser visual validation remains recommended.
+The player displays a small circular image indicator above the avatar for the raw ingredient currently in hand, or for the assembly plate when the hand is empty. The indicator follows the player, synchronizes for remote multiplayer avatars, and clears when the corresponding item is deposited, discarded, served, or reset at round start.
 
 
 ## Cooking Progress Status
 
-While cooking, a realtime loading bar appears above the active pot, pan, or grill and fills over the two-second cooking duration. It reaches 100% and changes to READY at the cooking station. The player must interact with that same station to pick up the menu; only then does the station status disappear. The status also resets when an order expires or the round ends.
+Each pot, pan, and grill has independent status UI. A staged station shows its ingredient count; after the player starts it, a realtime loading bar fills over two seconds and changes to READY. A player with an assembly plate must interact with that station to collect its cooked output. The station status resets after collection or at round reset.
 
 
 ## Cooking Status Reset
@@ -154,13 +159,13 @@ Text selection, copying, cutting, and context-menu actions are disabled within t
 
 ## Timed Order Queue
 
-Solo and multiplayer rounds now maintain a shared-style queue of up to two customer orders. One order appears when a round starts, and the game attempts to add another order every seven seconds while the queue has space. Each order has its own 15-second expiry timer; generation pauses at two queued orders. The game UI displays all waiting orders with individual countdowns.
+Solo and multiplayer rounds maintain a shared-style queue of up to two customer orders. One order appears when a round starts, and the game attempts to add another order every seven seconds while the queue has space. Each order has its own 35-second expiry timer; generation pauses at two queued orders. The game UI displays all waiting orders with individual countdowns.
 
-Cooking is now free-form: players may collect ingredients and cook Garden Soup at the pot or Sizzling Stir-Fry at the pan without following a particular displayed order. Serving removes the oldest waiting order matching the held dish and increases the score. A cooked dish remains in the player inventory when no matching order is available. The multiplayer `room-state` payload now sends an `orders` array instead of a single `currentOrder` and shared `orderSecondsLeft` value. JavaScript syntax validation passes; browser validation of timed queue growth, expiry, serving, and mobile layout remains recommended.
+Cooking is free-form: players may prepare any of the six shared recipes without first selecting a displayed order. Serving removes the oldest waiting order matching the completed assembly plate and increases the score. A completed dish remains on the plate when no matching order is available. The multiplayer `room-state` payload sends an `orders` array with timestamps so every client renders the same queue and individual countdowns.
 
 ## Repository Guidelines Update
 
-`AGENTS.md` now documents the current client/server structure, sprite assets, multiplayer development commands, 40-second gameplay validation checklist, synchronization requirements, and server-specific security considerations. Syntax validation with `node --check game.js` and `node --check server/server.js` passes; browser validation remains recommended for the full solo and multiplayer flows.
+`AGENTS.md` now documents the current client/server structure, sprite assets, multiplayer development commands, two-minute gameplay validation checklist, synchronization requirements, and server-specific security considerations. Syntax validation with `node --check game.js` and `node --check server/server.js` passes; browser validation remains recommended for the full solo and multiplayer flows.
 
 ## Mobile Home Screen Fit
 
@@ -179,11 +184,11 @@ The local player now uses the four transparent PNG poses from `pork_nae_animatio
 
 ## Shared Multiplayer Cooking Stations
 
-The multiplayer pot, pan, and grill are shared room resources. Once a player starts cooking, every other player sees the station's cooking or ready status and cannot use that station until its owner picks up the finished food or the order resets. The server checks station occupancy before inventory requirements and reports which player is using the station. JavaScript syntax validation passed; multi-client browser validation remains recommended.
+The multiplayer pot, pan, and grill are shared room resources. Players can stage compatible raw ingredients one at a time, and an empty-handed interaction starts an exact recipe transformation. Every client sees staging, cooking, and ready state. While cooking the station is locked; when ready, any player with an eligible assembly plate can collect the output and free the station.
 
 ## Shared Multiplayer Held Items
 
-Remote players now display their held item above their character. Ingredients, completed soup, and completed stir-fry are derived from each player's server-synchronized inventory, so everyone in the room can see what the other players are carrying. The indicator disappears while the food is at a cooking station and after it is served or reset. JavaScript syntax and whitespace validation passed; multi-client visual validation remains recommended.
+Remote players display their current raw hand item, or their assembly plate when the hand is empty, above the character. Both `inventory` and `plate` are server-synchronized, and the indicator updates when an ingredient is staged, a cooked component is collected, a dish is served, or player state resets.
 
 ## Local Multiplayer Movement Rendering Fix
 
@@ -191,23 +196,23 @@ The local multiplayer client now copies each server movement snapshot into its a
 
 ## Grill Cooking Station
 
-The kitchen now includes a grill station in the lower-right area. It behaves as the same cooking-station type as the pot and pan in Solo and Multiplayer modes, including proximity interaction, two-second cooking progress, shared multiplayer locking, ready-food pickup, and order reset behavior. The Grilled Pork Skewers order uses pork, bell pepper, and onion from the ingredient station and has local and remote held-food indicators. Cooking-tool checks and multiplayer station initialization derive from a shared tool collection so additional cooking stations require fewer hardcoded branches. JavaScript syntax and whitespace validation passed; browser layout and multi-client gameplay validation remain recommended.
+The grill behaves as the same cooking-station type as the pot and pan in Solo and Multiplayer modes, including ingredient staging, two-second cooking progress, shared multiplayer locking, and plate pickup. It transforms meat into grilled meat for the rice-with-red-pork and sticky-rice-with-grilled-pork menus.
 
 ## Cooperative Finished-Food Pickup
 
-Finished multiplayer food at the pot, pan, or grill can now be picked up by any player with empty hands, rather than only by the player who started cooking. When a teammate collects the dish, the original cook's ready inventory is cleared, ownership transfers to the teammate as the cooked dish, and the cooking station becomes available again. Players carrying ingredients or another dish must clear their hands before collecting finished food. Server syntax and whitespace validation passed; multi-client handoff testing remains recommended.
+Finished multiplayer food at the pot, pan, or grill can be picked up by any empty-handed player who has an eligible assembly plate, not only by the cook. The cooked output is appended to that player's plate and the shared station becomes available again. Players carrying a raw ingredient must deposit or discard it before collecting the output.
 
 ## Standalone Rice Selection Station
 
-A standalone rice station now offers steamed rice and sticky rice without connecting either choice to recipes, cooking stations, or serving validation. Interacting with the station while empty-handed opens a choice popup. Steamed rice appears as a white square above the carrier, while sticky rice appears as a gray square; the synchronized inventory state makes these indicators visible to other multiplayer users as well. The server revalidates the player's distance and empty hands when a multiplayer choice is submitted. JavaScript syntax and whitespace validation passed; popup and multi-client visual testing remain recommended.
+The rice station offers steamed rice and sticky rice through a choice popup. With no assembly plate, the selected rice becomes a raw hand item that can be carried to the pan; with a plate, the rice is appended to the plate as a menu component. The server revalidates distance, hand state, and plate eligibility when a multiplayer choice is submitted.
 
 ## Trash Station
 
-A trash station now lets Solo and Multiplayer players discard an ingredient bundle, rice choice, or completed dish currently held by their character. Empty-handed interactions show a message, while food that is still cooking or waiting at a shared cooking station cannot be removed from the trash station. Multiplayer discard requests use the existing server-authoritative proximity check and synchronize the cleared inventory with every player. JavaScript syntax and whitespace validation passed; browser and multi-client discard testing remain recommended.
+The trash station lets Solo and Multiplayer players discard the raw ingredient in hand first, or discard the assembly plate when the hand is empty. Food staged, cooking, or ready at a shared station is not affected. Multiplayer discard requests use server-authoritative proximity checks and synchronize the cleared state with every player.
 
 ## Organized Kitchen Station Layout
 
-Kitchen stations are now grouped by purpose. The top cooking row is ordered pan, pot, and grill; the left side contains rice above the general ingredient station; the serve point is centered at the bottom; and the trash station occupies the upper-left corner. Matching coordinates are used by the SVG client scene and the authoritative multiplayer server so proximity interactions remain aligned. JavaScript syntax and whitespace validation passed; desktop and landscape-mobile visual validation remain recommended.
+Kitchen stations are grouped by purpose. The top row contains pan, pot, and grill; raw rice, meat, vegetable, and egg stations occupy the left side; sauce and plate occupy the right side; the serve point is centered at the bottom; and trash is in the upper-left. Matching client and server coordinates keep authoritative proximity interactions aligned.
 
 The trash-station artwork is approximately half the size of its previous reduced version while retaining its upper-left center point and existing interaction coordinates. This gives the corner more visual space without changing Solo or Multiplayer proximity behavior.
 
@@ -217,7 +222,7 @@ The top cooking row was tightened into a centered group with pan, pot, and grill
 
 ## Standalone Ingredient and Supply Stations
 
-Five standalone pickup stations were added without connecting their items to recipes or serving validation. Meat, vegetable, and egg join rice and the general ingredient station in an evenly spaced left-side grid, while sauce and plate occupy a separate right-side column. Empty-handed players can carry one selected item, see its indicator above their character, share that state with other multiplayer clients, and discard it at the trash station. Matching client and server coordinates preserve authoritative proximity validation. JavaScript syntax and whitespace validation passed; desktop and landscape-mobile visual testing remain recommended.
+Five standalone ingredient stations are available for rice, meat, vegetable, egg, and sauce. The removed general ingredient station is no longer rendered. Empty-handed players can carry one raw ingredient without a plate, see its indicator above their character, share that state with other multiplayer clients, deposit it at a compatible cooking station, or discard it at the trash station. Matching client and server coordinates preserve authoritative proximity validation.
 
 The plate station is positioned at `850,160`, directly above the sauce station. Its vertical column aligns with sauce, while its horizontal row aligns with grill.
 
@@ -227,12 +232,44 @@ Exit Game now sits directly to the right of Fullscreen in the gameplay HUD, usin
 
 ## Two-Order Queue Limit
 
-Solo and multiplayer customer queues now hold at most two orders. Both the client order generator and authoritative server generation use the same cap, while the existing 15-second expiry and serving behavior remain unchanged. JavaScript syntax validation passed; timed browser and multi-client queue validation remains recommended.
+Solo and multiplayer customer queues hold at most two orders. Both the client order generator and authoritative server generation use the same cap and a 35-second lifetime for every order. Expired orders leave the queue without consuming a completed dish that no longer has a matching customer.
 
 ## Order Queue Reference Fix
 
-Ingredient collection no longer references the removed single `currentOrder` state; it gives a generic instruction because cooking is free-form with the shared order queue. Finished food pickup uses the menu stored on the cooking station, so Solo and Multiplayer can correctly transfer the completed dish even when multiple orders are waiting. The Solo round duration now uses the same 40-second value shown by the HUD and used by the server. `node --check game.js` and `node --check server/server.js` pass; browser validation of collection, cooking pickup, serving, and timeout remains recommended.
+Ingredient collection no longer references the removed single `currentOrder` state; it gives a generic instruction because cooking is free-form with the shared order queue. Finished food pickup uses the menu stored on the cooking station, so Solo and Multiplayer can correctly transfer the completed dish even when multiple orders are waiting. The Solo round duration uses the same 120-second value shown by the HUD and used by the server. `node --check game.js` and `node --check server/server.js` pass; browser validation of collection, cooking pickup, serving, and timeout remains recommended.
 
 ## Thai Game Text
 
 ผู้เล่นจะเห็นข้อความภาษาไทยในหน้าเริ่มต้น การตั้งค่า Multiplayer Lobby ฉากครัว HUD ออเดอร์ สถานะทำอาหาร ข้อความโต้ตอบ ผลลัพธ์ และข้อความจากเซิร์ฟเวอร์ โดยคงชื่อเกม `Oodd Oodd Cooking` ไว้ตามเดิม เมนูและชื่อสถานีในเกมใช้ภาษาไทย และชื่อเมนูใน Client กับ Server ถูกปรับให้ตรงกันแล้ว ตรวจสอบ Syntax ผ่าน; ควรทดสอบการแสดงผลภาษาไทยบน Desktop และอุปกรณ์มือถือเพิ่มเติม
+
+## Recipe Plate System
+
+ระบบทำอาหารถูกปรับตาม `REF.md` โดยแยกของดิบในมือออกจากจานประกอบอาหาร ผู้เล่นหยิบข้าว เนื้อ ผัก ไข่ หรือซอสได้โดยไม่ต้องมีจาน แล้วนำวัตถุดิบไปใส่หม้อ กระทะ หรือเตาย่างทีละชิ้น สถานีสะสมวัตถุดิบสำหรับการปรุงหนึ่ง batch และไม่บังคับลำดับการใส่ เช่น ผักตามด้วยเนื้อหรือเนื้อตามด้วยผักให้ผลเป็นผัดเนื้อและผักเหมือนกัน เมื่อชุดปัจจุบันตรงสูตรให้กดโต้ตอบด้วยมือเปล่าเพื่อเริ่มปรุง 2 วินาที สถานีจะเก็บอาหารที่ปรุงเสร็จไว้จนกว่าผู้เล่นที่มีจานจะมารับ
+
+ระหว่าง staging สถานีแสดงรูปวัตถุดิบทุกชิ้นที่ใส่ไว้ หากชุดปัจจุบันยังเป็นเพียงส่วนหนึ่งของสูตรจะแสดง `รอวัตถุดิบเพิ่ม`; เมื่อชุดตรงสูตรจะแสดง `พร้อมเริ่ม • กด E` แต่ยังสามารถเพิ่มวัตถุดิบเพื่อเลือกสูตรที่ยาวกว่าได้ วัตถุดิบที่ไม่สามารถใช้ร่วมกับของในสถานีจะถูกปฏิเสธและยังอยู่ในมือผู้เล่น ลำดับการประกอบอาหารบนจานยังคงเคร่งตามสูตรเมนูเดิม
+
+จานใช้เฉพาะขั้นประกอบเมนู โดยเพิ่มข้าวและอาหารที่ปรุงเสร็จตามลำดับสูตร หากประกอบผิดลำดับ จานจะต้องถูกนำไปทิ้ง เมื่อส่วนผสมตรงหนึ่งในหกเมนู จานจะแสดงรูปอาหารสำเร็จและนำไปเสิร์ฟได้ ผู้เล่นสามารถมีจานประกอบอาหารและถือวัตถุดิบดิบหนึ่งชิ้นพร้อมกันได้ เพื่อไม่ให้จานขัดขวางการขนวัตถุดิบไปยังสถานี
+
+ข้อมูลวัตถุดิบ transformation สูตรอาหาร และ asset path อยู่ใน `recipes.js` ซึ่งโหลดใน browser และ require จาก server เพื่อให้ Solo กับ Multiplayer ใช้กติกาเดียวกัน สถานีวัตถุดิบรวมถูกลบออกแล้ว สถานีปรุงอาหารแบบ Multiplayer เป็นทรัพยากรร่วม: ผู้เล่นคนหนึ่งใส่วัตถุดิบและเริ่มปรุง ส่วนผู้เล่นอีกคนที่มีจานสามารถรับอาหารที่พร้อมแล้วได้ ใบออเดอร์ใช้รูปวัตถุดิบแบบกลุ่มและไอคอนสถานี ส่วนของที่ถือเหนือหัวใช้รูปจริงแบบวงกลมและซ้อนเฉียง
+
+Validation: `node --check game.js`, `node --check server/server.js`, `node --check recipes.js` และ `npm test --prefix server` ผ่านแล้ว พร้อมทดสอบ browser และหลาย client เพิ่มเติมตามหัวข้อถัดไป
+
+## Comprehensive Gameplay Validation
+
+เพิ่ม browser และ multiplayer integration checks ใน `test/` แล้ว Browser Solo check ทำอาหารและเสิร์ฟครบทั้ง 6 เมนู ตรวจลำดับผิดและถังขยะ รูปอาหาร ไอคอนออเดอร์ keyboard movement, touch movement, 640x360 landscape และ portrait warning ผ่านบน Chromium headless โดยไม่มี runtime exception
+
+Multiplayer checks เชื่อม Socket.IO จริงด้วย client อิสระหลายตัว ครอบคลุมห้อง 5 คน การปฏิเสธคนที่ 6 readiness และ host gating, authoritative movement, การถือวัตถุดิบโดยไม่มีจาน, station staging, shared station lock, cooking handoff ไปยังผู้เล่นที่ถือจาน, อายุออเดอร์ 35 วินาที, score synchronization, queue limit, round results, replay, host transfer และ disconnect cleanup นอกจากนี้ browser สองแท็บยืนยัน lobby UI, remote-player rendering และ movement interpolation แล้ว ระหว่างทดสอบพบและแก้กรณีผู้เล่นที่เพิ่ง join เห็น avatar ของตัวเองซ้ำในกลุ่ม remote players โดย renderer จะลบ ID ที่ไม่อยู่ใน remote-player set ปัจจุบันทุก snapshot
+
+Validation ล่าสุด: `node --check` ผ่านสำหรับ client, server, shared recipe data และ test scripts; `npm test --prefix server` ผ่าน โดย unit tests ครอบคลุม unordered station matching และ ordered plate assembly; Chromium Solo ทำและเสิร์ฟครบ 6 เมนูด้วยการกลับลำดับวัตถุดิบทุกสูตรหลายชิ้น พร้อมตรวจรูปและสถานะ staging, keyboard, touch, landscape และ portrait; browser multiplayer สองแท็บผ่าน; Socket.IO integration ผ่านด้วยผู้เล่นจริง 5 clients และปฏิเสธ client ที่ 6 โดยรอบล่าสุดได้เมนูข้าวหมูแดงและผ่าน shared station, handoff, score, results, replay และ host transfer
+
+## Independent Duplicate Pans and Pots
+
+แถวสถานีด้านบนมี `กระทะ 1`, `กระทะ 2`, `หม้อ 1`, `หม้อ 2`, `เตาย่าง` และ `จาน` ที่พิกัด x เท่ากับ 300, 410, 520, 630, 740 และ 850 ตามลำดับ โดยใช้ y เท่ากับ 160 ทั้งหมด กระทะและหม้อแต่ละใบมี station ID และสถานะ staging, cooking, ready แยกจากกัน จึงปรุงพร้อมกันได้ทั้ง Solo และ Multiplayer ขณะที่ recipe engine ยังคงรับ tool type แบบ `pan`, `pot`, `grill` และใช้สูตรเดิมร่วมกัน
+
+Socket.IO event `interact` ยังคงส่ง `{ station }` แต่สถานีชนิดกระทะและหม้อใช้ค่า `pan-1`, `pan-2`, `pot-1`, `pot-2`; `room-state.stations` ส่งคีย์เดียวกันเพื่อให้ทุก client แสดงสถานะของแต่ละใบอย่างอิสระ Client และ authoritative server ใช้พิกัดชุดเดียวกันและข้อความโต้ตอบระบุหมายเลขสถานีชัดเจน
+
+Validation: syntax checks ผ่านสำหรับ client, server และ test scripts; `npm test --prefix server` ผ่าน; Chromium Solo ผ่านครบ 6 เมนูพร้อมตรวจว่ากระทะสองใบและหม้อสองใบปรุงพร้อมกันและเปลี่ยนเป็น READY แยกกัน; browser multiplayer สองแท็บผ่าน; Socket.IO integration 5 clients ผ่านพร้อมตรวจสองผู้เล่นใช้กระทะคนละใบพร้อมกัน, shared state, replay, host transfer และ disconnect cleanup
+
+## Two-Minute Rounds
+
+ระยะเวลาเล่นต่อรอบเพิ่มจาก 40 เป็น 120 วินาทีทั้ง Solo และ Multiplayer ค่าเริ่มต้นใน HUD, client timer และ authoritative server ใช้ค่าเดียวกัน โดยช่วงเตือนสิบวินาทีสุดท้ายและอายุออเดอร์ 35 วินาทียังคงเดิม ชุดทดสอบ browser ตรวจว่า Solo และ Multiplayer เริ่มที่ `120`; Socket.IO integration ปล่อยให้ server นับถอยหลังครบสองนาทีและยืนยันการเปลี่ยนเป็น Results ที่วินาที 0 แล้ว Syntax checks, recipe unit tests, Solo browser, browser multiplayer และ multiplayer integration ผ่านทั้งหมด

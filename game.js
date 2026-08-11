@@ -32,10 +32,9 @@ const resultsScore = document.querySelector("#results-score");
 const player = document.querySelector("#player");
 const playerSprite = document.querySelector("#player-sprite");
 const otherPlayers = document.querySelector("#other-players");
-const cookingStatus = document.querySelector("#cooking-status");
-const cookingStatusLabel = document.querySelector("#cooking-status-label");
-const cookingProgress = document.querySelector("#cooking-progress");
+const cookingStatuses = document.querySelector("#cooking-statuses");
 const heldItem = document.querySelector("#held-item");
+const heldImages = document.querySelector("#held-images");
 const promptElement = document.querySelector("#interaction-prompt");
 const timerElement = document.querySelector("#timer");
 const scoreElement = document.querySelector("#score");
@@ -54,23 +53,20 @@ const gameMusic = new Audio("Sound/background-music-map2.mp3");
 gameMusic.loop = true;
 gameMusic.preload = "auto";
 gameMusic.volume = 0.35;
-const heldItemIcons = { ingredients: "#held-ingredients", cooking: "#held-cooking", soup: "#held-soup", stirFry: "#held-stir-fry", grilledPork: "#held-grilled-pork", steamedRice: "#held-steamed-rice", stickyRice: "#held-sticky-rice", meat: "#held-meat", vegetable: "#held-vegetable", egg: "#held-egg", sauce: "#held-sauce", plate: "#held-plate" };
-const objects = [...document.querySelectorAll(".object")].map((element) => ({ element, name: element.dataset.object, x: Number(element.dataset.x), y: Number(element.dataset.y) }));
-const stationLabels = { trash: "ถังขยะ", pan: "กระทะ", pot: "หม้อ", grill: "เตาย่าง", rice: "ข้าว", ingredients: "วัตถุดิบ", meat: "เนื้อ", vegetable: "ผัก", egg: "ไข่", sauce: "ซอส", plate: "จาน", serve: "จุดเสิร์ฟ" };
+const cookingData = window.CookingData;
+const objects = [...document.querySelectorAll(".object")].map((element) => ({ element, name: element.dataset.object, tool: element.dataset.tool || null, x: Number(element.dataset.x), y: Number(element.dataset.y) }));
+const stationLabels = { trash: "ถังขยะ", "pan-1": "กระทะ 1", "pan-2": "กระทะ 2", "pot-1": "หม้อ 1", "pot-2": "หม้อ 2", grill: "เตาย่าง", rice: "ข้าว", meat: "เนื้อ", vegetable: "ผัก", egg: "ไข่", sauce: "ซอส", plate: "จาน", serve: "จุดเสิร์ฟ" };
 objects.forEach(({ element, name }) => {
   const label = element.querySelector(".object-label");
   if (label && stationLabels[name]) label.textContent = stationLabels[name];
 });
-const menus = [
-  { name: "ซุปผักสวนครัว", tool: "pot", ingredients: "ผักและสมุนไพร" },
-  { name: "ผัดผักกระทะร้อน", tool: "pan", ingredients: "ผักและซอส" },
-  { name: "หมูย่างเสียบไม้", tool: "grill", ingredients: "หมู พริกหวาน และหัวหอม" }
-];
+const menus = cookingData.menus;
 const toolLabels = { pot: "หม้อ", pan: "กระทะ", grill: "เตาย่าง" };
-const cookingTools = new Set(["pot", "pan", "grill"]);
-const standalonePickupItems = { meat: "meat", vegetable: "vegetable", egg: "egg", sauce: "sauce", plate: "plate" };
+const cookingStationTools = new Map(objects.filter((object) => object.tool).map((object) => [object.name, object.tool]));
+const standalonePickupItems = { meat: "meat", vegetable: "vegetable", egg: "egg", sauce: "sauce" };
 const maxOrders = 2;
-const roundDurationSeconds = 40;
+const orderLifetime = 35000;
+const roundDurationSeconds = 120;
 const playerState = { x: 500, y: 350, speed: 4.5, radius: 32 };
 const playerSprites = {
   down: [
@@ -94,7 +90,8 @@ const keys = new Set();
 let score = 0;
 let secondsLeft = roundDurationSeconds;
 let orders = [];
-let inventory = "empty";
+let inventory = null;
+let assemblyPlate = null;
 let cooking = false;
 let timerId;
 let orderTimerId;
@@ -105,6 +102,7 @@ let cookingAnimationId;
 let cookingStartedAt;
 let cookingTool;
 let cookingMenu;
+let soloStations = createEmptyCookingStations();
 let orderSequence = 0;
 let gameRunning = false;
 let mode = "solo";
@@ -124,6 +122,10 @@ const remoteElements = new Map();
 let multiplayerFrameAt;
 let remoteFrameAt;
 let remoteAnimationId;
+
+function createEmptyCookingStations() {
+  return Object.fromEntries([...cookingStationTools.keys()].map((stationId) => [stationId, null]));
+}
 
 function updateMultiplayerInput() {
   multiplayerInput = {
@@ -303,51 +305,92 @@ function updatePlayerSprite(dx = 0, dy = 0, moving = false, timestamp = performa
   lastSpriteKey = spriteKey;
 }
 
-function updateCookingStatus(progress, label) {
-  cookingProgress.setAttribute("width", `${106 * progress}`);
-  cookingStatusLabel.textContent = label;
-  cookingStatus.setAttribute("opacity", "1");
-}
-
 function hideCookingStatus() {
   window.cancelAnimationFrame(cookingAnimationId);
-  cookingStatus.setAttribute("opacity", "0");
-  cookingProgress.setAttribute("width", "0");
-  cookingStatusLabel.textContent = "กำลังทำ";
+  cookingStatuses.replaceChildren();
   cookingTool = null;
 }
 
-function animateCooking() {
-  if (!cooking) return;
-
-  const progress = Math.min(1, (performance.now() - cookingStartedAt) / 2000);
-  updateCookingStatus(progress, "กำลังทำ");
-  if (progress < 1) cookingAnimationId = window.requestAnimationFrame(animateCooking);
+function renderCookingStatuses(stations = soloStations, ownerId = selfId) {
+  cookingStatuses.replaceChildren();
+  Object.entries(stations || {}).forEach(([stationId, station]) => {
+    if (!station) return;
+    const object = objects.find((item) => item.name === stationId);
+    if (!object) return;
+    const tool = object.tool;
+    const stationLabel = stationLabels[stationId] || toolLabels[tool];
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    group.setAttribute("transform", `translate(${object.x} ${object.y})`);
+    group.setAttribute("class", "cooking-status-group");
+    const card = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    card.setAttribute("x", "-53"); card.setAttribute("y", station.phase === "staging" ? "-154" : "-128"); card.setAttribute("width", "106"); card.setAttribute("height", station.phase === "staging" ? "68" : "42"); card.setAttribute("rx", "14"); card.setAttribute("class", "cooking-status-card");
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", "0"); label.setAttribute("y", station.phase === "staging" ? "-136" : "-111"); label.setAttribute("class", "cooking-status-label");
+    if (station.phase === "staging") {
+      const ready = Boolean(cookingData.findExactTransformation(tool, station.inputs));
+      label.textContent = ready ? "พร้อมเริ่ม • กด E" : "รอวัตถุดิบเพิ่ม";
+      const iconSize = 22;
+      const gap = 4;
+      const totalWidth = station.inputs.length * iconSize + Math.max(0, station.inputs.length - 1) * gap;
+      station.inputs.forEach((ingredientId, index) => {
+        const centerX = -totalWidth / 2 + iconSize / 2 + index * (iconSize + gap);
+        const background = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        background.setAttribute("cx", `${centerX}`); background.setAttribute("cy", "-112"); background.setAttribute("r", "12"); background.setAttribute("class", "station-ingredient-background");
+        const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
+        image.setAttribute("href", cookingData.ingredients[ingredientId]?.images[0] || cookingData.assets.plate);
+        image.setAttribute("x", `${centerX - iconSize / 2}`); image.setAttribute("y", "-123"); image.setAttribute("width", `${iconSize}`); image.setAttribute("height", `${iconSize}`);
+        image.setAttribute("preserveAspectRatio", "xMidYMid slice"); image.setAttribute("class", "station-ingredient-image");
+        group.append(background, image);
+      });
+      group.setAttribute("aria-label", `${stationLabel}: ${station.inputs.map((ingredientId) => cookingData.ingredients[ingredientId]?.name).join(" + ")} — ${label.textContent}`);
+      group.prepend(card, label);
+      cookingStatuses.append(group);
+      return;
+    }
+    const progressTrack = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    progressTrack.setAttribute("x", "-53"); progressTrack.setAttribute("y", "-103"); progressTrack.setAttribute("width", "106"); progressTrack.setAttribute("height", "8"); progressTrack.setAttribute("rx", "4"); progressTrack.setAttribute("class", "cooking-progress-track");
+    const progressFill = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    progressFill.setAttribute("x", "-53"); progressFill.setAttribute("y", "-103"); progressFill.setAttribute("height", "8"); progressFill.setAttribute("rx", "4"); progressFill.setAttribute("class", "cooking-progress-fill");
+    const progress = station.phase === "ready" ? 1 : station.phase === "cooking" ? Math.min(1, (Date.now() - station.startedAt) / 2000) : 0;
+    progressFill.setAttribute("width", `${106 * progress}`);
+    const mine = station.playerId === ownerId;
+    if (station.phase === "ready") label.textContent = mine ? "พร้อมใส่จาน" : "อาหารพร้อม";
+    else label.textContent = mine ? "กำลังทำ" : "กำลังใช้งาน";
+    group.append(card, label, progressTrack, progressFill);
+    cookingStatuses.append(group);
+  });
 }
 
-function positionCookingStatus() {
-  if (!cookingTool) return;
-  const object = objects.find((item) => item.name === cookingTool);
-  if (object) cookingStatus.setAttribute("transform", `translate(${object.x} ${object.y})`);
+function animateCooking() {
+  if (!Object.values(soloStations).some((station) => station?.phase === "cooking")) return;
+  renderCookingStatuses(soloStations, "solo");
+  cookingAnimationId = window.requestAnimationFrame(animateCooking);
+}
+
+function setHeldImages(images) {
+  heldImages.replaceChildren();
+  if (!images.length) {
+    heldItem.setAttribute("opacity", "0");
+    return;
+  }
+  heldItem.setAttribute("opacity", "1");
+  images.slice(0, 6).forEach((href, index) => {
+    const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
+    const offset = Math.min(index, 3) * 7;
+    image.setAttribute("href", href);
+    image.setAttribute("x", `${-13 + offset}`);
+    image.setAttribute("y", `${-13 - offset}`);
+    image.setAttribute("width", "26"); image.setAttribute("height", "26");
+    image.setAttribute("preserveAspectRatio", "xMidYMid slice");
+    image.setAttribute("clip-path", "url(#held-image-clip)");
+    image.setAttribute("class", "held-food-image");
+    image.setAttribute("opacity", `${index === 0 ? 1 : 0.5}`);
+    heldImages.append(image);
+  });
 }
 
 function updateHeldItem() {
-  Object.values(heldItemIcons).forEach((selector) => document.querySelector(selector).setAttribute("opacity", "0"));
-  let icon = null;
-  if (inventory === "ingredients") icon = heldItemIcons.ingredients;
-  if (inventory === "cooking") icon = heldItemIcons.cooking;
-  if (inventory === `cooked-${menus[0].name}`) icon = heldItemIcons.soup;
-  if (inventory === `cooked-${menus[1].name}`) icon = heldItemIcons.stirFry;
-  if (inventory === `cooked-${menus[2].name}`) icon = heldItemIcons.grilledPork;
-  if (inventory === "rice-steamed") icon = heldItemIcons.steamedRice;
-  if (inventory === "rice-sticky") icon = heldItemIcons.stickyRice;
-  if (inventory === "item-meat") icon = heldItemIcons.meat;
-  if (inventory === "item-vegetable") icon = heldItemIcons.vegetable;
-  if (inventory === "item-egg") icon = heldItemIcons.egg;
-  if (inventory === "item-sauce") icon = heldItemIcons.sauce;
-  if (inventory === "item-plate") icon = heldItemIcons.plate;
-  heldItem.setAttribute("opacity", icon ? "1" : "0");
-  if (icon) document.querySelector(icon).setAttribute("opacity", "1");
+  setHeldImages(cookingData.getInventoryImages(inventory || assemblyPlate));
 }
 
 function nearestObject() {
@@ -381,13 +424,33 @@ function updateOrder() {
     const details = document.createElement("div");
     const name = document.createElement("h3");
     name.textContent = order.name;
-    const detail = document.createElement("p");
-    detail.textContent = `ใช้${toolLabels[order.tool]} แล้วนำไปเสิร์ฟ`;
+    const menu = menus.find((item) => item.id === order.menuId) || menus.find((item) => item.name === order.name);
+    const recipe = document.createElement("div");
+    recipe.className = "order-recipe";
+    (menu?.steps || []).forEach((step) => {
+      const stepElement = document.createElement("span");
+      stepElement.className = `order-step${step.ingredients.length > 1 ? " compound" : ""}`;
+      step.ingredients.forEach((ingredientId) => {
+        const image = document.createElement("img");
+        image.className = "order-ingredient-icon";
+        image.src = cookingData.ingredients[ingredientId]?.images[0] || cookingData.assets.plate;
+        image.alt = cookingData.ingredients[ingredientId]?.name || "วัตถุดิบ";
+        stepElement.append(image);
+      });
+      if (step.tool) {
+        const toolIcon = document.createElement("img");
+        toolIcon.className = "order-tool-icon";
+        toolIcon.src = `image/food/${step.tool}.svg`;
+        toolIcon.alt = toolLabels[step.tool];
+        stepElement.append(toolIcon);
+      }
+      recipe.append(stepElement);
+    });
     const remaining = Math.max(0, Math.ceil((order.expiresAt - now) / 1000));
     const countdown = document.createElement("strong");
     countdown.className = remaining <= 5 ? "warning" : "";
     countdown.textContent = `${remaining} วินาที`;
-    details.append(name, detail);
+    details.append(name, recipe);
     row.append(details, countdown);
     orderList.append(row);
   });
@@ -397,7 +460,7 @@ function generateOrder() {
   if (orders.length >= maxOrders) return false;
   const menu = menus[Math.floor(Math.random() * menus.length)];
   const createdAt = Date.now();
-  orders.push({ id: `solo-${createdAt}-${orderSequence++}`, name: menu.name, tool: menu.tool, createdAt, expiresAt: createdAt + 15000 });
+  orders.push({ id: `solo-${createdAt}-${orderSequence++}`, menuId: menu.id, name: menu.name, createdAt, expiresAt: createdAt + orderLifetime });
   updateOrder();
   return true;
 }
@@ -413,9 +476,12 @@ function expireOrders() {
 }
 
 function clearInventory() {
-  inventory = "empty";
+  inventory = null;
+  assemblyPlate = null;
   cooking = false;
   window.clearTimeout(cookingTimeoutId);
+  Object.values(soloStations).forEach((station) => window.clearTimeout(station?.timeoutId));
+  soloStations = createEmptyCookingStations();
   hideCookingStatus();
   updateHeldItem();
 }
@@ -429,30 +495,37 @@ function updatePrompt() {
   }
   promptElement.setAttribute("transform", `translate(${nearest.object.x} ${nearest.object.y - 95})`);
   promptElement.setAttribute("opacity", "1");
-  const labels = { ingredients: "เก็บวัตถุดิบ", rice: "เลือกข้าว", meat: "เก็บเนื้อ", vegetable: "เก็บผัก", egg: "เก็บไข่", sauce: "เก็บซอส", plate: "หยิบจาน", pot: "ทำอาหารด้วยหม้อ", pan: "ทำอาหารด้วยกระทะ", grill: "ทำอาหารด้วยเตาย่าง", trash: "ทิ้งของที่ถืออยู่", serve: "เสิร์ฟอาหาร" };
-  setMessage(`กด E เพื่อ${labels[nearest.object.name]}`);
+  const labels = { rice: "เลือกข้าว", meat: "เก็บเนื้อ", vegetable: "เก็บผัก", egg: "เก็บไข่", sauce: "เก็บซอส", plate: "หยิบจาน", trash: "ทิ้งของที่ถืออยู่", serve: "เสิร์ฟอาหาร" };
+  const action = nearest.object.tool ? `ปรุงด้วย${stationLabels[nearest.object.name]}` : labels[nearest.object.name];
+  setMessage(`กด E เพื่อ${action}`);
 }
 
-function cook(tool) {
-  if (cooking) return setMessage("กำลังทำอาหารอยู่");
-  if (inventory !== "ingredients") return setMessage("เก็บวัตถุดิบก่อน");
-  cookingMenu = menus.find((menu) => menu.tool === tool);
+function cook(stationId) {
+  const tool = cookingStationTools.get(stationId);
+  const stationLabel = stationLabels[stationId];
+  const station = soloStations[stationId];
+  if (!station || station.phase !== "staging") return setMessage(`ใส่วัตถุดิบใน${stationLabel}ก่อน`);
+  const transformation = cookingData.findExactTransformation(tool, station.inputs);
+  if (!transformation) return setMessage("วัตถุดิบยังไม่ครบสูตร");
+  station.phase = "cooking";
+  station.playerId = "solo";
+  station.transformation = transformation;
+  station.startedAt = Date.now();
   cooking = true;
-  inventory = "cooking";
-  cookingTool = tool;
+  cookingTool = stationId;
   cookingStartedAt = performance.now();
-  positionCookingStatus();
+  renderCookingStatuses(soloStations, "solo");
   window.cancelAnimationFrame(cookingAnimationId);
-  updateCookingStatus(0, "กำลังทำ");
   cookingAnimationId = window.requestAnimationFrame(animateCooking);
-  updateHeldItem();
-  setMessage(`กำลังทำอาหารด้วย${toolLabels[tool]}... 2 วินาที`);
-  cookingTimeoutId = window.setTimeout(() => {
-    cooking = false;
-    window.cancelAnimationFrame(cookingAnimationId);
-    inventory = "ready";
-    updateCookingStatus(1, "พร้อมรับ");
-    setMessage(`${cookingMenu.name} พร้อมแล้ว ไปรับที่${toolLabels[cookingTool]}`);
+  setMessage(`กำลังปรุงด้วย${stationLabel}... 2 วินาที`);
+  station.timeoutId = window.setTimeout(() => {
+    const currentStation = soloStations[stationId];
+    if (!currentStation || currentStation.phase !== "cooking") return;
+    currentStation.output = transformation.output;
+    currentStation.phase = "ready";
+    cooking = Object.values(soloStations).some((item) => item?.phase === "cooking");
+    renderCookingStatuses(soloStations, "solo");
+    setMessage("ปรุงเสร็จแล้ว นำจานมารับที่" + stationLabel);
     updatePrompt();
   }, 2000);
 }
@@ -462,47 +535,73 @@ function soloInteract() {
   if (!nearest.object || nearest.distance >= playerState.radius + 72) return setMessage("เดินเข้าใกล้สถานีก่อน");
   const name = nearest.object.name;
   if (name === "trash") {
-    if (inventory === "empty") return setMessage("ไม่มีอะไรให้ทิ้ง");
-    if (inventory === "cooking" || inventory === "ready") return setMessage("อาหารยังอยู่ที่สถานีทำอาหาร");
-    clearInventory();
+    if (!inventory && !assemblyPlate) return setMessage("ไม่มีอะไรให้ทิ้ง");
+    if (inventory) inventory = null;
+    else assemblyPlate = null;
+    updateHeldItem();
     setMessage("ทิ้งของที่ถืออยู่แล้ว");
     return;
   }
   if (name === "rice") {
-    if (inventory !== "empty") return setMessage("มือของคุณไม่ว่าง");
+    if (inventory) return setMessage("มือของคุณไม่ว่าง");
+    if (assemblyPlate?.dishId || assemblyPlate?.invalid) return setMessage("จานนี้ใช้ต่อไม่ได้ นำไปทิ้งก่อน");
     riceChooser.hidden = false;
     return;
   }
-  if (standalonePickupItems[name]) {
-    if (inventory !== "empty") return setMessage("มือของคุณไม่ว่าง");
-    inventory = `item-${standalonePickupItems[name]}`;
+  if (name === "plate") {
+    if (assemblyPlate) return setMessage("คุณมีจานสำหรับประกอบอาหารอยู่แล้ว");
+    assemblyPlate = cookingData.createPlate();
     updateHeldItem();
-    setMessage(`เก็บ${stationLabels[name]}แล้ว`);
+    setMessage("หยิบจานแล้ว นำไปรับข้าวหรืออาหารที่ปรุงเสร็จ");
     return;
   }
-  if (name === "ingredients") {
-    if (inventory === "empty") { inventory = "ingredients"; updateHeldItem(); setMessage("เก็บวัตถุดิบแล้ว นำไปที่สถานีทำอาหาร"); }
-    else setMessage("มือของคุณไม่ว่าง");
+  if (standalonePickupItems[name]) {
+    if (inventory) return setMessage("มือของคุณไม่ว่าง");
+    inventory = cookingData.createIngredient(standalonePickupItems[name]);
+    updateHeldItem();
+    setMessage(`หยิบ${stationLabels[name]}แล้ว นำไปใส่สถานีทำอาหาร`);
     return;
   }
-  if (cookingTools.has(name)) {
-    if (inventory === "ready") {
-      if (name === cookingTool) { inventory = `cooked-${cookingMenu.name}`; hideCookingStatus(); updateHeldItem(); setMessage(`รับ${cookingMenu.name}แล้ว นำไปที่จุดเสิร์ฟ`); }
-      else setMessage(`อาหารพร้อมรับที่${toolLabels[cookingTool]}`);
-    } else cook(name);
+  if (cookingStationTools.has(name)) {
+    const tool = cookingStationTools.get(name);
+    const stationLabel = stationLabels[name];
+    const station = soloStations[name];
+    if (station?.phase === "ready") {
+      if (inventory) return setMessage("มือของคุณไม่ว่าง");
+      if (!assemblyPlate) return setMessage("หยิบจานมารับอาหารที่ปรุงเสร็จ");
+      const nextPlate = cookingData.appendIngredient(assemblyPlate, station.output);
+      if (!nextPlate) return setMessage("จานนี้รับส่วนผสมเพิ่มไม่ได้");
+      assemblyPlate = nextPlate;
+      soloStations[name] = null;
+      updateHeldItem();
+      renderCookingStatuses(soloStations, "solo");
+      setMessage(assemblyPlate.dishId ? "ประกอบเมนูสำเร็จแล้ว นำไปเสิร์ฟ" : "ใส่อาหารที่ปรุงแล้วลงจาน");
+    } else if (station?.phase === "cooking") setMessage(`${stationLabel}กำลังทำงานอยู่`);
+    else if (inventory?.kind === "ingredient") {
+      const inputs = [...(station?.inputs || []), inventory.ingredientId];
+      if (!cookingData.canStageIngredients(tool, inputs)) return setMessage(`วัตถุดิบนี้ใช้ร่วมกับของใน${stationLabel}ไม่ได้`);
+      soloStations[name] = { phase: "staging", inputs };
+      inventory = null;
+      updateHeldItem();
+      renderCookingStatuses(soloStations, "solo");
+      const ready = Boolean(cookingData.findExactTransformation(tool, inputs));
+      setMessage(ready ? `วัตถุดิบใน${stationLabel}พร้อมแล้ว กด E มือเปล่าเพื่อเริ่มปรุง หรือใส่วัตถุดิบเพิ่ม` : `ใส่วัตถุดิบใน${stationLabel}แล้ว ต้องเพิ่มวัตถุดิบให้ครบสูตร`);
+    } else if (!inventory) cook(name);
+    else setMessage("ต้องถือวัตถุดิบเพื่อใส่สถานี หรือถือจานเพื่อรับอาหาร");
     return;
   }
-  const menuName = inventory.startsWith("cooked-") ? inventory.slice(7) : null;
-  const matchingOrder = orders.find((order) => order.name === menuName);
+  const menu = assemblyPlate?.dishId ? menus.find((item) => item.id === assemblyPlate.dishId) : null;
+  const matchingOrder = orders.find((order) => order.menuId === menu?.id || order.name === menu?.name);
   if (matchingOrder) {
     orders = orders.filter((order) => order.id !== matchingOrder.id);
     score += 1;
     scoreElement.textContent = score;
-    clearInventory();
+    assemblyPlate = null;
+    updateHeldItem();
     updateOrder();
     setMessage("เสิร์ฟออเดอร์แล้ว มีลูกค้ารอออเดอร์ใหม่");
-  } else if (inventory === "cooking") setMessage("อาหารยังทำไม่เสร็จ");
-  else if (menuName) setMessage("ไม่มีลูกค้ารอเมนูนี้");
+  } else if (Object.values(soloStations).some((station) => station?.phase === "cooking")) setMessage("อาหารยังทำไม่เสร็จ");
+  else if (assemblyPlate?.dishId) setMessage("ไม่มีลูกค้ารอเมนูนี้");
   else setMessage("ทำอาหารก่อนนำไปเสิร์ฟ");
 }
 
@@ -522,7 +621,7 @@ function moveSolo() {
     playerState.x = Math.max(65, Math.min(935, playerState.x + (dx / length) * playerState.speed));
     playerState.y = Math.max(105, Math.min(555, playerState.y + (dy / length) * playerState.speed));
     setPlayerPosition();
-    positionCookingStatus();
+    renderCookingStatuses(soloStations, "solo");
     updatePrompt();
   }
   syncWalkingSound(Boolean(dx || dy));
@@ -561,7 +660,7 @@ function moveMultiplayer(timestamp) {
   playerState.x = predictedPosition.x;
   playerState.y = predictedPosition.y;
   setPlayerPosition();
-  positionCookingStatus();
+  renderCookingStatuses(soloStations, "solo");
   updatePrompt();
   animationId = requestAnimationFrame(moveMultiplayer);
 }
@@ -625,7 +724,7 @@ function startSoloGame() {
   generateOrder();
   setMovementHint();
   setPlayerPosition();
-  positionCookingStatus();
+  renderCookingStatuses(soloStations, "solo");
   updatePrompt();
   clearInterval(timerId);
   clearInterval(orderTimerId);
@@ -657,21 +756,8 @@ function createRemotePlayer(item) {
   const heldCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
   heldCircle.setAttribute("class", "held-item-circle");
   heldCircle.setAttribute("r", "17");
-  const heldIcon = document.createElementNS("http://www.w3.org/2000/svg", "text");
-  heldIcon.setAttribute("y", "6");
-  heldIcon.setAttribute("text-anchor", "middle");
-  heldIcon.setAttribute("font-size", "18");
-  heldIcon.setAttribute("aria-hidden", "true");
-  const heldRice = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-  heldRice.setAttribute("x", "-10");
-  heldRice.setAttribute("y", "-10");
-  heldRice.setAttribute("width", "20");
-  heldRice.setAttribute("height", "20");
-  heldRice.setAttribute("rx", "4");
-  heldRice.setAttribute("stroke", "#716e69");
-  heldRice.setAttribute("stroke-width", "2");
-  heldRice.setAttribute("opacity", "0");
-  held.append(heldCircle, heldRice, heldIcon);
+  const heldImagesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  held.append(heldCircle, heldImagesGroup);
   const shadow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
   shadow.setAttribute("class", "remote-player-shadow"); shadow.setAttribute("cy", "27"); shadow.setAttribute("r", "23");
   const body = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -682,30 +768,27 @@ function createRemotePlayer(item) {
   label.setAttribute("class", "remote-player-label"); label.setAttribute("y", "-32"); label.setAttribute("text-anchor", "middle"); label.textContent = item.name;
   group.append(held, shadow, body, face, label);
   otherPlayers.append(group);
-  remoteElements.set(item.id, { group, label, held, heldIcon, heldRice });
+  remoteElements.set(item.id, { group, label, held, heldImagesGroup });
   updateRemoteHeldItem(item);
 }
 
 function updateRemoteHeldItem(item) {
   const element = remoteElements.get(item.id);
   if (!element) return;
-  const icons = {
-    ingredients: "🥕",
-    [`cooked-${menus[0].name}`]: "🍲",
-    [`cooked-${menus[1].name}`]: "🍳",
-    [`cooked-${menus[2].name}`]: "🥩",
-    "item-meat": "🥩",
-    "item-vegetable": "🥬",
-    "item-egg": "🥚",
-    "item-sauce": "🫙",
-    "item-plate": "🍽️"
-  };
-  const icon = icons[item.inventory];
-  const riceColor = item.inventory === "rice-steamed" ? "#fff" : item.inventory === "rice-sticky" ? "#999" : null;
-  element.held.setAttribute("opacity", icon || riceColor ? "1" : "0");
-  element.heldIcon.textContent = icon || "";
-  element.heldRice.setAttribute("fill", riceColor || "transparent");
-  element.heldRice.setAttribute("opacity", riceColor ? "1" : "0");
+  element.heldImagesGroup.replaceChildren();
+  const images = cookingData.getInventoryImages(item.inventory || item.plate);
+  element.held.setAttribute("opacity", images.length ? "1" : "0");
+  images.slice(0, 6).forEach((href, index) => {
+    const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
+    const offset = Math.min(index, 3) * 7;
+    image.setAttribute("href", href);
+    image.setAttribute("x", `${-13 + offset}`); image.setAttribute("y", `${-13 - offset}`);
+    image.setAttribute("width", "26"); image.setAttribute("height", "26");
+    image.setAttribute("preserveAspectRatio", "xMidYMid slice");
+    image.setAttribute("clip-path", "url(#held-image-clip)");
+    image.setAttribute("class", "held-food-image"); image.setAttribute("opacity", `${index ? 0.5 : 1}`);
+    element.heldImagesGroup.append(image);
+  });
 }
 
 function clearRemotePlayers() {
@@ -717,7 +800,9 @@ function clearRemotePlayers() {
 
 function renderRemotePlayers() {
   if (!roomState) return;
-  roomState.players.filter((item) => item.id !== selfId).forEach((item) => {
+  const remotePlayers = roomState.players.filter((item) => item.id !== selfId);
+  const remoteIds = new Set(remotePlayers.map((item) => item.id));
+  remotePlayers.forEach((item) => {
     remoteTargets.set(item.id, item);
     if (!remoteRendered.has(item.id)) remoteRendered.set(item.id, { x: item.x, y: item.y });
     if (!remoteElements.has(item.id)) createRemotePlayer(item);
@@ -725,7 +810,7 @@ function renderRemotePlayers() {
     updateRemoteHeldItem(item);
   });
   [...remoteTargets.keys()].forEach((id) => {
-    if (remoteTargets.has(id) && roomState.players.some((item) => item.id === id)) return;
+    if (remoteIds.has(id)) return;
     remoteTargets.delete(id);
     remoteRendered.delete(id);
     remoteElements.get(id)?.group.remove();
@@ -755,17 +840,7 @@ function animateRemotePlayers(timestamp) {
 
 function renderCookingStatus() {
   if (mode !== "multiplayer" || !roomState) return;
-  const active = Object.entries(roomState.stations || {}).find(([, value]) => value);
-  if (!active) return hideCookingStatus();
-  const [tool, station] = active;
-  cookingTool = tool;
-  positionCookingStatus();
-  const progress = station.complete ? 1 : Math.min(1, (Date.now() - station.startedAt) / 2000);
-  const isMine = station.playerId === selfId;
-  const label = station.complete
-    ? (isMine ? "พร้อมรับ" : "อาหารพร้อม")
-    : (isMine ? "กำลังทำ" : "กำลังใช้งาน");
-  updateCookingStatus(progress, label);
+  renderCookingStatuses(roomState.stations, selfId);
 }
 
 function renderMultiplayerState(state) {
@@ -785,6 +860,7 @@ function renderMultiplayerState(state) {
       setPlayerPosition();
     }
     inventory = me.inventory;
+    assemblyPlate = me.plate;
     const moving = Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01;
     updatePlayerSprite(dx, dy, moving, Date.now());
     syncWalkingSound(moving);
@@ -918,10 +994,13 @@ riceOptionButtons.forEach((button) => {
     const rice = button.dataset.rice;
     if (mode === "multiplayer") {
       socket?.emit("select-rice", { rice });
-    } else if (mode === "solo" && gameRunning && inventory === "empty") {
-      inventory = `rice-${rice}`;
+    } else if (mode === "solo" && gameRunning && !inventory) {
+      const ingredientId = rice === "steamed" ? "steamedRice" : "stickyRice";
+      if (assemblyPlate) assemblyPlate = cookingData.appendIngredient(assemblyPlate, ingredientId);
+      else inventory = cookingData.createIngredient(ingredientId);
       updateHeldItem();
-      setMessage(rice === "steamed" ? "เลือกข้าวสวยแล้ว" : "เลือกข้าวเหนียวแล้ว");
+      const action = assemblyPlate ? "ใส่ลงจานแล้ว" : "หยิบแล้ว";
+      setMessage(`${rice === "steamed" ? "ข้าวสวย" : "ข้าวเหนียว"}${action}`);
     }
     riceChooser.hidden = true;
   });
