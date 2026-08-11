@@ -65,7 +65,7 @@ const toolLabels = { pot: "หม้อ", pan: "กระทะ", grill: "เต
 const cookingStationTools = new Map(objects.filter((object) => object.tool).map((object) => [object.name, object.tool]));
 const standalonePickupItems = { meat: "meat", vegetable: "vegetable", egg: "egg", sauce: "sauce" };
 const maxOrders = 2;
-const orderLifetime = 35000;
+const orderLifetime = 60000;
 const roundDurationSeconds = 120;
 const playerState = { x: 500, y: 350, speed: 4.5, radius: 32 };
 const playerSprites = {
