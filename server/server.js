@@ -21,7 +21,7 @@ const cookingStationIds = Object.keys(stations).filter((stationId) => stations[s
 const startingPosition = { x: 500, y: 350 };
 const playerSpeed = 150;
 const interactionDistance = 104;
-const orderLifetime = 35000;
+const orderLifetime = 60000;
 const orderInterval = 7;
 const maxOrders = 2;
 const roundDurationSeconds = 120;
