@@ -2,15 +2,16 @@
 
 ## Overview
 
-Oodd Oodd Cooking is a browser cooking game built with HTML, CSS, JavaScript, inline SVG, and an optional Node.js multiplayer server. It presents a top-down kitchen where players collect ingredients, cook customer menus, and serve them before order or game timers expire.
+Oodd Oodd Cooking is a browser cooking game built with HTML, CSS, JavaScript, inline SVG, and an optional Node.js LAN controller relay. It supports Solo and local co-op on one computer, where players collect ingredients, cook customer menus, and serve them before order or game timers expire.
 
 ## Project Files
 
 - `index.html` defines the start screen, game screen, HUD, and SVG kitchen scene.
 - `styles.css` controls the warm visual theme, layout, responsive behavior, buttons, HUD, SVG labels, and screen switching.
-- `game.js` contains Solo movement, ingredient handling, station staging, cooking, plate assembly, scoring, timers, responsive controls, and multiplayer client synchronization.
+- `game.js` contains the Solo/local co-op engine, per-player movement and inventory, shared station staging, cooking, plate assembly, scoring, timers, and responsive controls.
 - `recipes.js` contains the shared ingredients, cooking transformations, six menus, plate assembly rules, and food asset paths used by both client and server.
-- `server/server.js` serves the frontend and manages authoritative multiplayer rooms and gameplay through Socket.IO.
+- `controller.html`, `controller.css`, and `controller.js` provide the phone-as-controller interface.
+- `server/server.js` serves the frontend and relays phone input through Socket.IO on the local network without owning game state.
 - `server/package.json` defines the Node.js server dependencies and start commands.
 - `pork_nae_animation/` contains the active player animation frames, `animation_walk/` retains the earlier sprite set, and `image/food/` contains food/station artwork.
 - `test/` contains shared-recipe, headless-browser, and multi-client Socket.IO integration checks.
@@ -19,7 +20,7 @@ Oodd Oodd Cooking is a browser cooking game built with HTML, CSS, JavaScript, in
 
 ## User Flow
 
-When the page opens, the start screen offers Solo Game and Multiplayer. Solo starts immediately. Multiplayer asks for a temporary display name and lets players create or join a short room code. The lobby supports 2 to 5 players; every player must be Ready before the host can start the shared round. The explicit `[hidden]` CSS rule ensures only the active screen is visible.
+When the page opens, the start screen offers Solo and local co-op. Solo starts immediately. Local co-op supports zero to two keyboard slots and enough phone controllers to reach two to five total players. Keyboard-only co-op works without a server; phone controllers join by scanning a QR from the computer while all devices share one Wi-Fi network or hotspot.
 
 After 120 seconds, the game stops, clears its timers and animation loop, waits briefly for a transition, and returns to the results screen. Starting a new round resets the player position, timer, and total score.
 
@@ -40,11 +41,11 @@ The game world uses inline SVG for the patterned floor, room border, station lab
 
 ## Technical Notes
 
-Solo mode remains dependency-free in the browser. Multiplayer runs through the Node.js server, which serves the project root and exposes Socket.IO at the same origin. The server keeps active room data in memory, uses server-authoritative movement snapshots, and validates station interactions. Each player has personal inventory and statistics; orders, cooking stations, timers, and team score are shared. Run it with `cd server && npm install && npm start`, then open the printed server URL. Opening `index.html` directly still supports solo mode but cannot connect multiplayer.
+Solo and two-keyboard local co-op remain dependency-free in the browser. Phone controllers require `cd server && npm install && npm start`; the computer opens the printed URL and phones scan the generated QR. The browser is authoritative for gameplay. The server stores only session routing and 30-second reconnect metadata, so no deployed backend or internet connection is needed during play.
 
 ## Validation
 
-Syntax checks pass for the client, server, shared recipe module, and test scripts. Unit tests, six-menu Chromium Solo validation, responsive keyboard/touch validation, two-tab browser multiplayer, and a real multi-client Socket.IO round all pass. The multiplayer run covers five admitted players, rejection of a sixth, readiness and host permissions, authoritative movement, shared stations, raw-ingredient handoff, plate assembly, score synchronization, results, replay, host transfer, and disconnect cleanup.
+Syntax checks and recipe unit tests pass. Chromium Solo validation covers all six menus, keyboard/touch responsiveness, cleanup, and direct `file://` startup. Local browser validation covers simultaneous two-keyboard movement, independent inventories, five-player setup, phone movement, and phone rice selection. Socket.IO relay validation covers QR generation, capacity, input/action forwarding, controller feedback, reconnect, and session cleanup.
 
 ## Documentation Update
 
@@ -52,12 +53,14 @@ This summary was updated alongside `AGENTS.md` to document the current flat proj
 
 ## Multiplayer Update
 
+> Superseded: the online authoritative multiplayer implementation described in older history below has been replaced by the Local Co-op update at the end of this document.
+
 Multiplayer mode supports temporary names, 5-character room codes, 2 to 5 players, a Ready lobby, host-controlled round start, shared 120-second rounds, 35-second orders, server-authoritative movement, per-player raw inventory and assembly plate state, shared cooking stations and score, disconnect removal, and a results screen. Active room data is in-memory and resets when the server restarts.
 
 
 ## Gameplay Update
 
-The game uses a 120-second cooking round with customer orders that each last 35 seconds. Six Thai menus are assembled from rice and outputs produced by the pot, pan, or grill. Raw ingredients are collected individually without a plate, staged at a compatible station, and cooked for 2 seconds after an empty-handed interaction. A plate is required only to collect cooked outputs, combine them with rice in recipe order, and serve the completed dish. Successful service increases the team score; an expired order is removed without clearing the players' held items or assembly plates.
+The game uses a 120-second cooking round with customer orders that each last 60 seconds. Six Thai menus are assembled from rice and outputs produced by the pot, pan, or grill. Raw ingredients are collected individually without a plate, staged at a compatible station, and cooked for 2 seconds after an empty-handed interaction. A plate is required only to collect cooked outputs, combine them with rice in recipe order, and serve the completed dish. Successful service increases the team score; an expired order is removed without clearing the players' held items or assembly plates.
 
 
 ## Held Food Indicator
@@ -258,7 +261,7 @@ Validation: `node --check game.js`, `node --check server/server.js`, `node --che
 
 เพิ่ม browser และ multiplayer integration checks ใน `test/` แล้ว Browser Solo check ทำอาหารและเสิร์ฟครบทั้ง 6 เมนู ตรวจลำดับผิดและถังขยะ รูปอาหาร ไอคอนออเดอร์ keyboard movement, touch movement, 640x360 landscape และ portrait warning ผ่านบน Chromium headless โดยไม่มี runtime exception
 
-Multiplayer checks เชื่อม Socket.IO จริงด้วย client อิสระหลายตัว ครอบคลุมห้อง 5 คน การปฏิเสธคนที่ 6 readiness และ host gating, authoritative movement, การถือวัตถุดิบโดยไม่มีจาน, station staging, shared station lock, cooking handoff ไปยังผู้เล่นที่ถือจาน, อายุออเดอร์ 35 วินาที, score synchronization, queue limit, round results, replay, host transfer และ disconnect cleanup นอกจากนี้ browser สองแท็บยืนยัน lobby UI, remote-player rendering และ movement interpolation แล้ว ระหว่างทดสอบพบและแก้กรณีผู้เล่นที่เพิ่ง join เห็น avatar ของตัวเองซ้ำในกลุ่ม remote players โดย renderer จะลบ ID ที่ไม่อยู่ใน remote-player set ปัจจุบันทุก snapshot
+Multiplayer checks เชื่อม Socket.IO จริงด้วย client อิสระหลายตัว ครอบคลุมห้อง 5 คน การปฏิเสธคนที่ 6 readiness และ host gating, authoritative movement, การถือวัตถุดิบโดยไม่มีจาน, station staging, shared station lock, cooking handoff ไปยังผู้เล่นที่ถือจาน, อายุออเดอร์ 60 วินาที, score synchronization, queue limit, round results, replay, host transfer และ disconnect cleanup นอกจากนี้ browser สองแท็บยืนยัน lobby UI, remote-player rendering และ movement interpolation แล้ว ระหว่างทดสอบพบและแก้กรณีผู้เล่นที่เพิ่ง join เห็น avatar ของตัวเองซ้ำในกลุ่ม remote players โดย renderer จะลบ ID ที่ไม่อยู่ใน remote-player set ปัจจุบันทุก snapshot
 
 Validation ล่าสุด: `node --check` ผ่านสำหรับ client, server, shared recipe data และ test scripts; `npm test --prefix server` ผ่าน โดย unit tests ครอบคลุม unordered station matching และ ordered plate assembly; Chromium Solo ทำและเสิร์ฟครบ 6 เมนูด้วยการกลับลำดับวัตถุดิบทุกสูตรหลายชิ้น พร้อมตรวจรูปและสถานะ staging, keyboard, touch, landscape และ portrait; browser multiplayer สองแท็บผ่าน; Socket.IO integration ผ่านด้วยผู้เล่นจริง 5 clients และปฏิเสธ client ที่ 6 โดยรอบล่าสุดได้เมนูข้าวหมูแดงและผ่าน shared station, handoff, score, results, replay และ host transfer
 
@@ -272,4 +275,32 @@ Validation: syntax checks ผ่านสำหรับ client, server แล�
 
 ## Two-Minute Rounds
 
-ระยะเวลาเล่นต่อรอบเพิ่มจาก 40 เป็น 120 วินาทีทั้ง Solo และ Multiplayer ค่าเริ่มต้นใน HUD, client timer และ authoritative server ใช้ค่าเดียวกัน โดยช่วงเตือนสิบวินาทีสุดท้ายและอายุออเดอร์ 35 วินาทียังคงเดิม ชุดทดสอบ browser ตรวจว่า Solo และ Multiplayer เริ่มที่ `120`; Socket.IO integration ปล่อยให้ server นับถอยหลังครบสองนาทีและยืนยันการเปลี่ยนเป็น Results ที่วินาที 0 แล้ว Syntax checks, recipe unit tests, Solo browser, browser multiplayer และ multiplayer integration ผ่านทั้งหมด
+ระยะเวลาเล่นต่อรอบเพิ่มจาก 40 เป็น 120 วินาทีทั้ง Solo และ Multiplayer ค่าเริ่มต้นใน HUD, client timer และ authoritative server ใช้ค่าเดียวกัน โดยช่วงเตือนสิบวินาทีสุดท้ายยังคงเดิม และอายุออเดอร์ปัจจุบันคือ 60 วินาที ชุดทดสอบ browser ตรวจว่า Solo และ Multiplayer เริ่มที่ `120`; Socket.IO integration ปล่อยให้ server นับถอยหลังครบสองนาทีและยืนยันการเปลี่ยนเป็น Results ที่วินาที 0 แล้ว Syntax checks, recipe unit tests, Solo browser, browser multiplayer และ multiplayer integration ผ่านทั้งหมด
+
+## Client Cleanup and Test Commands
+
+เส้นทางออกจากเกม ออกจากห้อง และกลับหน้าเริ่มต้นใช้ cleanup กลางร่วมกัน โดยหยุด timer ของรอบและออเดอร์, interval สร้างออเดอร์, cooking timeout, local/remote animation, walking sound และ input state พร้อมล้างข้อมูลผู้เล่นระยะไกล การออกจาก Multiplayer ส่ง `leave-room` เพียงครั้งเดียว ส่วน delayed Solo results จะถูกยกเลิกหากผู้เล่นออกก่อนหน้าผลลัพธ์แสดง จึงไม่มี background order generation หรือหน้า Results เปิดทับหน้าเริ่มต้นหลังออกเกม
+
+`server/package.json` มีคำสั่งตรวจแยกตามระดับดังนี้:
+
+```sh
+cd server
+npm run check
+npm test
+npm run test:recipes
+npm run test:relay
+npm run test:browser:solo
+npm run test:browser:local
+```
+
+Socket และ browser checks ต้องเปิด server ที่พอร์ต `3210` ก่อนด้วย `PORT=3210 npm start` ส่วน browser checks ต้องมี Chromium remote debugging ที่พอร์ต `9223` เช่น `chromium-browser --headless --remote-debugging-port=9223 --user-data-dir="$(mktemp -d)" about:blank` อายุออเดอร์ที่ assertions ใช้ทั้ง Solo และ Multiplayer คือ 60 วินาที
+
+Validation ล่าสุดผ่านครบทั้ง `npm run check`, recipe tests, Chromium Solo/responsive check, browser Multiplayer สองแท็บ และ Socket.IO integration เต็มรอบ 120 วินาที Regression checks ยืนยันว่า Solo exit ล้าง order-generation interval, delayed Results ไม่เปิดทับหน้าเริ่มต้น, Multiplayer leave ส่ง event ครั้งเดียว และ local/remote animation state ถูกล้างแล้ว
+
+## Local Co-op and Phone Controllers
+
+Online multiplayer ถูกแทนที่ด้วย local co-op บนจอคอมเครื่องเดียว ผู้เล่นรวม 2–5 คน โดยเลือกผู้เล่นคีย์บอร์ดได้ 0–2 คน: Player 1 ใช้ `WASD` + `E` และ Player 2 ใช้ลูกศร + `Enter` ผู้เล่นที่เหลือใช้โทรศัพท์เป็นจอยผ่าน Wi-Fi/hotspot เดียวกัน ทุกคนมีตำแหน่ง มือ จาน สี และสถิติของตัวเอง แต่แชร์ออเดอร์ เวลา คะแนน และสถานีทำอาหาร ผู้เล่นไม่ชนกันเพื่อป้องกันการขวางทางในครัว
+
+Solo และ local co-op แบบสองคีย์บอร์ดเปิดจาก `index.html` ได้โดยตรง การใช้โทรศัพท์ให้รัน `npm start` ใน `server/`; local relay จะแสดง LAN URL และหน้าเกมสร้าง QR ที่มีรหัส session โทรศัพท์มี D-pad, ปุ่มโต้ตอบ และตัวเลือกข้าวเฉพาะตัว Server ทำหน้าที่ส่ง input เท่านั้น ไม่ประมวลผล gameplay และให้เวลาโทรศัพท์ reconnect 30 วินาทีก่อนถอนช่องผู้เล่น
+
+เพิ่ม dependency `qrcode` ฝั่ง server สำหรับสร้าง QR ภายในเครื่อง และแทนชุดทดสอบออนไลน์เดิมด้วย relay/local co-op checks คำสั่งล่าสุดคือ `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo`, และ `npm run test:browser:local` Validation ผ่านทั้งหมด โดย browser checks ครอบคลุมสูตรทั้ง 6 เมนู, direct-file Solo, responsive touch, ผู้เล่นคีย์บอร์ดพร้อมกัน, roster 5 คน, โทรศัพท์จำลอง, การเลือกข้าว, relay capacity, reconnect และ session cleanup การสแกน QR บนโทรศัพท์จริงหลายรุ่นยังควรตรวจบนเครือข่ายเป้าหมายและยอมรับ firewall prompt ของระบบปฏิบัติการหากมี

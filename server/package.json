@@ -5,10 +5,16 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node --test ../test/recipes.test.js"
+    "check": "node --check ../game.js && node --check ../controller.js && node --check ../recipes.js && node --check server.js && node --check ../test/recipes.test.js && node --check ../test/run-browser-check.js && node --check ../test/run-browser-multiplayer-check.js && node --check ../test/run-multiplayer-check.js",
+    "test": "node --test ../test/recipes.test.js",
+    "test:recipes": "node --test ../test/recipes.test.js",
+    "test:relay": "node ../test/run-multiplayer-check.js",
+    "test:browser:solo": "node ../test/run-browser-check.js",
+    "test:browser:local": "node ../test/run-browser-multiplayer-check.js"
   },
   "dependencies": {
     "express": "^4.21.2",
+    "qrcode": "^1.5.4",
     "socket.io": "^4.8.1"
   }
 }

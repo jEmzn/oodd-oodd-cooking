@@ -1,16 +1,24 @@
 const startScreen = document.querySelector("#start-screen");
 const multiplayerScreen = document.querySelector("#multiplayer-screen");
-const lobbyScreen = document.querySelector("#lobby-screen");
 const gameScreen = document.querySelector("#game-screen");
 const resultsScreen = document.querySelector("#results-screen");
 const playButton = document.querySelector("#play-button");
 const multiplayerButton = document.querySelector("#multiplayer-button");
 const backButton = document.querySelector("#back-button");
-const createRoomButton = document.querySelector("#create-room-button");
-const joinRoomButton = document.querySelector("#join-room-button");
-const readyButton = document.querySelector("#ready-button");
-const startRoundButton = document.querySelector("#start-round-button");
-const leaveRoomButton = document.querySelector("#leave-room-button");
+const startLocalButton = document.querySelector("#start-local-button");
+const connectPhonesButton = document.querySelector("#connect-phones-button");
+const keyboard1Enabled = document.querySelector("#keyboard-1-enabled");
+const keyboard2Enabled = document.querySelector("#keyboard-2-enabled");
+const keyboard1Name = document.querySelector("#keyboard-1-name");
+const keyboard2Name = document.querySelector("#keyboard-2-name");
+const localPlayerList = document.querySelector("#local-player-list");
+const localPlayerCount = document.querySelector("#local-player-count");
+const phoneJoinPanel = document.querySelector("#phone-join-panel");
+const lanAddress = document.querySelector("#lan-address");
+const controllerQr = document.querySelector("#controller-qr");
+const controllerUrl = document.querySelector("#controller-url");
+const localSessionCode = document.querySelector("#local-session-code");
+const setupMessage = document.querySelector("#setup-message");
 const playAgainButton = document.querySelector("#play-again-button");
 const resultsButton = document.querySelector("#results-button");
 const fullscreenButton = document.querySelector("#fullscreen-button");
@@ -18,56 +26,56 @@ const mobileInteractButton = document.querySelector("#mobile-interact-button");
 const directionButtons = [...document.querySelectorAll("[data-direction]")];
 const soundToggles = [...document.querySelectorAll(".sound-toggle")];
 const exitGameButton = document.querySelector("#exit-game-button");
-const riceChooser = document.querySelector("#rice-chooser");
-const riceOptionButtons = [...document.querySelectorAll("[data-rice]")];
-const closeRiceChooserButton = document.querySelector("#close-rice-chooser");
-const playerNameInput = document.querySelector("#player-name");
-const roomCodeInput = document.querySelector("#room-code");
-const setupMessage = document.querySelector("#setup-message");
-const lobbyMessage = document.querySelector("#lobby-message");
-const roomCodeLabel = document.querySelector("#room-code-label");
-const playerList = document.querySelector("#player-list");
 const resultsList = document.querySelector("#results-list");
 const resultsScore = document.querySelector("#results-score");
-const player = document.querySelector("#player");
-const playerSprite = document.querySelector("#player-sprite");
-const otherPlayers = document.querySelector("#other-players");
+const playerLayer = document.querySelector("#players");
 const cookingStatuses = document.querySelector("#cooking-statuses");
-const heldItem = document.querySelector("#held-item");
-const heldImages = document.querySelector("#held-images");
-const promptElement = document.querySelector("#interaction-prompt");
+const riceChoices = document.querySelector("#rice-choices");
 const timerElement = document.querySelector("#timer");
 const scoreElement = document.querySelector("#score");
 const orderList = document.querySelector("#order-list");
 const message = document.querySelector("#game-message");
-const socket = typeof io === "function" ? io() : null;
 const walkingSound = new Audio("Sound/walking-for-cartoon.mp3");
+const lobbyMusic = new Audio("Sound/background-music-lobby.mp3");
+const gameMusic = new Audio("Sound/background-music-map2.mp3");
+const cookingData = window.CookingData;
+const objects = [...document.querySelectorAll(".object")].map((element) => ({
+  element,
+  name: element.dataset.object,
+  tool: element.dataset.tool || null,
+  x: Number(element.dataset.x),
+  y: Number(element.dataset.y)
+}));
+
 walkingSound.loop = true;
 walkingSound.preload = "auto";
 walkingSound.volume = 0.8;
-const lobbyMusic = new Audio("Sound/background-music-lobby.mp3");
 lobbyMusic.loop = true;
 lobbyMusic.preload = "auto";
 lobbyMusic.volume = 0.35;
-const gameMusic = new Audio("Sound/background-music-map2.mp3");
 gameMusic.loop = true;
 gameMusic.preload = "auto";
 gameMusic.volume = 0.35;
-const cookingData = window.CookingData;
-const objects = [...document.querySelectorAll(".object")].map((element) => ({ element, name: element.dataset.object, tool: element.dataset.tool || null, x: Number(element.dataset.x), y: Number(element.dataset.y) }));
-const stationLabels = { trash: "ถังขยะ", "pan-1": "กระทะ 1", "pan-2": "กระทะ 2", "pot-1": "หม้อ 1", "pot-2": "หม้อ 2", grill: "เตาย่าง", rice: "ข้าว", meat: "เนื้อ", vegetable: "ผัก", egg: "ไข่", sauce: "ซอส", plate: "จาน", serve: "จุดเสิร์ฟ" };
-objects.forEach(({ element, name }) => {
-  const label = element.querySelector(".object-label");
-  if (label && stationLabels[name]) label.textContent = stationLabels[name];
-});
-const menus = cookingData.menus;
+
+const stationLabels = {
+  trash: "ถังขยะ", "pan-1": "กระทะ 1", "pan-2": "กระทะ 2", "pot-1": "หม้อ 1", "pot-2": "หม้อ 2",
+  grill: "เตาย่าง", rice: "ข้าว", meat: "เนื้อ", vegetable: "ผัก", egg: "ไข่", sauce: "ซอส", plate: "จาน", serve: "จุดเสิร์ฟ"
+};
 const toolLabels = { pot: "หม้อ", pan: "กระทะ", grill: "เตาย่าง" };
 const cookingStationTools = new Map(objects.filter((object) => object.tool).map((object) => [object.name, object.tool]));
 const standalonePickupItems = { meat: "meat", vegetable: "vegetable", egg: "egg", sauce: "sauce" };
+const menus = cookingData.menus;
+const maxPlayers = 5;
 const maxOrders = 2;
 const orderLifetime = 60000;
 const roundDurationSeconds = 120;
-const playerState = { x: 500, y: 350, speed: 4.5, radius: 32 };
+const playerSpeed = 270;
+const playerRadius = 32;
+const interactionDistance = playerRadius + 72;
+const playerColors = ["#ba6849", "#4d8f9d", "#64834f", "#b87c2b", "#8d63a8"];
+const spawnPositions = [
+  { x: 430, y: 335 }, { x: 500, y: 335 }, { x: 570, y: 335 }, { x: 465, y: 405 }, { x: 535, y: 405 }
+];
 const playerSprites = {
   down: [
     { href: "pork_nae_animation/Stand%20Still.png", width: 132, height: 74 },
@@ -86,316 +94,144 @@ const playerSprites = {
     { href: "pork_nae_animation/Walk%20towards%20the%20right%20side.png", width: 132, height: 74 }
   ]
 };
+const keyboardControls = {
+  keyboard1: { left: "a", right: "d", up: "w", down: "s", interact: "e", label: "E" },
+  keyboard2: { left: "arrowleft", right: "arrowright", up: "arrowup", down: "arrowdown", interact: "enter", label: "Enter" }
+};
+
+objects.forEach(({ element, name }) => {
+  const label = element.querySelector(".object-label");
+  if (label && stationLabels[name]) label.textContent = stationLabels[name];
+});
+
 const keys = new Set();
+let players = [];
 let score = 0;
 let secondsLeft = roundDurationSeconds;
 let orders = [];
-let inventory = null;
-let assemblyPlate = null;
-let cooking = false;
+let cookingStations = createEmptyCookingStations();
+let orderSequence = 0;
+let mode = "solo";
+let gameRunning = false;
+let soundEnabled = true;
+let fullscreenFallback = false;
 let timerId;
 let orderTimerId;
 let orderGenerationId;
+let resultsTimeoutId;
 let animationId;
-let cookingTimeoutId;
 let cookingAnimationId;
-let cookingStartedAt;
-let cookingTool;
-let cookingMenu;
-let soloStations = createEmptyCookingStations();
-let orderSequence = 0;
-let gameRunning = false;
-let mode = "solo";
-let roomState;
-let selfId;
-let fullscreenFallback = false;
-let playerDirection = "down";
-let lastSpriteKey = "";
-let soundEnabled = true;
-let multiplayerInput = { left: false, right: false, up: false, down: false };
-const multiplayerSpeed = 150;
-const authoritativePosition = { x: 500, y: 350 };
-const predictedPosition = { x: 500, y: 350 };
-const remoteTargets = new Map();
-const remoteRendered = new Map();
-const remoteElements = new Map();
-let multiplayerFrameAt;
-let remoteFrameAt;
-let remoteAnimationId;
+let lastFrameAt;
+let relaySocket;
+let relayLoader;
+let localSession;
+let phoneControllers = [];
+let joinOptions = [];
 
 function createEmptyCookingStations() {
   return Object.fromEntries([...cookingStationTools.keys()].map((stationId) => [stationId, null]));
 }
 
-function updateMultiplayerInput() {
-  multiplayerInput = {
-    left: keys.has("arrowleft") || keys.has("a") || keys.has("touch-left"),
-    right: keys.has("arrowright") || keys.has("d") || keys.has("touch-right"),
-    up: keys.has("arrowup") || keys.has("w") || keys.has("touch-up"),
-    down: keys.has("arrowdown") || keys.has("s") || keys.has("touch-down")
+function sanitizeName(value, fallback) {
+  return String(value || "").trim().replace(/\s+/g, " ").slice(0, 18) || fallback;
+}
+
+function svgElement(tag, attributes = {}) {
+  const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  Object.entries(attributes).forEach(([name, value]) => element.setAttribute(name, `${value}`));
+  return element;
+}
+
+function createPlayerElement(player) {
+  const group = svgElement("g", { transform: `translate(${player.x} ${player.y})`, class: "local-player" });
+  const held = svgElement("g", { transform: "translate(0 -55)", opacity: 0 });
+  const heldCircle = svgElement("circle", { class: "held-item-circle", r: 17 });
+  const heldImages = svgElement("g");
+  held.append(heldCircle, heldImages);
+  const shadow = svgElement("circle", { class: "player-shadow", cy: 27, r: 15 });
+  const ring = svgElement("circle", { class: "player-color-ring", cy: 26, r: 22, stroke: player.color });
+  const sprite = svgElement("image", { class: "player-sprite", href: playerSprites.down[0].href, x: -66, y: -44, width: 132, height: 74, preserveAspectRatio: "xMidYMid meet" });
+  const label = svgElement("text", { class: "local-player-label", y: -48, fill: player.color });
+  label.textContent = player.name;
+  const badge = svgElement("g", { class: "player-action-badge", transform: "translate(0 -80)", opacity: 0 });
+  badge.append(svgElement("rect", { x: -29, y: -14, width: 58, height: 26, rx: 13 }));
+  const badgeText = svgElement("text", { y: 4 });
+  badgeText.textContent = player.source.startsWith("keyboard") ? keyboardControls[player.source].label : "แตะ";
+  badge.append(badgeText);
+  group.append(held, shadow, ring, sprite, label, badge);
+  playerLayer.append(group);
+  player.elements = { group, held, heldImages, sprite, label, badge };
+  renderHeldItem(player);
+}
+
+function createPlayer(config, index) {
+  const spawn = spawnPositions[index] || spawnPositions[0];
+  const player = {
+    id: config.id,
+    name: sanitizeName(config.name, `ผู้เล่น ${index + 1}`),
+    color: playerColors[index],
+    source: config.source,
+    x: spawn.x,
+    y: spawn.y,
+    input: { left: false, right: false, up: false, down: false },
+    inventory: null,
+    plate: null,
+    direction: "down",
+    lastSpriteKey: "",
+    riceChoice: null,
+    connected: config.connected !== false,
+    stats: { ordersServed: 0 },
+    elements: null
   };
+  createPlayerElement(player);
+  return player;
 }
 
-function interact() {
-  if (mode === "multiplayer" && gameRunning) {
-    const nearest = nearestObject();
-    if (nearest.object) socket?.emit("interact", { station: nearest.object.name });
-  } else if (mode === "solo" && gameRunning) {
-    soloInteract();
-  }
+function clearPlayers() {
+  players = [];
+  playerLayer.replaceChildren();
+  riceChoices.replaceChildren();
 }
 
-function setMovementHint() {
-  setMessage(window.matchMedia("(pointer: coarse)").matches ? "ใช้ปุ่มสัมผัสเพื่อเดินและโต้ตอบ" : "ใช้ WASD หรือลูกศรเพื่อเดิน");
+function setPlayerPosition(player) {
+  player.elements.group.setAttribute("transform", `translate(${player.x} ${player.y})`);
 }
 
-function releaseTouchDirection(button) {
-  const direction = button.dataset.direction;
-  keys.delete(`touch-${direction}`);
-  button.classList.remove("pressed");
-  updateMultiplayerInput();
-  sendInput();
-}
-
-function pressTouchDirection(event) {
-  event.preventDefault();
-  const button = event.currentTarget;
-  const direction = button.dataset.direction;
-  keys.add(`touch-${direction}`);
-  button.classList.add("pressed");
-  button.setPointerCapture?.(event.pointerId);
-  updateMultiplayerInput();
-  sendInput();
-}
-
-function releaseAllTouchDirections() {
-  directionButtons.forEach((button) => releaseTouchDirection(button));
-}
-
-function getFullscreenElement() {
-  return document.fullscreenElement || document.webkitFullscreenElement || null;
-}
-
-function updateFullscreenButton() {
-  const active = Boolean(getFullscreenElement()) || fullscreenFallback;
-  fullscreenButton.textContent = active ? "ออกจากเต็มจอ" : "เต็มจอ";
-  fullscreenButton.setAttribute("aria-label", active ? "ออกจากโหมดเต็มจอ" : "เข้าโหมดเต็มจอ");
-  fullscreenButton.setAttribute("aria-pressed", `${active}`);
-}
-
-function clearFullscreenFallback() {
-  fullscreenFallback = false;
-  gameScreen.classList.remove("fullscreen-fallback");
-  updateFullscreenButton();
-}
-
-function exitNativeFullscreen() {
-  if (document.fullscreenElement && document.exitFullscreen) return document.exitFullscreen();
-  if (document.webkitFullscreenElement && document.webkitExitFullscreen) return document.webkitExitFullscreen();
-  return null;
-}
-
-function clearFullscreenPresentation() {
-  clearFullscreenFallback();
-  if (getFullscreenElement()) exitNativeFullscreen();
-}
-
-function requestLandscapeLock() {
-  if (screen.orientation?.lock) screen.orientation.lock("landscape").catch(() => {});
-}
-
-async function enterFullscreen() {
-  try {
-    if (gameScreen.requestFullscreen) {
-      await gameScreen.requestFullscreen({ navigationUI: "hide" });
-    } else if (gameScreen.webkitRequestFullscreen) {
-      await gameScreen.webkitRequestFullscreen();
-    } else {
-      throw new Error("ไม่รองรับโหมดเต็มจอ");
-    }
-    fullscreenFallback = false;
-    gameScreen.classList.remove("fullscreen-fallback");
-    requestLandscapeLock();
-  } catch (error) {
-    fullscreenFallback = true;
-    gameScreen.classList.add("fullscreen-fallback");
-    setMessage("ไม่รองรับโหมดเต็มจอ จึงเปิดมุมมองแนวนอนแบบขยายแทน");
-  }
-  updateFullscreenButton();
-}
-
-function toggleFullscreen() {
-  if (getFullscreenElement() || fullscreenFallback) {
-    if (getFullscreenElement()) exitNativeFullscreen();
-    clearFullscreenFallback();
-    return;
-  }
-  enterFullscreen();
-}
-
-function showScreen(screen) {
-  [startScreen, multiplayerScreen, lobbyScreen, gameScreen, resultsScreen].forEach((item) => { item.hidden = item !== screen; });
-  if (screen !== gameScreen) clearFullscreenPresentation();
-  if (screen !== gameScreen) riceChooser.hidden = true;
-  if (screen !== gameScreen) syncWalkingSound(false);
-  syncLobbyMusic(screen === startScreen);
-  syncGameMusic(screen === gameScreen);
-}
-
-function syncLobbyMusic(active) {
-  if (active) {
-    if (lobbyMusic.paused) lobbyMusic.play().catch(() => {});
-    return;
-  }
-  lobbyMusic.pause();
-  lobbyMusic.currentTime = 0;
-}
-
-function syncGameMusic(active) {
-  if (active) {
-    if (gameMusic.paused) gameMusic.play().catch(() => {});
-    return;
-  }
-  gameMusic.pause();
-  gameMusic.currentTime = 0;
-}
-
-function updateSound() {
-  lobbyMusic.muted = !soundEnabled;
-  gameMusic.muted = !soundEnabled;
-  soundToggles.forEach((soundToggle) => {
-    soundToggle.textContent = soundEnabled ? "🎵 เพลง" : "🔇 ปิดเพลง";
-    soundToggle.setAttribute("aria-pressed", `${!soundEnabled}`);
-    soundToggle.setAttribute("aria-label", soundEnabled ? "ปิดเพลง" : "เปิดเพลง");
-  });
-  if (soundEnabled && !startScreen.hidden) syncLobbyMusic(true);
-  if (soundEnabled && !gameScreen.hidden) syncGameMusic(true);
-}
-
-function syncWalkingSound(moving) {
-  if (moving && gameRunning) {
-    if (walkingSound.paused) walkingSound.play().catch(() => {});
-    return;
-  }
-  walkingSound.pause();
-  walkingSound.currentTime = 0;
-}
-
-function setPlayerPosition() {
-  player.setAttribute("transform", `translate(${playerState.x} ${playerState.y})`);
-}
-
-function updatePlayerSprite(dx = 0, dy = 0, moving = false, timestamp = performance.now()) {
+function updatePlayerSprite(player, dx = 0, dy = 0, moving = false, timestamp = performance.now()) {
   if (moving) {
-    if (Math.abs(dx) >= Math.abs(dy)) playerDirection = dx < 0 ? "left" : "right";
-    else playerDirection = dy < 0 ? "up" : "down";
+    if (Math.abs(dx) >= Math.abs(dy)) player.direction = dx < 0 ? "left" : "right";
+    else player.direction = dy < 0 ? "up" : "down";
   }
-
-  const sprites = playerSprites[playerDirection];
+  const sprites = playerSprites[player.direction];
   const frameIndex = moving ? Math.floor(timestamp / 140) % sprites.length : 0;
   const sprite = sprites[frameIndex];
-  const spriteKey = `${playerDirection}-${frameIndex}`;
-  if (spriteKey === lastSpriteKey) return;
-
-  playerSprite.setAttribute("href", sprite.href);
-  playerSprite.setAttribute("x", `${-sprite.width / 2}`);
-  playerSprite.setAttribute("y", `${30 - sprite.height}`);
-  playerSprite.setAttribute("width", `${sprite.width}`);
-  playerSprite.setAttribute("height", `${sprite.height}`);
-  lastSpriteKey = spriteKey;
+  const spriteKey = `${player.direction}-${frameIndex}`;
+  if (spriteKey === player.lastSpriteKey) return;
+  player.elements.sprite.setAttribute("href", sprite.href);
+  player.elements.sprite.setAttribute("x", `${-sprite.width / 2}`);
+  player.elements.sprite.setAttribute("y", `${30 - sprite.height}`);
+  player.elements.sprite.setAttribute("width", `${sprite.width}`);
+  player.elements.sprite.setAttribute("height", `${sprite.height}`);
+  player.lastSpriteKey = spriteKey;
 }
 
-function hideCookingStatus() {
-  window.cancelAnimationFrame(cookingAnimationId);
-  cookingStatuses.replaceChildren();
-  cookingTool = null;
-}
-
-function renderCookingStatuses(stations = soloStations, ownerId = selfId) {
-  cookingStatuses.replaceChildren();
-  Object.entries(stations || {}).forEach(([stationId, station]) => {
-    if (!station) return;
-    const object = objects.find((item) => item.name === stationId);
-    if (!object) return;
-    const tool = object.tool;
-    const stationLabel = stationLabels[stationId] || toolLabels[tool];
-    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    group.setAttribute("transform", `translate(${object.x} ${object.y})`);
-    group.setAttribute("class", "cooking-status-group");
-    const card = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    card.setAttribute("x", "-53"); card.setAttribute("y", station.phase === "staging" ? "-154" : "-128"); card.setAttribute("width", "106"); card.setAttribute("height", station.phase === "staging" ? "68" : "42"); card.setAttribute("rx", "14"); card.setAttribute("class", "cooking-status-card");
-    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    label.setAttribute("x", "0"); label.setAttribute("y", station.phase === "staging" ? "-136" : "-111"); label.setAttribute("class", "cooking-status-label");
-    if (station.phase === "staging") {
-      const ready = Boolean(cookingData.findExactTransformation(tool, station.inputs));
-      label.textContent = ready ? "พร้อมเริ่ม • กด E" : "รอวัตถุดิบเพิ่ม";
-      const iconSize = 22;
-      const gap = 4;
-      const totalWidth = station.inputs.length * iconSize + Math.max(0, station.inputs.length - 1) * gap;
-      station.inputs.forEach((ingredientId, index) => {
-        const centerX = -totalWidth / 2 + iconSize / 2 + index * (iconSize + gap);
-        const background = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        background.setAttribute("cx", `${centerX}`); background.setAttribute("cy", "-112"); background.setAttribute("r", "12"); background.setAttribute("class", "station-ingredient-background");
-        const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
-        image.setAttribute("href", cookingData.ingredients[ingredientId]?.images[0] || cookingData.assets.plate);
-        image.setAttribute("x", `${centerX - iconSize / 2}`); image.setAttribute("y", "-123"); image.setAttribute("width", `${iconSize}`); image.setAttribute("height", `${iconSize}`);
-        image.setAttribute("preserveAspectRatio", "xMidYMid slice"); image.setAttribute("class", "station-ingredient-image");
-        group.append(background, image);
-      });
-      group.setAttribute("aria-label", `${stationLabel}: ${station.inputs.map((ingredientId) => cookingData.ingredients[ingredientId]?.name).join(" + ")} — ${label.textContent}`);
-      group.prepend(card, label);
-      cookingStatuses.append(group);
-      return;
-    }
-    const progressTrack = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    progressTrack.setAttribute("x", "-53"); progressTrack.setAttribute("y", "-103"); progressTrack.setAttribute("width", "106"); progressTrack.setAttribute("height", "8"); progressTrack.setAttribute("rx", "4"); progressTrack.setAttribute("class", "cooking-progress-track");
-    const progressFill = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    progressFill.setAttribute("x", "-53"); progressFill.setAttribute("y", "-103"); progressFill.setAttribute("height", "8"); progressFill.setAttribute("rx", "4"); progressFill.setAttribute("class", "cooking-progress-fill");
-    const progress = station.phase === "ready" ? 1 : station.phase === "cooking" ? Math.min(1, (Date.now() - station.startedAt) / 2000) : 0;
-    progressFill.setAttribute("width", `${106 * progress}`);
-    const mine = station.playerId === ownerId;
-    if (station.phase === "ready") label.textContent = mine ? "พร้อมใส่จาน" : "อาหารพร้อม";
-    else label.textContent = mine ? "กำลังทำ" : "กำลังใช้งาน";
-    group.append(card, label, progressTrack, progressFill);
-    cookingStatuses.append(group);
-  });
-}
-
-function animateCooking() {
-  if (!Object.values(soloStations).some((station) => station?.phase === "cooking")) return;
-  renderCookingStatuses(soloStations, "solo");
-  cookingAnimationId = window.requestAnimationFrame(animateCooking);
-}
-
-function setHeldImages(images) {
-  heldImages.replaceChildren();
-  if (!images.length) {
-    heldItem.setAttribute("opacity", "0");
-    return;
-  }
-  heldItem.setAttribute("opacity", "1");
+function renderHeldItem(player) {
+  const images = cookingData.getInventoryImages(player.inventory || player.plate);
+  player.elements.heldImages.replaceChildren();
+  player.elements.held.setAttribute("opacity", images.length ? "1" : "0");
   images.slice(0, 6).forEach((href, index) => {
-    const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
     const offset = Math.min(index, 3) * 7;
-    image.setAttribute("href", href);
-    image.setAttribute("x", `${-13 + offset}`);
-    image.setAttribute("y", `${-13 - offset}`);
-    image.setAttribute("width", "26"); image.setAttribute("height", "26");
-    image.setAttribute("preserveAspectRatio", "xMidYMid slice");
-    image.setAttribute("clip-path", "url(#held-image-clip)");
-    image.setAttribute("class", "held-food-image");
-    image.setAttribute("opacity", `${index === 0 ? 1 : 0.5}`);
-    heldImages.append(image);
+    const image = svgElement("image", {
+      href, x: -13 + offset, y: -13 - offset, width: 26, height: 26,
+      preserveAspectRatio: "xMidYMid slice", "clip-path": "url(#held-image-clip)", class: "held-food-image", opacity: index ? 0.5 : 1
+    });
+    player.elements.heldImages.append(image);
   });
 }
 
-function updateHeldItem() {
-  setHeldImages(cookingData.getInventoryImages(inventory || assemblyPlate));
-}
-
-function nearestObject() {
+function nearestObject(player) {
   return objects.reduce((nearest, object) => {
-    const distance = Math.hypot(playerState.x - object.x, playerState.y - object.y);
+    const distance = Math.hypot(player.x - object.x, player.y - object.y);
     return distance < nearest.distance ? { object, distance } : nearest;
   }, { object: null, distance: Infinity });
 }
@@ -404,11 +240,272 @@ function setMessage(text) {
   message.textContent = text;
 }
 
-function blockGamePageCopy(event) {
-  if (gameScreen.contains(event.target)) event.preventDefault();
+function sendControllerState(player, extra = {}) {
+  if (!relaySocket || player.source !== "phone") return;
+  relaySocket.emit("local-host:controller-state", {
+    playerId: player.id,
+    state: {
+      phase: gameRunning ? "playing" : resultsScreen.hidden ? "lobby" : "results",
+      name: player.name,
+      color: player.color,
+      canChooseRice: Boolean(player.riceChoice),
+      ...extra
+    }
+  });
 }
 
-function updateOrder() {
+function setPlayerMessage(player, text) {
+  setMessage(`${player.name}: ${text}`);
+  sendControllerState(player, { message: text });
+}
+
+function updatePlayerPrompt(player) {
+  const nearest = nearestObject(player);
+  const close = nearest.object && nearest.distance < interactionDistance;
+  player.elements.badge.setAttribute("opacity", close && player.connected ? "1" : "0");
+}
+
+function renderCookingStatuses() {
+  cookingStatuses.replaceChildren();
+  Object.entries(cookingStations).forEach(([stationId, station]) => {
+    if (!station) return;
+    const object = objects.find((item) => item.name === stationId);
+    if (!object) return;
+    const group = svgElement("g", { transform: `translate(${object.x} ${object.y})`, class: "cooking-status-group" });
+    const cardHeight = station.phase === "staging" ? 68 : 42;
+    const cardY = station.phase === "staging" ? -154 : -128;
+    const card = svgElement("rect", { x: -53, y: cardY, width: 106, height: cardHeight, rx: 14, class: "cooking-status-card" });
+    const label = svgElement("text", { x: 0, y: station.phase === "staging" ? -136 : -111, class: "cooking-status-label" });
+    if (station.phase === "staging") {
+      const ready = Boolean(cookingData.findExactTransformation(object.tool, station.inputs));
+      label.textContent = ready ? "พร้อมเริ่ม • โต้ตอบ" : "รอวัตถุดิบเพิ่ม";
+      group.append(card, label);
+      const iconSize = 22;
+      const gap = 4;
+      const totalWidth = station.inputs.length * iconSize + Math.max(0, station.inputs.length - 1) * gap;
+      station.inputs.forEach((ingredientId, index) => {
+        const centerX = -totalWidth / 2 + iconSize / 2 + index * (iconSize + gap);
+        group.append(svgElement("circle", { cx: centerX, cy: -112, r: 12, class: "station-ingredient-background" }));
+        group.append(svgElement("image", {
+          href: cookingData.ingredients[ingredientId]?.images[0] || cookingData.assets.plate,
+          x: centerX - iconSize / 2, y: -123, width: iconSize, height: iconSize,
+          preserveAspectRatio: "xMidYMid slice", class: "station-ingredient-image"
+        }));
+      });
+    } else {
+      const progress = station.phase === "ready" ? 1 : Math.min(1, (Date.now() - station.startedAt) / 2000);
+      label.textContent = station.phase === "ready" ? "พร้อมใส่จาน" : "กำลังทำ";
+      group.append(card, label);
+      group.append(svgElement("rect", { x: -53, y: -103, width: 106, height: 8, rx: 4, class: "cooking-progress-track" }));
+      group.append(svgElement("rect", { x: -53, y: -103, width: 106 * progress, height: 8, rx: 4, class: "cooking-progress-fill" }));
+    }
+    cookingStatuses.append(group);
+  });
+}
+
+function animateCookingStatuses() {
+  renderCookingStatuses();
+  if (Object.values(cookingStations).some((station) => station?.phase === "cooking")) {
+    cookingAnimationId = requestAnimationFrame(animateCookingStatuses);
+  } else {
+    cookingAnimationId = undefined;
+  }
+}
+
+function startCooking(player, stationId) {
+  const station = cookingStations[stationId];
+  const tool = cookingStationTools.get(stationId);
+  if (!station || station.phase !== "staging") return setPlayerMessage(player, `ใส่วัตถุดิบใน${stationLabels[stationId]}ก่อน`);
+  const transformation = cookingData.findExactTransformation(tool, station.inputs);
+  if (!transformation) return setPlayerMessage(player, "วัตถุดิบยังไม่ครบสูตร");
+  station.phase = "cooking";
+  station.playerId = player.id;
+  station.transformation = transformation;
+  station.startedAt = Date.now();
+  setPlayerMessage(player, `กำลังปรุงด้วย${stationLabels[stationId]}... 2 วินาที`);
+  cancelAnimationFrame(cookingAnimationId);
+  cookingAnimationId = requestAnimationFrame(animateCookingStatuses);
+  station.timeoutId = window.setTimeout(() => {
+    const current = cookingStations[stationId];
+    if (!gameRunning || current !== station || current.phase !== "cooking") return;
+    current.phase = "ready";
+    current.output = transformation.output;
+    renderCookingStatuses();
+    setMessage(`อาหารที่${stationLabels[stationId]}พร้อมใส่จานแล้ว`);
+  }, 2000);
+}
+
+function chooseRice(player, requestedRice) {
+  if (!player.riceChoice) return;
+  const ingredientId = requestedRice === "sticky" ? "stickyRice" : "steamedRice";
+  if (player.plate) player.plate = cookingData.appendIngredient(player.plate, ingredientId);
+  else player.inventory = cookingData.createIngredient(ingredientId);
+  player.riceChoice = null;
+  renderHeldItem(player);
+  renderRiceChoices();
+  setPlayerMessage(player, `${requestedRice === "sticky" ? "ข้าวเหนียว" : "ข้าวสวย"}${player.plate ? "ใส่ลงจานแล้ว" : "หยิบแล้ว"}`);
+}
+
+function cancelRiceChoice(player) {
+  if (!player.riceChoice) return;
+  player.riceChoice = null;
+  renderRiceChoices();
+  sendControllerState(player, { canChooseRice: false, message: "ยกเลิกการเลือกข้าวแล้ว" });
+}
+
+function renderRiceChoices() {
+  riceChoices.replaceChildren();
+  players.filter((player) => player.riceChoice).forEach((player) => {
+    const card = document.createElement("article");
+    card.className = "player-rice-choice";
+    card.style.setProperty("--player-color", player.color);
+    const heading = document.createElement("h3");
+    heading.textContent = `${player.name} เลือกข้าว`;
+    const options = document.createElement("div");
+    options.className = "rice-options";
+    [{ id: "steamed", name: "ข้าวสวย" }, { id: "sticky", name: "ข้าวเหนียว" }].forEach((option) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `rice-option${player.riceChoice.selected === option.id ? " selected" : ""}`;
+      button.innerHTML = `<span class="rice-swatch ${option.id === "steamed" ? "steamed-rice" : "sticky-rice"}"></span>${option.name}`;
+      button.addEventListener("click", () => chooseRice(player, option.id));
+      options.append(button);
+    });
+    const hint = document.createElement("small");
+    hint.textContent = player.source.startsWith("keyboard") ? "ซ้าย/ขวาเพื่อเลือก • ปุ่มโต้ตอบเพื่อยืนยัน" : "เลือกบนโทรศัพท์ของผู้เล่น";
+    card.append(heading, options, hint);
+    riceChoices.append(card);
+  });
+}
+
+function interactPlayer(player) {
+  if (!gameRunning || !player || !player.connected) return;
+  if (player.riceChoice) return chooseRice(player, player.riceChoice.selected);
+  const nearest = nearestObject(player);
+  if (!nearest.object || nearest.distance >= interactionDistance) return setPlayerMessage(player, "เดินเข้าใกล้สถานีก่อน");
+  const name = nearest.object.name;
+  if (name === "trash") {
+    if (!player.inventory && !player.plate) return setPlayerMessage(player, "ไม่มีอะไรให้ทิ้ง");
+    if (player.inventory) player.inventory = null;
+    else player.plate = null;
+    renderHeldItem(player);
+    return setPlayerMessage(player, "ทิ้งของที่ถืออยู่แล้ว");
+  }
+  if (name === "rice") {
+    if (player.inventory) return setPlayerMessage(player, "มือของคุณไม่ว่าง");
+    if (player.plate?.dishId || player.plate?.invalid) return setPlayerMessage(player, "จานนี้ใช้ต่อไม่ได้ นำไปทิ้งก่อน");
+    player.riceChoice = { selected: "steamed" };
+    renderRiceChoices();
+    sendControllerState(player, { canChooseRice: true, message: "เลือกข้าวสวยหรือข้าวเหนียว" });
+    return;
+  }
+  if (name === "plate") {
+    if (player.plate) return setPlayerMessage(player, "คุณมีจานอยู่แล้ว");
+    player.plate = cookingData.createPlate();
+    renderHeldItem(player);
+    return setPlayerMessage(player, "หยิบจานแล้ว นำไปรับข้าวหรืออาหารที่ปรุงเสร็จ");
+  }
+  if (standalonePickupItems[name]) {
+    if (player.inventory) return setPlayerMessage(player, "มือของคุณไม่ว่าง");
+    player.inventory = cookingData.createIngredient(standalonePickupItems[name]);
+    renderHeldItem(player);
+    return setPlayerMessage(player, `หยิบ${stationLabels[name]}แล้ว`);
+  }
+  if (cookingStationTools.has(name)) {
+    const station = cookingStations[name];
+    const tool = cookingStationTools.get(name);
+    if (station?.phase === "ready") {
+      if (player.inventory) return setPlayerMessage(player, "มือของคุณไม่ว่าง");
+      if (!player.plate) return setPlayerMessage(player, "หยิบจานมารับอาหารที่ปรุงเสร็จ");
+      if (player.plate.invalid || player.plate.dishId) return setPlayerMessage(player, "จานนี้รับส่วนผสมเพิ่มไม่ได้");
+      const nextPlate = cookingData.appendIngredient(player.plate, station.output);
+      if (!nextPlate) return setPlayerMessage(player, "จานนี้รับส่วนผสมเพิ่มไม่ได้");
+      player.plate = nextPlate;
+      cookingStations[name] = null;
+      renderHeldItem(player);
+      renderCookingStatuses();
+      return setPlayerMessage(player, player.plate.dishId ? "ประกอบเมนูสำเร็จแล้ว นำไปเสิร์ฟ" : "ใส่อาหารที่ปรุงแล้วลงจาน");
+    }
+    if (station?.phase === "cooking") return setPlayerMessage(player, `${stationLabels[name]}กำลังทำงานอยู่`);
+    if (player.inventory?.kind === "ingredient") {
+      const inputs = [...(station?.inputs || []), player.inventory.ingredientId];
+      if (!cookingData.canStageIngredients(tool, inputs)) return setPlayerMessage(player, `วัตถุดิบนี้ใช้ร่วมกับของใน${stationLabels[name]}ไม่ได้`);
+      cookingStations[name] = { phase: "staging", inputs };
+      player.inventory = null;
+      renderHeldItem(player);
+      renderCookingStatuses();
+      const ready = Boolean(cookingData.findExactTransformation(tool, inputs));
+      return setPlayerMessage(player, ready ? `วัตถุดิบใน${stationLabels[name]}พร้อมแล้ว โต้ตอบอีกครั้งเพื่อเริ่มปรุง` : `ต้องเพิ่มวัตถุดิบใน${stationLabels[name]}ให้ครบสูตร`);
+    }
+    if (!player.inventory) return startCooking(player, name);
+    return setPlayerMessage(player, "ต้องถือวัตถุดิบเพื่อใส่สถานี หรือถือจานเพื่อรับอาหาร");
+  }
+  const menu = player.plate?.dishId ? menus.find((item) => item.id === player.plate.dishId) : null;
+  const matchingOrder = orders.find((order) => order.menuId === menu?.id);
+  if (matchingOrder) {
+    orders = orders.filter((order) => order.id !== matchingOrder.id);
+    score += 1;
+    player.stats.ordersServed += 1;
+    player.plate = null;
+    scoreElement.textContent = score;
+    renderHeldItem(player);
+    renderOrders();
+    return setPlayerMessage(player, "เสิร์ฟออเดอร์สำเร็จ!");
+  }
+  if (player.plate?.dishId) return setPlayerMessage(player, "ไม่มีลูกค้ารอเมนูนี้");
+  if (Object.values(cookingStations).some((station) => station?.phase === "cooking")) return setPlayerMessage(player, "อาหารยังทำไม่เสร็จ");
+  setPlayerMessage(player, "ทำอาหารก่อนนำไปเสิร์ฟ");
+}
+
+function inputForPlayer(player) {
+  if (!player.connected || player.riceChoice) return { left: false, right: false, up: false, down: false };
+  if (player.source === "phone") return player.input;
+  if (mode === "solo") {
+    return {
+      left: keys.has("a") || keys.has("arrowleft") || keys.has("touch-left"),
+      right: keys.has("d") || keys.has("arrowright") || keys.has("touch-right"),
+      up: keys.has("w") || keys.has("arrowup") || keys.has("touch-up"),
+      down: keys.has("s") || keys.has("arrowdown") || keys.has("touch-down")
+    };
+  }
+  const controls = keyboardControls[player.source];
+  return controls ? {
+    left: keys.has(controls.left), right: keys.has(controls.right), up: keys.has(controls.up), down: keys.has(controls.down)
+  } : player.input;
+}
+
+function gameLoop(timestamp) {
+  if (!gameRunning) {
+    animationId = undefined;
+    lastFrameAt = undefined;
+    syncWalkingSound(false);
+    return;
+  }
+  const delta = lastFrameAt ? Math.min((timestamp - lastFrameAt) / 1000, 0.05) : 0;
+  lastFrameAt = timestamp;
+  let someoneMoving = false;
+  players.forEach((player) => {
+    const input = inputForPlayer(player);
+    let dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+    let dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+    const moving = Boolean(dx || dy);
+    if (moving) {
+      const length = Math.hypot(dx, dy);
+      dx /= length;
+      dy /= length;
+      player.x = Math.max(65, Math.min(935, player.x + dx * playerSpeed * delta));
+      player.y = Math.max(105, Math.min(555, player.y + dy * playerSpeed * delta));
+      setPlayerPosition(player);
+      someoneMoving = true;
+    }
+    updatePlayerSprite(player, dx, dy, moving, timestamp);
+    updatePlayerPrompt(player);
+  });
+  syncWalkingSound(someoneMoving);
+  animationId = requestAnimationFrame(gameLoop);
+}
+
+function renderOrders() {
   orderList.replaceChildren();
   if (!orders.length) {
     const empty = document.createElement("p");
@@ -424,7 +521,7 @@ function updateOrder() {
     const details = document.createElement("div");
     const name = document.createElement("h3");
     name.textContent = order.name;
-    const menu = menus.find((item) => item.id === order.menuId) || menus.find((item) => item.name === order.name);
+    const menu = menus.find((item) => item.id === order.menuId);
     const recipe = document.createElement("div");
     recipe.className = "order-recipe";
     (menu?.steps || []).forEach((step) => {
@@ -460,604 +557,478 @@ function generateOrder() {
   if (orders.length >= maxOrders) return false;
   const menu = menus[Math.floor(Math.random() * menus.length)];
   const createdAt = Date.now();
-  orders.push({ id: `solo-${createdAt}-${orderSequence++}`, menuId: menu.id, name: menu.name, createdAt, expiresAt: createdAt + orderLifetime });
-  updateOrder();
+  orders.push({ id: `local-${createdAt}-${orderSequence++}`, menuId: menu.id, name: menu.name, createdAt, expiresAt: createdAt + orderLifetime });
+  renderOrders();
   return true;
 }
 
 function expireOrders() {
-  const now = Date.now();
-  const remaining = orders.filter((order) => order.expiresAt > now);
+  const remaining = orders.filter((order) => order.expiresAt > Date.now());
   if (remaining.length !== orders.length) {
     orders = remaining;
-    updateOrder();
+    renderOrders();
     setMessage("ลูกค้ากลับไปแล้ว ออเดอร์ที่เหลือยังรออยู่");
   }
 }
 
-function clearInventory() {
-  inventory = null;
-  assemblyPlate = null;
-  cooking = false;
-  window.clearTimeout(cookingTimeoutId);
-  Object.values(soloStations).forEach((station) => window.clearTimeout(station?.timeoutId));
-  soloStations = createEmptyCookingStations();
-  hideCookingStatus();
-  updateHeldItem();
+function resetRoundState() {
+  score = 0;
+  secondsLeft = roundDurationSeconds;
+  orders = [];
+  cookingStations = createEmptyCookingStations();
+  scoreElement.textContent = "0";
+  timerElement.textContent = `${secondsLeft}`;
+  timerElement.classList.remove("warning");
+  generateOrder();
+  renderCookingStatuses();
 }
 
-function updatePrompt() {
-  const nearest = nearestObject();
-  const close = nearest.object && nearest.distance < playerState.radius + 72;
-  if (!close) {
-    promptElement.setAttribute("opacity", "0");
-    return;
-  }
-  promptElement.setAttribute("transform", `translate(${nearest.object.x} ${nearest.object.y - 95})`);
-  promptElement.setAttribute("opacity", "1");
-  const labels = { rice: "เลือกข้าว", meat: "เก็บเนื้อ", vegetable: "เก็บผัก", egg: "เก็บไข่", sauce: "เก็บซอส", plate: "หยิบจาน", trash: "ทิ้งของที่ถืออยู่", serve: "เสิร์ฟอาหาร" };
-  const action = nearest.object.tool ? `ปรุงด้วย${stationLabels[nearest.object.name]}` : labels[nearest.object.name];
-  setMessage(`กด E เพื่อ${action}`);
-}
-
-function cook(stationId) {
-  const tool = cookingStationTools.get(stationId);
-  const stationLabel = stationLabels[stationId];
-  const station = soloStations[stationId];
-  if (!station || station.phase !== "staging") return setMessage(`ใส่วัตถุดิบใน${stationLabel}ก่อน`);
-  const transformation = cookingData.findExactTransformation(tool, station.inputs);
-  if (!transformation) return setMessage("วัตถุดิบยังไม่ครบสูตร");
-  station.phase = "cooking";
-  station.playerId = "solo";
-  station.transformation = transformation;
-  station.startedAt = Date.now();
-  cooking = true;
-  cookingTool = stationId;
-  cookingStartedAt = performance.now();
-  renderCookingStatuses(soloStations, "solo");
-  window.cancelAnimationFrame(cookingAnimationId);
-  cookingAnimationId = window.requestAnimationFrame(animateCooking);
-  setMessage(`กำลังปรุงด้วย${stationLabel}... 2 วินาที`);
-  station.timeoutId = window.setTimeout(() => {
-    const currentStation = soloStations[stationId];
-    if (!currentStation || currentStation.phase !== "cooking") return;
-    currentStation.output = transformation.output;
-    currentStation.phase = "ready";
-    cooking = Object.values(soloStations).some((item) => item?.phase === "cooking");
-    renderCookingStatuses(soloStations, "solo");
-    setMessage("ปรุงเสร็จแล้ว นำจานมารับที่" + stationLabel);
-    updatePrompt();
-  }, 2000);
-}
-
-function soloInteract() {
-  const nearest = nearestObject();
-  if (!nearest.object || nearest.distance >= playerState.radius + 72) return setMessage("เดินเข้าใกล้สถานีก่อน");
-  const name = nearest.object.name;
-  if (name === "trash") {
-    if (!inventory && !assemblyPlate) return setMessage("ไม่มีอะไรให้ทิ้ง");
-    if (inventory) inventory = null;
-    else assemblyPlate = null;
-    updateHeldItem();
-    setMessage("ทิ้งของที่ถืออยู่แล้ว");
-    return;
-  }
-  if (name === "rice") {
-    if (inventory) return setMessage("มือของคุณไม่ว่าง");
-    if (assemblyPlate?.dishId || assemblyPlate?.invalid) return setMessage("จานนี้ใช้ต่อไม่ได้ นำไปทิ้งก่อน");
-    riceChooser.hidden = false;
-    return;
-  }
-  if (name === "plate") {
-    if (assemblyPlate) return setMessage("คุณมีจานสำหรับประกอบอาหารอยู่แล้ว");
-    assemblyPlate = cookingData.createPlate();
-    updateHeldItem();
-    setMessage("หยิบจานแล้ว นำไปรับข้าวหรืออาหารที่ปรุงเสร็จ");
-    return;
-  }
-  if (standalonePickupItems[name]) {
-    if (inventory) return setMessage("มือของคุณไม่ว่าง");
-    inventory = cookingData.createIngredient(standalonePickupItems[name]);
-    updateHeldItem();
-    setMessage(`หยิบ${stationLabels[name]}แล้ว นำไปใส่สถานีทำอาหาร`);
-    return;
-  }
-  if (cookingStationTools.has(name)) {
-    const tool = cookingStationTools.get(name);
-    const stationLabel = stationLabels[name];
-    const station = soloStations[name];
-    if (station?.phase === "ready") {
-      if (inventory) return setMessage("มือของคุณไม่ว่าง");
-      if (!assemblyPlate) return setMessage("หยิบจานมารับอาหารที่ปรุงเสร็จ");
-      const nextPlate = cookingData.appendIngredient(assemblyPlate, station.output);
-      if (!nextPlate) return setMessage("จานนี้รับส่วนผสมเพิ่มไม่ได้");
-      assemblyPlate = nextPlate;
-      soloStations[name] = null;
-      updateHeldItem();
-      renderCookingStatuses(soloStations, "solo");
-      setMessage(assemblyPlate.dishId ? "ประกอบเมนูสำเร็จแล้ว นำไปเสิร์ฟ" : "ใส่อาหารที่ปรุงแล้วลงจาน");
-    } else if (station?.phase === "cooking") setMessage(`${stationLabel}กำลังทำงานอยู่`);
-    else if (inventory?.kind === "ingredient") {
-      const inputs = [...(station?.inputs || []), inventory.ingredientId];
-      if (!cookingData.canStageIngredients(tool, inputs)) return setMessage(`วัตถุดิบนี้ใช้ร่วมกับของใน${stationLabel}ไม่ได้`);
-      soloStations[name] = { phase: "staging", inputs };
-      inventory = null;
-      updateHeldItem();
-      renderCookingStatuses(soloStations, "solo");
-      const ready = Boolean(cookingData.findExactTransformation(tool, inputs));
-      setMessage(ready ? `วัตถุดิบใน${stationLabel}พร้อมแล้ว กด E มือเปล่าเพื่อเริ่มปรุง หรือใส่วัตถุดิบเพิ่ม` : `ใส่วัตถุดิบใน${stationLabel}แล้ว ต้องเพิ่มวัตถุดิบให้ครบสูตร`);
-    } else if (!inventory) cook(name);
-    else setMessage("ต้องถือวัตถุดิบเพื่อใส่สถานี หรือถือจานเพื่อรับอาหาร");
-    return;
-  }
-  const menu = assemblyPlate?.dishId ? menus.find((item) => item.id === assemblyPlate.dishId) : null;
-  const matchingOrder = orders.find((order) => order.menuId === menu?.id || order.name === menu?.name);
-  if (matchingOrder) {
-    orders = orders.filter((order) => order.id !== matchingOrder.id);
-    score += 1;
-    scoreElement.textContent = score;
-    assemblyPlate = null;
-    updateHeldItem();
-    updateOrder();
-    setMessage("เสิร์ฟออเดอร์แล้ว มีลูกค้ารอออเดอร์ใหม่");
-  } else if (Object.values(soloStations).some((station) => station?.phase === "cooking")) setMessage("อาหารยังทำไม่เสร็จ");
-  else if (assemblyPlate?.dishId) setMessage("ไม่มีลูกค้ารอเมนูนี้");
-  else setMessage("ทำอาหารก่อนนำไปเสิร์ฟ");
-}
-
-function moveSolo() {
-  if (!gameRunning || mode !== "solo") {
-    syncWalkingSound(false);
-    return;
-  }
-  let dx = 0;
-  let dy = 0;
-  if (keys.has("arrowleft") || keys.has("a") || keys.has("touch-left")) dx -= 1;
-  if (keys.has("arrowright") || keys.has("d") || keys.has("touch-right")) dx += 1;
-  if (keys.has("arrowup") || keys.has("w") || keys.has("touch-up")) dy -= 1;
-  if (keys.has("arrowdown") || keys.has("s") || keys.has("touch-down")) dy += 1;
-  if (dx || dy) {
-    const length = Math.hypot(dx, dy);
-    playerState.x = Math.max(65, Math.min(935, playerState.x + (dx / length) * playerState.speed));
-    playerState.y = Math.max(105, Math.min(555, playerState.y + (dy / length) * playerState.speed));
-    setPlayerPosition();
-    renderCookingStatuses(soloStations, "solo");
-    updatePrompt();
-  }
-  syncWalkingSound(Boolean(dx || dy));
-  updatePlayerSprite(dx, dy, Boolean(dx || dy));
-  animationId = requestAnimationFrame(moveSolo);
-}
-
-function moveMultiplayer(timestamp) {
-  if (!gameRunning || mode !== "multiplayer") {
-    animationId = null;
-    multiplayerFrameAt = undefined;
-    return;
-  }
-  const delta = multiplayerFrameAt ? Math.min((timestamp - multiplayerFrameAt) / 1000, 0.05) : 0;
-  multiplayerFrameAt = timestamp;
-  let dx = (multiplayerInput.right ? 1 : 0) - (multiplayerInput.left ? 1 : 0);
-  let dy = (multiplayerInput.down ? 1 : 0) - (multiplayerInput.up ? 1 : 0);
-  if (dx || dy) {
-    const length = Math.hypot(dx, dy);
-    predictedPosition.x = Math.max(65, Math.min(935, predictedPosition.x + (dx / length) * multiplayerSpeed * delta));
-    predictedPosition.y = Math.max(105, Math.min(555, predictedPosition.y + (dy / length) * multiplayerSpeed * delta));
-  }
-
-  const correctionX = authoritativePosition.x - predictedPosition.x;
-  const correctionY = authoritativePosition.y - predictedPosition.y;
-  const correctionDistance = Math.hypot(correctionX, correctionY);
-  if (correctionDistance > 60) {
-    predictedPosition.x = authoritativePosition.x;
-    predictedPosition.y = authoritativePosition.y;
-  } else if (correctionDistance > 8) {
-    const correction = 1 - Math.exp(-10 * delta);
-    predictedPosition.x += correctionX * correction;
-    predictedPosition.y += correctionY * correction;
-  }
-
-  playerState.x = predictedPosition.x;
-  playerState.y = predictedPosition.y;
-  setPlayerPosition();
-  renderCookingStatuses(soloStations, "solo");
-  updatePrompt();
-  animationId = requestAnimationFrame(moveMultiplayer);
-}
-
-function stopMultiplayerAnimation() {
-  cancelAnimationFrame(animationId);
-  animationId = null;
-  multiplayerFrameAt = undefined;
-  cancelAnimationFrame(remoteAnimationId);
-  remoteAnimationId = null;
-  remoteFrameAt = undefined;
-}
-
-function endSoloGame() {
-  gameRunning = false;
-  syncWalkingSound(false);
-  syncGameMusic(false);
-  clearInventory();
-  cancelAnimationFrame(animationId);
-  clearInterval(timerId);
-  clearInterval(orderTimerId);
-  clearInterval(orderGenerationId);
-  window.setTimeout(() => showSoloResults(), 700);
-}
-
-function exitGame() {
-  gameRunning = false;
-  keys.clear();
-  multiplayerInput = { left: false, right: false, up: false, down: false };
-  syncWalkingSound(false);
-  clearInventory();
-  cancelAnimationFrame(animationId);
-  clearInterval(timerId);
-  clearInterval(orderTimerId);
-  if (mode === "multiplayer") socket?.emit("leave-room");
-  roomState = null;
-  otherPlayers.replaceChildren();
-  showScreen(startScreen);
+function startRound() {
+  stopRoundActivity();
+  resetRoundState();
+  showScreen(gameScreen);
+  gameRunning = true;
+  setMessage(mode === "solo" ? "ใช้ WASD หรือลูกศรเพื่อเดิน และ E เพื่อโต้ตอบ" : "ช่วยกันทำอาหาร ผู้เล่นแต่ละคนใช้ปุ่มโต้ตอบของตัวเอง");
+  players.forEach((player) => sendControllerState(player, { phase: "playing", message: "เกมเริ่มแล้ว!" }));
+  if (mode === "local") relaySocket?.emit("local-host:phase", { phase: "playing" });
+  timerId = window.setInterval(() => {
+    secondsLeft -= 1;
+    timerElement.textContent = `${secondsLeft}`;
+    timerElement.classList.toggle("warning", secondsLeft <= 10);
+    if (secondsLeft <= 0) finishRound();
+  }, 1000);
+  orderTimerId = window.setInterval(() => {
+    expireOrders();
+    renderOrders();
+  }, 1000);
+  orderGenerationId = window.setInterval(generateOrder, 7000);
+  lastFrameAt = undefined;
+  animationId = requestAnimationFrame(gameLoop);
 }
 
 function startSoloGame() {
   mode = "solo";
-  stopMultiplayerAnimation();
-  clearRemotePlayers();
-  roomState = null;
-  otherPlayers.replaceChildren();
-  showScreen(gameScreen);
-  gameRunning = true;
-  score = 0;
-  secondsLeft = roundDurationSeconds;
-  scoreElement.textContent = score;
-  timerElement.textContent = secondsLeft;
-  timerElement.classList.remove("warning");
-  playerState.x = 500;
-  playerState.y = 350;
-  playerDirection = "down";
-  lastSpriteKey = "";
-  updatePlayerSprite();
-  clearInventory();
-  orders = [];
-  generateOrder();
-  setMovementHint();
-  setPlayerPosition();
-  renderCookingStatuses(soloStations, "solo");
-  updatePrompt();
+  clearPlayers();
+  players.push(createPlayer({ id: "solo", name: "คุณ", source: "keyboard1" }, 0));
+  startRound();
+}
+
+function activeKeyboardConfigs() {
+  const configs = [];
+  if (keyboard1Enabled.checked) configs.push({ id: "keyboard-1", name: sanitizeName(keyboard1Name.value, "ผู้เล่น 1"), source: "keyboard1" });
+  if (keyboard2Enabled.checked) configs.push({ id: "keyboard-2", name: sanitizeName(keyboard2Name.value, "ผู้เล่น 2"), source: "keyboard2" });
+  return configs;
+}
+
+function startLocalGame() {
+  const configs = [
+    ...activeKeyboardConfigs(),
+    ...phoneControllers.filter((item) => item.connected).map((item) => ({ id: item.id, name: item.name, source: "phone", connected: true }))
+  ];
+  if (configs.length < 2 || configs.length > maxPlayers) {
+    setupMessage.textContent = "ต้องมีผู้เล่นที่พร้อมใช้งาน 2–5 คน";
+    return;
+  }
+  mode = "local";
+  clearPlayers();
+  players = configs.map((config, index) => createPlayer(config, index));
+  startRound();
+}
+
+function stopRoundActivity() {
+  gameRunning = false;
+  keys.clear();
+  directionButtons.forEach((button) => button.classList.remove("pressed"));
+  cancelAnimationFrame(animationId);
+  animationId = undefined;
+  lastFrameAt = undefined;
+  cancelAnimationFrame(cookingAnimationId);
+  cookingAnimationId = undefined;
   clearInterval(timerId);
   clearInterval(orderTimerId);
   clearInterval(orderGenerationId);
-  timerId = window.setInterval(() => {
-    secondsLeft -= 1;
-    timerElement.textContent = secondsLeft;
-    if (secondsLeft <= 10) timerElement.classList.add("warning");
-    if (secondsLeft <= 0) endSoloGame();
-  }, 1000);
-  orderTimerId = window.setInterval(() => {
-    expireOrders();
-    updateOrder();
-  }, 1000);
-  orderGenerationId = window.setInterval(() => generateOrder(), 7000);
-  cancelAnimationFrame(animationId);
-  animationId = requestAnimationFrame(moveSolo);
+  timerId = undefined;
+  orderTimerId = undefined;
+  orderGenerationId = undefined;
+  clearTimeout(resultsTimeoutId);
+  resultsTimeoutId = undefined;
+  Object.values(cookingStations).forEach((station) => clearTimeout(station?.timeoutId));
+  syncWalkingSound(false);
+  syncGameMusic(false);
 }
 
-function sendInput() {
-  if (mode === "multiplayer" && socket) socket.emit("move-input", multiplayerInput);
+function finishRound() {
+  stopRoundActivity();
+  if (mode === "local") relaySocket?.emit("local-host:phase", { phase: "results" });
+  players.forEach((player) => sendControllerState(player, { phase: "results", message: `ทีมเสิร์ฟสำเร็จ ${score} ออเดอร์` }));
+  resultsTimeoutId = window.setTimeout(() => {
+    resultsTimeoutId = undefined;
+    showResults();
+  }, 700);
 }
 
-function createRemotePlayer(item) {
-  const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  const held = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  held.setAttribute("transform", "translate(0 -56)");
-  held.setAttribute("opacity", "0");
-  const heldCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  heldCircle.setAttribute("class", "held-item-circle");
-  heldCircle.setAttribute("r", "17");
-  const heldImagesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  held.append(heldCircle, heldImagesGroup);
-  const shadow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  shadow.setAttribute("class", "remote-player-shadow"); shadow.setAttribute("cy", "27"); shadow.setAttribute("r", "23");
-  const body = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  body.setAttribute("class", "remote-player-body"); body.setAttribute("r", "21");
-  const face = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  face.setAttribute("class", "remote-player-face"); face.setAttribute("cy", "-4"); face.setAttribute("r", "13");
-  const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-  label.setAttribute("class", "remote-player-label"); label.setAttribute("y", "-32"); label.setAttribute("text-anchor", "middle"); label.textContent = item.name;
-  group.append(held, shadow, body, face, label);
-  otherPlayers.append(group);
-  remoteElements.set(item.id, { group, label, held, heldImagesGroup });
-  updateRemoteHeldItem(item);
-}
-
-function updateRemoteHeldItem(item) {
-  const element = remoteElements.get(item.id);
-  if (!element) return;
-  element.heldImagesGroup.replaceChildren();
-  const images = cookingData.getInventoryImages(item.inventory || item.plate);
-  element.held.setAttribute("opacity", images.length ? "1" : "0");
-  images.slice(0, 6).forEach((href, index) => {
-    const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
-    const offset = Math.min(index, 3) * 7;
-    image.setAttribute("href", href);
-    image.setAttribute("x", `${-13 + offset}`); image.setAttribute("y", `${-13 - offset}`);
-    image.setAttribute("width", "26"); image.setAttribute("height", "26");
-    image.setAttribute("preserveAspectRatio", "xMidYMid slice");
-    image.setAttribute("clip-path", "url(#held-image-clip)");
-    image.setAttribute("class", "held-food-image"); image.setAttribute("opacity", `${index ? 0.5 : 1}`);
-    element.heldImagesGroup.append(image);
-  });
-}
-
-function clearRemotePlayers() {
-  remoteTargets.clear();
-  remoteRendered.clear();
-  remoteElements.clear();
-  otherPlayers.replaceChildren();
-}
-
-function renderRemotePlayers() {
-  if (!roomState) return;
-  const remotePlayers = roomState.players.filter((item) => item.id !== selfId);
-  const remoteIds = new Set(remotePlayers.map((item) => item.id));
-  remotePlayers.forEach((item) => {
-    remoteTargets.set(item.id, item);
-    if (!remoteRendered.has(item.id)) remoteRendered.set(item.id, { x: item.x, y: item.y });
-    if (!remoteElements.has(item.id)) createRemotePlayer(item);
-    remoteElements.get(item.id).label.textContent = item.name;
-    updateRemoteHeldItem(item);
-  });
-  [...remoteTargets.keys()].forEach((id) => {
-    if (remoteIds.has(id)) return;
-    remoteTargets.delete(id);
-    remoteRendered.delete(id);
-    remoteElements.get(id)?.group.remove();
-    remoteElements.delete(id);
-  });
-}
-
-function animateRemotePlayers(timestamp) {
-  if (!gameRunning || mode !== "multiplayer") {
-    remoteAnimationId = null;
-    remoteFrameAt = undefined;
-    return;
-  }
-  const delta = remoteFrameAt ? Math.min((timestamp - remoteFrameAt) / 1000, 0.05) : 0;
-  remoteFrameAt = timestamp;
-  const interpolation = 1 - Math.exp(-18 * delta);
-  remoteTargets.forEach((target, id) => {
-    const rendered = remoteRendered.get(id);
-    const element = remoteElements.get(id);
-    if (!rendered || !element) return;
-    rendered.x += (target.x - rendered.x) * interpolation;
-    rendered.y += (target.y - rendered.y) * interpolation;
-    element.group.setAttribute("transform", `translate(${rendered.x} ${rendered.y})`);
-  });
-  remoteAnimationId = requestAnimationFrame(animateRemotePlayers);
-}
-
-function renderCookingStatus() {
-  if (mode !== "multiplayer" || !roomState) return;
-  renderCookingStatuses(roomState.stations, selfId);
-}
-
-function renderMultiplayerState(state) {
-  roomState = state;
-  if (state.selfId) selfId = state.selfId;
-  const me = state.players.find((item) => item.id === selfId);
-  if (me) {
-    const dx = me.x - playerState.x;
-    const dy = me.y - playerState.y;
-    authoritativePosition.x = me.x;
-    authoritativePosition.y = me.y;
-    if (!gameRunning) {
-      predictedPosition.x = me.x;
-      predictedPosition.y = me.y;
-      playerState.x = me.x;
-      playerState.y = me.y;
-      setPlayerPosition();
-    }
-    inventory = me.inventory;
-    assemblyPlate = me.plate;
-    const moving = Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01;
-    updatePlayerSprite(dx, dy, moving, Date.now());
-    syncWalkingSound(moving);
-    updateHeldItem();
-  }
-  score = state.score;
-  secondsLeft = state.secondsLeft;
-  orders = state.orders || [];
-  scoreElement.textContent = score;
-  timerElement.textContent = secondsLeft;
-  timerElement.classList.toggle("warning", secondsLeft <= 10);
-  updateOrder();
-  renderRemotePlayers();
-  renderCookingStatus();
-  updatePrompt();
-  if (state.status === "lobby") showLobby();
-  if (state.status === "playing") {
-    if (!gameRunning) {
-      gameRunning = true;
-      multiplayerFrameAt = undefined;
-      remoteFrameAt = undefined;
-      animationId = requestAnimationFrame(moveMultiplayer);
-      remoteAnimationId = requestAnimationFrame(animateRemotePlayers);
-    }
-    showScreen(gameScreen);
-  }
-  if (state.status === "results") {
-    stopMultiplayerAnimation();
-    showResults(state);
-  }
-}
-
-function showLobby() {
-  showScreen(lobbyScreen);
-  roomCodeLabel.textContent = roomState.roomCode;
-  playerList.replaceChildren();
-  roomState.players.forEach((item) => {
-    const row = document.createElement("div");
-    row.className = "player-row";
-    const name = document.createElement("span");
-    name.textContent = item.name;
-    if (item.id === roomState.hostId) {
-      const host = document.createElement("small");
-      host.textContent = " เจ้าของห้อง";
-      name.append(host);
-    }
-    const status = document.createElement("strong");
-    status.textContent = item.ready ? "พร้อม" : "รออยู่";
-    row.append(name, status);
-    playerList.append(row);
-  });
-  const me = roomState.players.find((item) => item.id === selfId);
-  readyButton.textContent = me && me.ready ? "ไม่พร้อม" : "พร้อม";
-  startRoundButton.hidden = roomState.hostId !== selfId;
-  lobbyMessage.textContent = roomState.players.length < 2 ? "กำลังรอผู้เล่นเพิ่มอย่างน้อยหนึ่งคน" : "ผู้เล่นทุกคนต้องกดพร้อมก่อนเจ้าของห้องจะเริ่มรอบ";
-}
-
-function showResults(state) {
-  gameRunning = false;
+function showResults() {
   showScreen(resultsScreen);
-  resultsScore.textContent = state.score;
+  resultsScore.textContent = `${score}`;
   resultsList.replaceChildren();
-  state.players.forEach((item) => {
+  players.forEach((player) => {
     const row = document.createElement("div");
     row.className = "player-row";
     const name = document.createElement("span");
-    name.textContent = item.name;
+    name.className = "player-row-name";
+    const dot = document.createElement("span");
+    dot.className = "player-dot";
+    dot.style.background = player.color;
+    name.append(dot, document.createTextNode(player.name));
     const stats = document.createElement("strong");
-    stats.textContent = `เสิร์ฟแล้ว ${item.stats.ordersServed} ออเดอร์`;
+    stats.textContent = `เสิร์ฟแล้ว ${player.stats.ordersServed} ออเดอร์`;
     row.append(name, stats);
     resultsList.append(row);
   });
 }
 
-function showSoloResults() {
-  showScreen(resultsScreen);
-  resultsScore.textContent = score;
-  resultsList.replaceChildren();
-  const row = document.createElement("div");
-  row.className = "player-row";
-  const name = document.createElement("span");
-  name.textContent = "คุณ";
-  const stats = document.createElement("strong");
-  stats.textContent = `เสิร์ฟแล้ว ${score} ออเดอร์`;
-  row.append(name, stats);
-  resultsList.append(row);
+function syncWalkingSound(moving) {
+  if (moving && gameRunning) {
+    if (walkingSound.paused) walkingSound.play().catch(() => {});
+    return;
+  }
+  walkingSound.pause();
+  walkingSound.currentTime = 0;
 }
 
-function setupMultiplayer() {
-  if (!socket) { setupMessage.textContent = "กรุณาเปิดเกมผ่าน Node server เพื่อใช้โหมดหลายคน"; return; }
-  mode = "multiplayer";
-  clearRemotePlayers();
-  showScreen(multiplayerScreen);
-  playerNameInput.focus();
+function syncLobbyMusic(active) {
+  if (active) {
+    if (lobbyMusic.paused) lobbyMusic.play().catch(() => {});
+  } else {
+    lobbyMusic.pause();
+    lobbyMusic.currentTime = 0;
+  }
 }
 
-function requestRoom(eventName, payload) {
-  if (!socket) return;
-  setupMessage.textContent = "กำลังเชื่อมต่อกับครัว...";
-  socket.emit(eventName, payload, (result) => {
-    if (result && result.error) setupMessage.textContent = result.error;
+function syncGameMusic(active) {
+  if (active) {
+    if (gameMusic.paused) gameMusic.play().catch(() => {});
+  } else {
+    gameMusic.pause();
+    gameMusic.currentTime = 0;
+  }
+}
+
+function updateSound() {
+  lobbyMusic.muted = !soundEnabled;
+  gameMusic.muted = !soundEnabled;
+  soundToggles.forEach((toggle) => {
+    toggle.textContent = soundEnabled ? "🎵 เพลง" : "🔇 ปิดเพลง";
+    toggle.setAttribute("aria-pressed", `${!soundEnabled}`);
+    toggle.setAttribute("aria-label", soundEnabled ? "ปิดเพลง" : "เปิดเพลง");
   });
+  if (soundEnabled && !startScreen.hidden) syncLobbyMusic(true);
+  if (soundEnabled && !gameScreen.hidden) syncGameMusic(true);
 }
 
-playButton.addEventListener("click", startSoloGame);
-multiplayerButton.addEventListener("click", setupMultiplayer);
-mobileInteractButton.addEventListener("click", interact);
-directionButtons.forEach((button) => {
-  button.addEventListener("pointerdown", pressTouchDirection);
-  button.addEventListener("pointerup", (event) => { event.preventDefault(); releaseTouchDirection(button); });
-  button.addEventListener("pointercancel", () => releaseTouchDirection(button));
-  button.addEventListener("lostpointercapture", () => releaseTouchDirection(button));
-});
-backButton.addEventListener("click", () => showScreen(startScreen));
-createRoomButton.addEventListener("click", () => requestRoom("create-room", { name: playerNameInput.value }));
-joinRoomButton.addEventListener("click", () => requestRoom("join-room", { name: playerNameInput.value, roomCode: roomCodeInput.value }));
-readyButton.addEventListener("click", () => socket?.emit("toggle-ready"));
-startRoundButton.addEventListener("click", () => socket?.emit("start-round"));
-leaveRoomButton.addEventListener("click", () => { socket?.emit("leave-room"); stopMultiplayerAnimation(); clearRemotePlayers(); roomState = null; gameRunning = false; showScreen(startScreen); });
-resultsButton.addEventListener("click", () => { socket?.emit("leave-room"); stopMultiplayerAnimation(); clearRemotePlayers(); roomState = null; gameRunning = false; showScreen(startScreen); });
-playAgainButton.addEventListener("click", () => {
+function getFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function updateFullscreenButton() {
+  const active = Boolean(getFullscreenElement()) || fullscreenFallback;
+  fullscreenButton.textContent = active ? "ออกจากเต็มจอ" : "เต็มจอ";
+  fullscreenButton.setAttribute("aria-label", active ? "ออกจากโหมดเต็มจอ" : "เข้าโหมดเต็มจอ");
+  fullscreenButton.setAttribute("aria-pressed", `${active}`);
+}
+
+function clearFullscreenPresentation() {
+  fullscreenFallback = false;
+  gameScreen.classList.remove("fullscreen-fallback");
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+  updateFullscreenButton();
+}
+
+async function toggleFullscreen() {
+  if (getFullscreenElement() || fullscreenFallback) {
+    clearFullscreenPresentation();
+    return;
+  }
+  try {
+    if (gameScreen.requestFullscreen) await gameScreen.requestFullscreen({ navigationUI: "hide" });
+    else if (gameScreen.webkitRequestFullscreen) await gameScreen.webkitRequestFullscreen();
+    else throw new Error("unsupported");
+    screen.orientation?.lock?.("landscape").catch(() => {});
+  } catch (error) {
+    fullscreenFallback = true;
+    gameScreen.classList.add("fullscreen-fallback");
+    setMessage("เบราว์เซอร์ไม่รองรับเต็มจอ จึงใช้มุมมองแบบขยายแทน");
+  }
+  updateFullscreenButton();
+}
+
+function showScreen(screen) {
+  [startScreen, multiplayerScreen, gameScreen, resultsScreen].forEach((item) => { item.hidden = item !== screen; });
+  if (screen !== gameScreen) clearFullscreenPresentation();
+  if (screen !== gameScreen) riceChoices.replaceChildren();
+  syncLobbyMusic(screen === startScreen);
+  syncGameMusic(screen === gameScreen);
+}
+
+function renderLocalSetup() {
+  const keyboardPlayers = activeKeyboardConfigs();
+  const connectedPhones = phoneControllers.filter((item) => item.connected);
+  const total = keyboardPlayers.length + connectedPhones.length;
+  localPlayerCount.textContent = `${total}/${maxPlayers}`;
+  startLocalButton.disabled = total < 2 || total > maxPlayers;
+  localPlayerList.replaceChildren();
+  [...keyboardPlayers, ...connectedPhones.map((item) => ({ ...item, source: "phone" }))].forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = "player-row";
+    const name = document.createElement("span");
+    name.className = "player-row-name";
+    const dot = document.createElement("span");
+    dot.className = "player-dot";
+    dot.style.background = playerColors[index];
+    name.append(dot, document.createTextNode(item.name));
+    const source = document.createElement("strong");
+    source.className = "player-source";
+    source.textContent = item.source === "phone" ? "โทรศัพท์" : item.source === "keyboard2" ? "ลูกศร + Enter" : "WASD + E";
+    row.append(name, source);
+    localPlayerList.append(row);
+  });
+  if (!total) {
+    const empty = document.createElement("p");
+    empty.className = "order-empty";
+    empty.textContent = "ยังไม่มีผู้เล่น";
+    localPlayerList.append(empty);
+  }
+  if (total > maxPlayers) setupMessage.textContent = "มีผู้เล่นเกิน 5 คน โปรดปิดช่องคีย์บอร์ดหรือตัดการเชื่อมต่อโทรศัพท์";
+  connectedPhones.forEach((controller, phoneIndex) => {
+    relaySocket?.emit("local-host:controller-state", {
+      playerId: controller.id,
+      state: { phase: "lobby", name: controller.name, color: playerColors[keyboardPlayers.length + phoneIndex] }
+    });
+  });
+  relaySocket?.emit("local-host:capacity", { maxControllers: Math.max(0, maxPlayers - keyboardPlayers.length) });
+}
+
+function setupLocalGame() {
+  mode = "local";
+  setupMessage.textContent = "เลือกผู้เล่นอย่างน้อย 2 คนแล้วเริ่มเกมได้ทันที";
+  renderLocalSetup();
+  showScreen(multiplayerScreen);
+}
+
+function loadRelayClient() {
+  if (typeof window.io === "function") return Promise.resolve(window.io);
+  if (relayLoader) return relayLoader;
+  if (location.protocol === "file:") return Promise.reject(new Error("ต้องเปิดผ่าน local server เพื่อเชื่อมโทรศัพท์"));
+  relayLoader = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "/socket.io/socket.io.js";
+    script.onload = () => typeof window.io === "function" ? resolve(window.io) : reject(new Error("ไม่พบ Socket.IO"));
+    script.onerror = () => reject(new Error("ไม่พบ local controller server"));
+    document.head.append(script);
+  });
+  return relayLoader;
+}
+
+function socketAck(event, payload) {
+  return new Promise((resolve) => relaySocket.emit(event, payload, resolve));
+}
+
+function applyPhoneRoster(roster) {
+  phoneControllers = roster;
+  if (gameRunning && mode === "local") {
+    const rosterById = new Map(roster.map((item) => [item.id, item]));
+    players.filter((player) => player.source === "phone").forEach((player) => {
+      const controller = rosterById.get(player.id);
+      if (!controller) {
+        player.elements.group.remove();
+        players = players.filter((item) => item !== player);
+      } else {
+        player.connected = controller.connected;
+        player.input = controller.connected ? player.input : { left: false, right: false, up: false, down: false };
+        player.elements.group.setAttribute("opacity", controller.connected ? "1" : ".45");
+      }
+    });
+    renderRiceChoices();
+  }
+  renderLocalSetup();
+}
+
+function renderJoinOption() {
+  const option = joinOptions[Number(lanAddress.value) || 0];
+  if (!option) return;
+  controllerQr.src = option.qrDataUrl;
+  controllerUrl.href = option.url;
+  controllerUrl.textContent = option.url;
+}
+
+async function connectPhoneRelay() {
+  connectPhonesButton.disabled = true;
+  setupMessage.textContent = "กำลังเปิดห้องสำหรับโทรศัพท์...";
+  try {
+    const ioFactory = await loadRelayClient();
+    if (!relaySocket) {
+      relaySocket = ioFactory({ timeout: 4000 });
+      await new Promise((resolve, reject) => {
+        if (relaySocket.connected) return resolve();
+        relaySocket.once("connect", resolve);
+        relaySocket.once("connect_error", reject);
+      });
+      relaySocket.on("local-host:roster", applyPhoneRoster);
+      relaySocket.on("local-host:input", ({ playerId, input }) => {
+        const player = players.find((item) => item.id === playerId && item.source === "phone");
+        if (player) player.input = input;
+      });
+      relaySocket.on("local-host:action", ({ playerId, action }) => {
+        const player = players.find((item) => item.id === playerId && item.source === "phone");
+        if (!player) return;
+        if (action === "interact") interactPlayer(player);
+        else if (action === "rice-steamed") chooseRice(player, "steamed");
+        else if (action === "rice-sticky") chooseRice(player, "sticky");
+        else if (action === "rice-cancel") cancelRiceChoice(player);
+      });
+      relaySocket.on("disconnect", () => {
+        phoneControllers = phoneControllers.map((item) => ({ ...item, connected: false }));
+        setupMessage.textContent = "การเชื่อมต่อ local server ขาดหาย ผู้เล่นคีย์บอร์ดยังเล่นต่อได้";
+        applyPhoneRoster(phoneControllers);
+      });
+    }
+    const result = await socketAck("local-host:create", {});
+    if (result?.error) throw new Error(result.error);
+    localSession = result.sessionCode;
+    joinOptions = result.joinOptions || [];
+    lanAddress.replaceChildren(...joinOptions.map((option, index) => {
+      const element = document.createElement("option");
+      element.value = `${index}`;
+      element.textContent = option.url;
+      return element;
+    }));
+    localSessionCode.textContent = localSession;
+    phoneJoinPanel.hidden = false;
+    renderJoinOption();
+    renderLocalSetup();
+    setupMessage.textContent = "ให้โทรศัพท์สแกน QR แล้วใส่ชื่อเพื่อเข้าร่วม";
+  } catch (error) {
+    setupMessage.textContent = `${error.message} — ใช้คีย์บอร์ดสองคนได้โดยไม่ต้องเปิด server`;
+  } finally {
+    connectPhonesButton.disabled = false;
+  }
+}
+
+function closeLocalSession() {
+  if (relaySocket && localSession) relaySocket.emit("local-host:close");
+  localSession = null;
+  phoneControllers = [];
+  joinOptions = [];
+  phoneJoinPanel.hidden = true;
+}
+
+function exitGame() {
+  stopRoundActivity();
+  if (mode === "local") closeLocalSession();
+  clearPlayers();
+  showScreen(startScreen);
+}
+
+function replayGame() {
   if (mode === "solo") {
     startSoloGame();
     return;
   }
-  socket?.emit("play-again");
-});
-fullscreenButton.addEventListener("click", toggleFullscreen);
-riceOptionButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const rice = button.dataset.rice;
-    if (mode === "multiplayer") {
-      socket?.emit("select-rice", { rice });
-    } else if (mode === "solo" && gameRunning && !inventory) {
-      const ingredientId = rice === "steamed" ? "steamedRice" : "stickyRice";
-      if (assemblyPlate) assemblyPlate = cookingData.appendIngredient(assemblyPlate, ingredientId);
-      else inventory = cookingData.createIngredient(ingredientId);
-      updateHeldItem();
-      const action = assemblyPlate ? "ใส่ลงจานแล้ว" : "หยิบแล้ว";
-      setMessage(`${rice === "steamed" ? "ข้าวสวย" : "ข้าวเหนียว"}${action}`);
-    }
-    riceChooser.hidden = true;
+  stopRoundActivity();
+  clearPlayers();
+  relaySocket?.emit("local-host:phase", { phase: "lobby" });
+  setupMessage.textContent = "ทีมเดิมพร้อมแล้ว ปรับผู้เล่นหรือเริ่มรอบใหม่ได้เลย";
+  renderLocalSetup();
+  showScreen(multiplayerScreen);
+}
+
+function releaseTouchDirection(button) {
+  keys.delete(`touch-${button.dataset.direction}`);
+  button.classList.remove("pressed");
+}
+
+function releaseAllInputs() {
+  keys.clear();
+  directionButtons.forEach((button) => button.classList.remove("pressed"));
+}
+
+function playerForControlKey(key) {
+  if (mode === "solo") return key === "e" ? players[0] : null;
+  return players.find((player) => player.source.startsWith("keyboard") && keyboardControls[player.source].interact === key);
+}
+
+function handleRiceNavigation(key) {
+  const player = players.find((item) => {
+    if (!item.riceChoice || !item.source.startsWith("keyboard")) return false;
+    const controls = keyboardControls[item.source];
+    return key === controls.left || key === controls.right;
   });
-});
-closeRiceChooserButton.addEventListener("click", () => { riceChooser.hidden = true; });
-leaveRoomButton.addEventListener("click", () => { socket?.emit("leave-room"); roomState = null; showScreen(startScreen); });
-resultsButton.addEventListener("click", () => { socket?.emit("leave-room"); roomState = null; showScreen(startScreen); });
-soundToggles.forEach((soundToggle) => {
-  soundToggle.addEventListener("click", () => {
-    soundEnabled = !soundEnabled;
-    updateSound();
-  });
-});
+  if (!player) return false;
+  player.riceChoice.selected = player.riceChoice.selected === "steamed" ? "sticky" : "steamed";
+  renderRiceChoices();
+  return true;
+}
+
+function blockGamePageCopy(event) {
+  if (gameScreen.contains(event.target)) event.preventDefault();
+}
+
+playButton.addEventListener("click", startSoloGame);
+multiplayerButton.addEventListener("click", setupLocalGame);
+startLocalButton.addEventListener("click", startLocalGame);
+connectPhonesButton.addEventListener("click", connectPhoneRelay);
+backButton.addEventListener("click", () => { closeLocalSession(); showScreen(startScreen); });
+playAgainButton.addEventListener("click", replayGame);
+resultsButton.addEventListener("click", exitGame);
 exitGameButton.addEventListener("click", exitGame);
+fullscreenButton.addEventListener("click", toggleFullscreen);
+lanAddress.addEventListener("change", renderJoinOption);
+[keyboard1Enabled, keyboard2Enabled].forEach((input) => input.addEventListener("change", renderLocalSetup));
+[keyboard1Name, keyboard2Name].forEach((input) => input.addEventListener("input", renderLocalSetup));
+mobileInteractButton.addEventListener("click", () => interactPlayer(players[0]));
+directionButtons.forEach((button) => {
+  button.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    keys.add(`touch-${button.dataset.direction}`);
+    button.classList.add("pressed");
+    try { button.setPointerCapture?.(event.pointerId); } catch (error) { /* Synthetic or cancelled pointers have no active capture. */ }
+  });
+  button.addEventListener("pointerup", (event) => { event.preventDefault(); releaseTouchDirection(button); });
+  button.addEventListener("pointercancel", () => releaseTouchDirection(button));
+  button.addEventListener("lostpointercapture", () => releaseTouchDirection(button));
+});
+soundToggles.forEach((toggle) => toggle.addEventListener("click", () => { soundEnabled = !soundEnabled; updateSound(); }));
 
 window.addEventListener("pointerdown", () => {
   if (!startScreen.hidden) syncLobbyMusic(true);
   if (!gameScreen.hidden) syncGameMusic(true);
 });
-
 window.addEventListener("keydown", (event) => {
   if (!startScreen.hidden) syncLobbyMusic(true);
   if (!gameScreen.hidden) syncGameMusic(true);
   const key = event.key.toLowerCase();
-  if (!riceChooser.hidden) {
-    if (key === "escape") riceChooser.hidden = true;
-    if (["arrowleft", "arrowright", "arrowup", "arrowdown", "w", "a", "s", "d", "e", " "].includes(key)) event.preventDefault();
+  if (["arrowleft", "arrowright", "arrowup", "arrowdown", " ", "enter"].includes(key) && !gameScreen.hidden) event.preventDefault();
+  if (!gameRunning) return;
+  if (key === "escape") {
+    players.filter((player) => player.riceChoice).forEach(cancelRiceChoice);
     return;
   }
-  if (["arrowleft", "arrowright", "arrowup", "arrowdown", " "].includes(key)) event.preventDefault();
-  if (key === "e") {
-    interact();
+  if (handleRiceNavigation(key)) return;
+  const player = playerForControlKey(key);
+  if (player && !event.repeat) {
+    interactPlayer(player);
+    return;
   }
   keys.add(key);
-  updateMultiplayerInput();
-  sendInput();
 });
-
-window.addEventListener("keyup", (event) => {
-  keys.delete(event.key.toLowerCase());
-  updateMultiplayerInput();
-  sendInput();
-});
-
-window.addEventListener("blur", releaseAllTouchDirections);
+window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+window.addEventListener("blur", releaseAllInputs);
 window.addEventListener("copy", blockGamePageCopy);
 window.addEventListener("cut", blockGamePageCopy);
 window.addEventListener("contextmenu", blockGamePageCopy);
-
-if (socket) {
-  socket.on("room-state", renderMultiplayerState);
-  socket.on("choose-rice", () => { riceChooser.hidden = false; });
-  socket.on("game-message", (text) => { setMessage(text); lobbyMessage.textContent = text; setupMessage.textContent = text; });
-  socket.on("disconnect", () => { if (mode === "multiplayer") { gameRunning = false; stopMultiplayerAnimation(); clearRemotePlayers(); setupMessage.textContent = "ขาดการเชื่อมต่อกับเซิร์ฟเวอร์ครัว"; showScreen(multiplayerScreen); } });
-}
-
 document.addEventListener("fullscreenchange", updateFullscreenButton);
 document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
 
+renderLocalSetup();
 showScreen(startScreen);

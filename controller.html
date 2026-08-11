@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Oodd Oodd Controller</title>
+    <link rel="stylesheet" href="controller.css" />
+  </head>
+  <body>
+    <main class="controller-shell">
+      <section id="join-view" class="controller-card">
+        <p class="eyebrow">OODD OODD CONTROLLER</p>
+        <h1>เข้าร่วมครัว</h1>
+        <label for="session-code">รหัสห้อง</label>
+        <input id="session-code" maxlength="5" autocomplete="off" />
+        <label for="controller-name">ชื่อผู้เล่น</label>
+        <input id="controller-name" maxlength="18" autocomplete="off" placeholder="ชื่อของคุณ" />
+        <button id="join-button" type="button">เข้าร่วม</button>
+        <p id="join-message" class="status" aria-live="polite"></p>
+      </section>
+
+      <section id="controls-view" class="controls-view" hidden>
+        <header>
+          <span id="player-color" class="player-color"></span>
+          <div><strong id="player-name"></strong><small id="phase-label">กำลังรอเจ้าบ้านเริ่มเกม</small></div>
+        </header>
+        <p id="controller-message" class="status" aria-live="polite">เชื่อมต่อแล้ว มองจอคอมเพื่อเล่น</p>
+        <div id="rice-controller" class="rice-controller" hidden>
+          <strong>เลือกข้าว</strong>
+          <div>
+            <button type="button" data-action="rice-steamed">ข้าวสวย</button>
+            <button type="button" data-action="rice-sticky">ข้าวเหนียว</button>
+          </div>
+          <button class="cancel-button" type="button" data-action="rice-cancel">ยกเลิก</button>
+        </div>
+        <div id="game-controls" class="game-controls">
+          <div class="phone-dpad" aria-label="ปุ่มเดิน">
+            <button class="direction-up" type="button" data-direction="up" aria-label="ขึ้น">▲</button>
+            <button class="direction-left" type="button" data-direction="left" aria-label="ซ้าย">◀</button>
+            <button class="direction-down" type="button" data-direction="down" aria-label="ลง">▼</button>
+            <button class="direction-right" type="button" data-direction="right" aria-label="ขวา">▶</button>
+          </div>
+          <button id="interact-button" class="interact-button" type="button">โต้ตอบ</button>
+        </div>
+      </section>
+    </main>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="controller.js"></script>
+  </body>
+</html>

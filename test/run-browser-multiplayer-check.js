@@ -20,7 +20,7 @@ class CdpClient {
         if (message.error) callback?.reject(new Error(message.error.message));
         else callback?.resolve(message.result);
       } else if (message.method === "Runtime.exceptionThrown") {
-        this.exceptions.push(message.params.exceptionDetails.text);
+        this.exceptions.push(message.params.exceptionDetails.exception?.description || message.params.exceptionDetails.text);
       }
     });
   }
@@ -39,7 +39,7 @@ class CdpClient {
     return result.result.value;
   }
 
-  async waitFor(expression, timeout = 5000) {
+  async waitFor(expression, timeout = 6000) {
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
       if (await this.evaluate(expression)) return;
@@ -49,56 +49,88 @@ class CdpClient {
   }
 }
 
-async function newPage() {
-  const target = await fetch("http://127.0.0.1:9223/json/new?http://127.0.0.1:3210", { method: "PUT" }).then((response) => response.json());
+async function newPage(url, readyExpression) {
+  const target = await fetch(`http://127.0.0.1:9223/json/new?${encodeURIComponent(url)}`, { method: "PUT" }).then((response) => response.json());
   const page = new CdpClient(target.webSocketDebuggerUrl);
   await page.send("Runtime.enable");
   await page.send("Page.enable");
-  await page.waitFor("document.readyState === 'complete' && Boolean(window.CookingData)");
+  await page.waitFor(readyExpression);
   return page;
 }
 
 async function main() {
-  const host = await newPage();
-  const guest = await newPage();
-  await host.evaluate(`multiplayerButton.click(); playerNameInput.value = "Browser Host"; createRoomButton.click()`);
-  await host.waitFor("!lobbyScreen.hidden && roomCodeLabel.textContent.length === 5");
-  const roomCode = await host.evaluate("roomCodeLabel.textContent");
-  await guest.evaluate(`multiplayerButton.click(); playerNameInput.value = "Browser Guest"; roomCodeInput.value = ${JSON.stringify(roomCode)}; joinRoomButton.click()`);
+  const host = await newPage("http://127.0.0.1:3210", "document.readyState === 'complete' && Boolean(window.CookingData)");
+  await host.evaluate("multiplayerButton.click()");
+  assert.deepEqual(await host.evaluate("({ count: localPlayerCount.textContent, rows: localPlayerList.children.length, startDisabled: startLocalButton.disabled })"), {
+    count: "2/5", rows: 2, startDisabled: false
+  });
+  await host.evaluate("startLocalButton.click(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
+  assert.equal(await host.evaluate("players.length"), 2);
+  assert.deepEqual(await host.evaluate("players.map((player) => player.source)"), ["keyboard1", "keyboard2"]);
+  const before = await host.evaluate("players.map((player) => player.x)");
+  await host.evaluate(`(() => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "d" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft" }));
+  })()`);
+  await sleep(350);
+  await host.evaluate(`(() => {
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: "d" }));
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: "ArrowLeft" }));
+  })()`);
+  const after = await host.evaluate("players.map((player) => player.x)");
+  assert.ok(after[0] > before[0], "keyboard player one moved right");
+  assert.ok(after[1] < before[1], "keyboard player two moved left simultaneously");
+  assert.deepEqual(await host.evaluate(`(() => {
+    const target = objects.find((item) => item.name === "meat");
+    players[0].x = target.x; players[0].y = target.y; interactPlayer(players[0]);
+    return players.map((player) => player.inventory?.ingredientId || null);
+  })()`), ["meat", null], "players keep independent inventories");
+  await host.evaluate(`(() => {
+    exitGame(); setupLocalGame();
+    phoneControllers = [1, 2, 3].map((id) => ({ id: "fake-" + id, name: "มือถือ " + id, connected: true }));
+    renderLocalSetup(); startLocalGame(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId);
+  })()`);
+  assert.equal(await host.evaluate("players.length"), 5, "two keyboards and three phones fill all five local slots");
+  await host.evaluate("exitGameButton.click(); multiplayerButton.click(); keyboard2Enabled.click(); connectPhonesButton.click()");
+  await host.waitFor("Boolean(localSession) && joinOptions.length > 0");
+  const sessionCode = await host.evaluate("localSession");
+
+  const phone = await newPage(`http://127.0.0.1:3210/controller.html?session=${sessionCode}`, "document.readyState === 'complete' && typeof socket !== 'undefined'");
+  await phone.evaluate(`controllerNameInput.value = "มือถือ"; joinButton.click()`);
   await Promise.all([
-    host.waitFor("roomState?.players.length === 2"),
-    guest.waitFor("roomState?.players.length === 2")
+    host.waitFor("phoneControllers.filter((item) => item.connected).length === 1"),
+    phone.waitFor("!controlsView.hidden")
   ]);
-  assert.equal(await host.evaluate("playerList.children.length"), 2);
-  assert.equal(await guest.evaluate("playerList.children.length"), 2);
-  await host.evaluate("readyButton.click()");
-  await guest.evaluate("readyButton.click()");
-  await host.waitFor("roomState.players.every((player) => player.ready)");
-  assert.equal(await host.evaluate("startRoundButton.hidden"), false);
-  assert.equal(await guest.evaluate("startRoundButton.hidden"), true);
-  await host.evaluate("startRoundButton.click()");
+  assert.equal(await host.evaluate("localPlayerCount.textContent"), "2/5");
+  await host.evaluate("startLocalButton.click(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
+  assert.deepEqual(await host.evaluate("players.map((player) => player.source)"), ["keyboard1", "phone"]);
+  await phone.waitFor("latestState.phase === 'playing' && !gameControls.hidden");
+  await host.send("Page.bringToFront");
+  const phoneStartX = await host.evaluate("players.find((player) => player.source === 'phone').x");
+  await phone.evaluate("document.querySelector('[data-direction=right]').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 2 }))");
+  await host.waitFor("players.find((player) => player.source === 'phone').input.right === true");
+  await sleep(400);
+  await phone.evaluate("document.querySelector('[data-direction=right]').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 2 }))");
+  await sleep(150);
+  assert.ok(await host.evaluate("players.find((player) => player.source === 'phone').x") > phoneStartX, "phone controller moved its player");
+
+  await host.evaluate(`(() => {
+    const phonePlayer = players.find((player) => player.source === "phone");
+    const rice = objects.find((item) => item.name === "rice");
+    phonePlayer.x = rice.x; phonePlayer.y = rice.y; phonePlayer.inventory = null; phonePlayer.plate = null; setPlayerPosition(phonePlayer);
+  })()`);
+  await phone.evaluate("interactButton.click()");
   await Promise.all([
-    host.waitFor("!gameScreen.hidden && gameRunning"),
-    guest.waitFor("!gameScreen.hidden && gameRunning")
+    host.waitFor("players.find((player) => player.source === 'phone').riceChoice !== null"),
+    phone.waitFor("!riceController.hidden")
   ]);
-  assert.deepEqual(await host.evaluate("({ secondsLeft, timer: timerElement.textContent })"), { secondsLeft: 120, timer: "120" }, "multiplayer rounds start at two minutes");
-  await sleep(300);
-  assert.equal(await host.evaluate("otherPlayers.children.length"), 1);
-  assert.equal(await guest.evaluate("otherPlayers.children.length"), 1);
-  const before = await guest.evaluate("otherPlayers.firstElementChild.getAttribute('transform')");
-  await host.evaluate("window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }))");
-  await sleep(500);
-  await host.evaluate("window.dispatchEvent(new KeyboardEvent('keyup', { key: 'd' }))");
-  await sleep(500);
-  const after = await guest.evaluate("otherPlayers.firstElementChild.getAttribute('transform')");
-  assert.notEqual(after, before, "remote player position changed in the other browser tab");
+  await phone.evaluate("document.querySelector('[data-action=rice-sticky]').click()");
+  await host.waitFor("players.find((player) => player.source === 'phone').inventory?.ingredientId === 'stickyRice'");
   await host.evaluate("exitGameButton.click()");
-  await guest.waitFor("roomState.players.length === 1 && roomState.hostId === selfId");
-  assert.equal(await guest.evaluate("otherPlayers.children.length"), 0);
-  await guest.evaluate("exitGameButton.click()");
+  await phone.waitFor("!joinView.hidden");
   assert.deepEqual(host.exceptions, []);
-  assert.deepEqual(guest.exceptions, []);
-  console.log("browser multiplayer check passed", { roomCode, remoteMovementSynced: true, hostTransferred: true });
+  assert.deepEqual(phone.exceptions, []);
+  console.log("browser local co-op check passed", { sessionCode, keyboardPlayers: 2, phoneController: true });
   process.exit(0);
 }
 
