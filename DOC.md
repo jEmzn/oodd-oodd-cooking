@@ -384,3 +384,19 @@ Native fullscreen และ fallback fullscreen ใช้สัดส่วน�
 held bubble อยู่เหนือขอบบนของ sprite ด้วยระยะปกติ 6 world units ส่วน action badge และ status badge เรียงต่อขึ้นไปด้วยระยะเดียวกันและไม่ชนกันในพื้นที่ปกติ การเรียงลำดับ SVG วาง sprite ก่อน held item เพื่อให้รูปของถือแสดงทับฉากตัวละครอย่างชัดเจน ตำแหน่ง overlay ถูกอัปเดตเมื่อสร้างผู้เล่น เปลี่ยนเฟรม/ทิศทาง เปลี่ยน recovery sprite และเคลื่อนผู้เล่น เมื่อผู้เล่นอยู่ใกล้ขอบบนของ `viewBox` ระบบจะลดระยะห่างของ stack ลงเท่าที่จำเป็นเพื่อให้ overlay ยังอยู่ในฉาก โดยไม่ย้ายไปด้านข้างหรือซ่อนรูป
 
 เพิ่ม browser regression สำหรับตัวละครทั้งห้าตัวในทิศทางหลักและ recovery frames ตรวจระยะห่างของ held/action/status, การแสดง held image, ลำดับ sprite กับ held, foot anchor, ตำแหน่ง gameplay และการ clamp ที่ขอบบนแล้ว ผล validation ล่าสุด: `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo` และ `npm run test:browser:local` ผ่านแล้ว การตรวจด้วยตาบนเครื่องจริง โดยเฉพาะ Grilled Pork, Boar, recovery state และโทรศัพท์จริงยังควรทำเพิ่มเติม
+
+## Kitchen PNG Artwork and Layout
+
+ฉากครัวใช้ asset จาก `image/kitchen/` ตามภาพอ้างอิง `การจัดวาง.png` แทน station SVG เดิม โดยแยกชั้นตกแต่งออกจากชั้น hitbox โปร่งใส: `เคาเตอร์.png` เป็นแนวเคาน์เตอร์, `เตา.png` เป็นฐานเตา 4 จุด, `เขียง.png` และ `กอก.png` อยู่กลางแถวบน, กล่องวัตถุดิบ 6 ชนิดอยู่แถวล่าง, `เตาย่าง.png` อยู่เหนือ `ขยะ.png` ทางขวา และ `แคชเชียร์.png` เป็นจุดเสิร์ฟด้านล่าง ภาพตกแต่งใช้ `pointer-events: none` ส่วน station เดิมยังคง ID `pan-1`, `pan-2`, `pot-1`, `pot-2`, `grill`, วัตถุดิบ, `trash` และ `serve` ผ่าน hitbox ที่มี `data-x`/`data-y` ใหม่ จึงไม่ผูก interaction กับขอบภาพโดยตรง
+
+หม้อและกระทะแต่ละจุดเปลี่ยนจาก `หม้อ.png`/`กระทะ.png` เป็น `หม้อสุก.png`/`กระทะสุก.png` ทันทีที่เริ่ม cooking และคงภาพสุกระหว่าง `cooking` กับ `ready` ก่อนคืนภาพปกติเมื่อรับอาหารหรือ reset รอบ สถานีทั้งสี่ทำงานแยกกัน ส่วน grill ใช้ `เตาย่าง.png` ภาพเดียวและยังแสดง progress/READY ผ่าน status UI เดิม Label เดิมถูกซ่อนจากภาพ แต่เก็บ `aria-label` และ `<title>` สำหรับ accessibility
+
+เพิ่ม browser regression สำหรับ asset ครบชุด, กล่องวัตถุดิบไม่ซ้ำ, hitbox แยก, ภาพ idle/cooked ของหม้อและกระทะ และ customer service coordinate ใหม่ Validation ล่าสุดผ่าน `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo` และ `npm run test:browser:local`
+
+## Counter Layout Regression
+
+จัดฉาก SVG ให้มีภาพ `เคาเตอร์.png` เหลือ 8 ชิ้นตามภาพอ้างอิง: แนวตั้งด้านซ้าย 4 ชิ้นและแนวนอนด้านล่าง 4 ชิ้น โดยกรอบ `<image>` ทุกชิ้นอยู่ภายใน `viewBox="0 0 1000 620"` และเรียงต่อกันโดยไม่เกิดช่องว่างหรือการซ้อนผิดปกติ ภาพกล่องข้าวและกล่องจานย้ายไปมุมขวาบน พร้อมย้าย hitbox `rice` และ `plate` ไปที่พิกัดเดียวกันในพื้นที่เกม โดยคง station ID, กติกาการโต้ตอบ, สูตรอาหาร, cooking state, score, timer และ controller protocol เดิม
+
+เพิ่ม browser regression ตรวจจำนวนและแนวการเรียงเคาน์เตอร์, ขอบเขตภาพ, ความครบถ้วนของ station hitbox, ความตรงกันระหว่าง `data-x`/`data-y` กับ transform และตำแหน่งภาพ rice/plate ส่วน regression การเก็บวัตถุดิบ ทำอาหาร รับอาหาร และเสิร์ฟยังใช้ hitbox จาก `data-x`/`data-y` ที่ย้ายแล้ว
+
+Validation: `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo` และ `npm run test:browser:local` ผ่านแล้ว โดย browser regression ตรวจ desktop, 640×360 landscape, portrait warning, Solo/local co-op และ phone controller flow; การตรวจภาพบนอุปกรณ์จริงยังควรทำเพิ่มเติม

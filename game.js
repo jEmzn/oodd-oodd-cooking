@@ -66,6 +66,8 @@ const objects = [...document.querySelectorAll(".object")].map((element) => ({
   x: Number(element.dataset.x),
   y: Number(element.dataset.y)
 }));
+const stationArtElements = new Map([...document.querySelectorAll("[data-station-art]")]
+  .map((element) => [element.dataset.stationArt, element]));
 
 walkingSound.loop = true;
 walkingSound.preload = "auto";
@@ -83,6 +85,12 @@ const stationLabels = {
 };
 const toolLabels = { pot: "หม้อ", pan: "กระทะ", grill: "เตาย่าง" };
 const cookingStationTools = new Map(objects.filter((object) => object.tool).map((object) => [object.name, object.tool]));
+const stationArtwork = {
+  "pan-1": { idle: "image/kitchen/กระทะ.png", active: "image/kitchen/กระทะสุก.png" },
+  "pan-2": { idle: "image/kitchen/กระทะ.png", active: "image/kitchen/กระทะสุก.png" },
+  "pot-1": { idle: "image/kitchen/หม้อ.png", active: "image/kitchen/หม้อสุก.png" },
+  "pot-2": { idle: "image/kitchen/หม้อ.png", active: "image/kitchen/หม้อสุก.png" }
+};
 const standalonePickupItems = { meat: "meat", vegetable: "vegetable", egg: "egg", sauce: "sauce" };
 const menus = cookingData.menus;
 const maxPlayers = 5;
@@ -754,6 +762,18 @@ function getCookingDuration(player) {
   return boosted ? 2000 * player.cookingBoostMultiplier : 2000;
 }
 
+function renderStationArt() {
+  Object.entries(stationArtwork).forEach(([stationId, artwork]) => {
+    const image = stationArtElements.get(stationId);
+    if (!image) return;
+    const station = cookingStations[stationId];
+    const active = station?.phase === "cooking" || station?.phase === "ready";
+    const href = active ? artwork.active : artwork.idle;
+    if (image.getAttribute("href") !== href) image.setAttribute("href", href);
+    image.dataset.phase = station?.phase || "idle";
+  });
+}
+
 function updatePlayerPrompt(player) {
   const nearest = nearestObject(player);
   const close = nearest.object && nearest.distance < interactionDistance;
@@ -818,6 +838,7 @@ function startCooking(player, stationId) {
   station.transformation = transformation;
   station.startedAt = Date.now();
   station.duration = getCookingDuration(player);
+  renderStationArt();
   setPlayerMessage(player, `กำลังปรุงด้วย${stationLabels[stationId]}... ${station.duration / 1000} วินาที`);
   cancelAnimationFrame(cookingAnimationId);
   cookingAnimationId = requestAnimationFrame(animateCookingStatuses);
@@ -826,6 +847,7 @@ function startCooking(player, stationId) {
     if (!gameRunning || current !== station || current.phase !== "cooking") return;
     current.phase = "ready";
     current.output = transformation.output;
+    renderStationArt();
     renderCookingStatuses();
     setMessage(`อาหารที่${stationLabels[stationId]}พร้อมใส่จานแล้ว`);
   }, station.duration);
@@ -929,6 +951,7 @@ function interactPlayer(player) {
       player.plate = nextPlate;
       cookingStations[name] = null;
       renderHeldItem(player);
+      renderStationArt();
       renderCookingStatuses();
       return setPlayerMessage(player, player.plate.dishId ? "ประกอบเมนูสำเร็จแล้ว นำไปเสิร์ฟ" : "ใส่อาหารที่ปรุงแล้วลงจาน");
     }
@@ -939,6 +962,7 @@ function interactPlayer(player) {
       cookingStations[name] = { phase: "staging", inputs };
       player.inventory = null;
       renderHeldItem(player);
+      renderStationArt();
       renderCookingStatuses();
       const ready = Boolean(cookingData.findExactTransformation(tool, inputs));
       return setPlayerMessage(player, ready ? `วัตถุดิบใน${stationLabels[name]}พร้อมแล้ว โต้ตอบอีกครั้งเพื่อเริ่มปรุง` : `ต้องเพิ่มวัตถุดิบใน${stationLabels[name]}ให้ครบสูตร`);
@@ -1092,6 +1116,7 @@ function resetRoundState() {
   customerOrderBonusUntil = 0;
   clearCustomers();
   cookingStations = createEmptyCookingStations();
+  renderStationArt();
   timerElement.textContent = `${secondsLeft}`;
   timerElement.classList.remove("warning");
   createCustomer({ revealOnEntry: true, startY: customerEnterThreshold });

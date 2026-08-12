@@ -182,16 +182,13 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
 .steamed-rice { background: #fff; }
 .sticky-rice { background: #999; }
 .room-label { fill: #c4b19b; font-size: 15px; font-weight: 800; letter-spacing: 4px; }
+.kitchen-art { pointer-events: none; }
+.kitchen-furniture, .station-art, .ingredient-art { pointer-events: none; }
+.station-hitbox { fill: transparent; stroke: transparent; pointer-events: all; }
 .object { cursor: default; outline: none; }
-#game-world [data-object="pan-1"] { transform: matrix(.5, 0, 0, .5, -75, 57.5); }
-#game-world [data-object="pan-2"] { transform: matrix(.5, 0, 0, .5, 35, 57.5); }
-#game-world [data-object="pot-1"] { transform: matrix(.5, 0, 0, .5, 307.5, 57.5); }
-#game-world [data-object="pot-2"] { transform: matrix(.5, 0, 0, .5, 417.5, 57.5); }
-#game-world [data-object="grill"] { transform: matrix(.5, 0, 0, .5, 330, -55); }
-#game-world [data-object="rice"] { transform: matrix(.5, 0, 0, .5, 10, 197.5); }
+.object-label { display: none; }
 .object-shadow { fill: #493a2c; opacity: .12; transform: translateY(9px); }
 .object-label, .object-score { text-anchor: middle; pointer-events: none; }
-.object-label { fill: #493a2c; font-size: 15px; font-weight: 800; letter-spacing: 2px; }
 .object-score { fill: #9b8975; font-size: 13px; }
 .player-shadow { fill: #493a2c; opacity: .2; }
 .player-sprite { pointer-events: none; }
