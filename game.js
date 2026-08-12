@@ -438,10 +438,9 @@ function createPlayerElement(player) {
   const heldImages = svgElement("g");
   held.append(heldCircle, heldImages);
   const shadow = svgElement("circle", { class: "player-shadow", cy: 27, r: 15 });
-  const ring = svgElement("circle", { class: "player-color-ring", cy: 26, r: 22, stroke: player.color });
   const initialSprite = getPlayerSprite(player, "down");
   const sprite = svgElement("image", { class: "player-sprite", href: initialSprite.href, x: -initialSprite.width / 2, y: 30 - initialSprite.height, width: initialSprite.width, height: initialSprite.height, preserveAspectRatio: "xMidYMid meet" });
-  const label = svgElement("text", { class: "local-player-label", y: -48, fill: player.color });
+  const label = svgElement("text", { class: "local-player-label", y: 52, fill: player.color });
   label.textContent = player.name;
   const badge = svgElement("g", { class: "player-action-badge", transform: "translate(0 -80)", opacity: 0 });
   badge.append(svgElement("rect", { x: -29, y: -14, width: 58, height: 26, rx: 13 }));
@@ -452,7 +451,7 @@ function createPlayerElement(player) {
   statusBadge.append(svgElement("rect", { x: -58, y: -13, width: 116, height: 24, rx: 12 }));
   const statusText = svgElement("text", { y: 4 });
   statusBadge.append(statusText);
-  group.append(held, shadow, ring, sprite, label, badge, statusBadge);
+  group.append(held, shadow, sprite, label, badge, statusBadge);
   playerLayer.append(group);
   player.elements = { group, held, heldImages, sprite, label, badge, statusBadge, statusText };
   renderHeldItem(player);

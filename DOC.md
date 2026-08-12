@@ -355,3 +355,9 @@ Native fullscreen และ fallback fullscreen ใช้สัดส่วน�
 สถานีข้าวจะไม่เปิดตัวเลือกเมื่อถือจานว่าง และ `chooseRice()` จะตรวจผลการประกอบก่อนบันทึกลงจาน หากลำดับข้าวไม่ตรงสูตร จานเดิมและวัตถุดิบในมือจะยังอยู่ครบ พร้อมข้อความแนะนำ ผู้เล่นที่ไม่มีจานยังเลือกข้าวดิบเพื่อใส่กระทะข้าวผัดได้เหมือนเดิม ลำดับ valid ของจานสร้างจาก prefix ของ `menu.components` เพื่อให้ข้อมูลสูตรเป็น source of truth เดียว
 
 เพิ่ม unit และ browser regression สำหรับลำดับ components/steps ของทั้งหกเมนู การปฏิเสธข้าวก่อนอาหารปรุง การเติมข้าวหลัง cooked component การรักษาจานเมื่อเติมข้าวผิดสูตร และการทำงานเดิมของข้าวผัดกุ้ง; validation ล่าสุด `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo` และ `npm run test:browser:local` ผ่านแล้ว
+
+## Player Name Placement
+
+ลบวงสี `.player-color-ring` ใต้ตัวละคร local ออก โดยคงเงาตัวละครไว้ และย้ายชื่อผู้เล่นจากเหนือ sprite มาเป็น baseline ใต้เท้าที่ `y=52` ภายในกลุ่มตัวละคร ชื่อยังใช้ `player.color` เพื่อแยกผู้เล่น ขณะที่ held item, action badge, recovery status และ sprite anchor ไม่เปลี่ยน
+
+เพิ่ม browser regression ให้ตรวจว่าไม่สร้างวงสี ชื่อยังแสดงด้วยสีของผู้เล่น และ baseline อยู่ต่ำกว่าขอบล่างของ sprite การตรวจ syntax ผ่านแล้ว; ควรรัน Solo/local browser checks และตรวจด้วยตาในโหมดคีย์บอร์ดกับโทรศัพท์จริงเพิ่มเติม

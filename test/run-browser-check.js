@@ -79,6 +79,26 @@ async function main() {
   assert.deepEqual(await cdp.evaluate("({ game: !gameScreen.hidden, character: players[0].characterId })"), {
     game: true, character: "grilled-pork"
   }, "confirming a character starts solo with that character");
+  assert.deepEqual(await cdp.evaluate(`(() => {
+    const player = players[0];
+    const sprite = player.elements.sprite;
+    const label = player.elements.label;
+    return {
+      ringCount: player.elements.group.querySelectorAll(".player-color-ring").length,
+      labelText: label.textContent,
+      labelColorMatchesPlayer: label.getAttribute("fill") === player.color,
+      labelY: Number(label.getAttribute("y")),
+      spriteBottom: Number(sprite.getAttribute("y")) + Number(sprite.getAttribute("height")),
+      labelBelowSprite: Number(label.getAttribute("y")) > Number(sprite.getAttribute("y")) + Number(sprite.getAttribute("height"))
+    };
+  })()`), {
+    ringCount: 0,
+    labelText: "ผู้เล่น 1",
+    labelColorMatchesPlayer: true,
+    labelY: 52,
+    spriteBottom: 30,
+    labelBelowSprite: true
+  }, "local player name is below the sprite without a color ring");
   await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: false });
   await cdp.send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(150);
