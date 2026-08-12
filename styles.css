@@ -202,6 +202,8 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
 .local-player-label { font-size: 12px; font-weight: 900; text-anchor: middle; paint-order: stroke; stroke: #fffaf2; stroke-width: 4px; stroke-linejoin: round; }
 .player-action-badge rect { fill: #493a2c; opacity: .94; }
 .player-action-badge text { fill: #fffaf2; font-size: 10px; font-weight: 900; text-anchor: middle; }
+.player-status-badge rect { fill: #8d63a8; opacity: .96; }
+.player-status-badge text { fill: #fffaf2; font-size: 10px; font-weight: 900; text-anchor: middle; }
 .remote-player-shadow { fill: #493a2c; opacity: .16; }
 .remote-player-body { fill: #4d8f9d; stroke: #395e66; stroke-width: 4; }
 .remote-player-face { fill: #ffd99d; stroke: #c38a58; stroke-width: 2; }
@@ -253,6 +255,7 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
   .direction-down { grid-column: 2; grid-row: 2; }
   .direction-right { grid-column: 3; grid-row: 2; }
   .interact-button { min-width: 88px; min-height: 58px; border-radius: 999px; color: #493a2c; background: #e4a94f; box-shadow: 0 4px 0 #b87c2b; text-transform: uppercase; }
+  .skill-control-button { min-width: 76px; min-height: 48px; border-radius: 999px; color: #fffaf2; background: #8d63a8; box-shadow: 0 4px 0 #604477; }
   .game-shell { touch-action: none; }
 }
 

@@ -11,6 +11,7 @@ const controllerMessage = document.querySelector("#controller-message");
 const riceController = document.querySelector("#rice-controller");
 const gameControls = document.querySelector("#game-controls");
 const interactButton = document.querySelector("#interact-button");
+const skillButton = document.querySelector("#skill-button");
 const directionButtons = [...document.querySelectorAll("[data-direction]")];
 const actionButtons = [...document.querySelectorAll("[data-action]")];
 const socket = io();
@@ -46,6 +47,12 @@ function renderState(state = {}) {
   phaseLabel.textContent = labels[latestState.phase] || labels.lobby;
   riceController.hidden = !latestState.canChooseRice;
   gameControls.hidden = latestState.phase !== "playing" || latestState.canChooseRice;
+  skillButton.disabled = latestState.phase !== "playing" || latestState.recovering || latestState.canUseSkill === false;
+  skillButton.textContent = latestState.recovering
+    ? `พักฟื้น ${latestState.recoveryRemaining || 0}`
+    : latestState.skillCooldownRemaining > 0
+      ? `สกิล ${latestState.skillCooldownRemaining}`
+      : "สกิล";
   if (latestState.phase !== "playing") releaseDirections();
 }
 

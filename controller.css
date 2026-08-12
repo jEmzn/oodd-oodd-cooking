@@ -20,15 +20,17 @@ input:focus { border-color: #ba6849; }
 .player-color { width: 22px; height: 22px; border-radius: 50%; background: #ba6849; }
 .game-controls { display: flex; align-items: flex-end; justify-content: space-between; flex: 1; gap: 20px; padding-top: 12px; }
 .phone-dpad { display: grid; grid-template-columns: repeat(3, min(20vw, 78px)); grid-template-rows: repeat(2, min(20vw, 78px)); gap: 8px; }
-.phone-dpad button, .interact-button { border: 3px solid #fffaf2; border-radius: 18px; color: #fffaf2; background: #493a2c; box-shadow: 0 6px 0 #2f241c; font-size: 1.4rem; font-weight: 900; }
-.phone-dpad button.pressed, .phone-dpad button:active, .interact-button:active { transform: translateY(4px); box-shadow: 0 2px 0 #2f241c; background: #ba6849; }
+.phone-dpad button, .interact-button, .skill-button { border: 3px solid #fffaf2; border-radius: 18px; color: #fffaf2; background: #493a2c; box-shadow: 0 6px 0 #2f241c; font-size: 1.4rem; font-weight: 900; }
+.phone-dpad button.pressed, .phone-dpad button:active, .interact-button:active, .skill-button:active { transform: translateY(4px); box-shadow: 0 2px 0 #2f241c; background: #ba6849; }
 .direction-up { grid-column: 2; grid-row: 1; }
 .direction-left { grid-column: 1; grid-row: 2; }
 .direction-down { grid-column: 2; grid-row: 2; }
 .direction-right { grid-column: 3; grid-row: 2; }
 .interact-button { width: min(30vw, 132px); height: min(30vw, 132px); border-radius: 50%; color: #493a2c; background: #e4a94f; box-shadow: 0 6px 0 #b87c2b; font-size: 1rem; }
+.skill-button { width: min(24vw, 108px); height: 62px; border-radius: 18px; color: #fffaf2; background: #8d63a8; box-shadow: 0 6px 0 #604477; font-size: 1rem; }
+.skill-button:disabled { cursor: not-allowed; opacity: .55; }
 .rice-controller { margin-top: 12px; padding: 14px; border: 3px solid #ba6849; border-radius: 16px; background: #fffdf9; text-align: center; }
 .rice-controller div { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .rice-controller button { margin-top: 10px; }
 .rice-controller .cancel-button { color: #493a2c; background: #eadfce; }
-@media (orientation: portrait) { .controls-view { height: calc(100dvh - 36px); } .game-controls { align-items: center; flex-direction: column-reverse; justify-content: space-evenly; } .interact-button { width: 112px; height: 112px; } }
+@media (orientation: portrait) { .controls-view { height: calc(100dvh - 36px); } .game-controls { align-items: center; flex-direction: column-reverse; justify-content: space-evenly; } .interact-button { width: 112px; height: 112px; } .skill-button { width: 112px; height: 58px; } }
