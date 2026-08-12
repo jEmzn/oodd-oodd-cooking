@@ -13,7 +13,7 @@ Oodd Oodd Cooking is a browser cooking game built with HTML, CSS, JavaScript, in
 - `controller.html`, `controller.css`, and `controller.js` provide the phone-as-controller interface.
 - `server/server.js` serves the frontend and relays phone input through Socket.IO on the local network without owning game state.
 - `server/package.json` defines the Node.js server dependencies and start commands.
-- `image/charecter/` contains the five character portraits, two customer portraits, `animation/animation_walk/` contains directional walking frames, `animation/animation_skill/` contains skill artwork, and `image/food/` contains food/station artwork.
+- `image/charecter/` contains the five character portraits and two customer portraits, `animation/animation_walk/` contains directional walking frames, `animation/animation_cooldownskill/` contains character detail and recovery artwork, and `image/food/` contains food/station artwork.
 - `test/` contains shared-recipe, headless-browser, and multi-client Socket.IO integration checks.
 - `AGENTS.md` contains contributor guidance for this repository.
 - `DOC.md` is this project summary.
@@ -29,6 +29,7 @@ After 120 seconds, the game stops, clears its timers and animation loop, waits b
 - Move with `WASD` or the arrow keys.
 - Walk close to a raw ingredient, rice, plate, cooking, trash, or serve station.
 - Press `E` to interact with the nearest object.
+- Press `Q` for the keyboard 1 character skill; keyboard 2 uses `\\` (the key above Enter). Touch and phone players use the on-screen `สกิล` button.
 - Carry raw ingredients to a compatible station, deposit each ingredient, then press `E` empty-handed to cook.
 - Use a plate only to collect cooked components, combine the completed menu, and serve it.
 - Each successfully served order increases the shared team score.
@@ -49,6 +50,18 @@ After confirmation, the selected character is stored on the browser-side player 
 
 While moving up, left, or right, the matching directional walking image stays active instead of alternating with `Stand Still`. When movement stops, the character returns to its standing pose; the downward direction keeps the available standing pose because no backward-walk asset is provided.
 
+## Character Skills and Recovery
+
+Each character has an independent skill cooldown and an active-play timer. Pressing a skill applies its gameplay effect immediately and does not play a skill animation. When the active-play timer ends, that player enters recovery, movement, interaction, and skill input are locked; the first recovery image from `animation/animation_cooldownskill/` appears for one second, then the second image remains visible until recovery ends. After recovery, the normal walking sprite returns and a new active-play period begins.
+
+- Angel Pork: 15-second skill cooldown, 25-second active period, 9-second recovery; two extra customer-arrival attempts are triggered.
+- Baby Pork: 10-second cooldown, 30-second active period, 7-second recovery; teammates receive the configured cooking-time reduction for 10 seconds.
+- Rek Pork: 14-second cooldown, 30-second active period, 12-second recovery; reduces each teammate's remaining skill cooldown by half, excluding itself.
+- Grilled Pork: 15-second cooldown, 40-second active period, 9-second recovery; adds 10 seconds to current orders and to orders revealed during the effect window.
+- Boar: 15-second cooldown, 50-second active period, 15-second recovery; immediately ends teammates' recovery, excluding itself.
+
+The computer host applies all skill effects locally, while the relay only forwards the phone's `skill` action and returns cooldown/recovery status to the phone UI. The initial effect durations and reduction values are kept in `characterDefinitions` so they can be tuned later.
+
 ## Visual Design
 
 The game world uses inline SVG for the patterned floor, room border, station labels, player placement, shadows, and interaction prompt. Local players are rendered with the selected character's transparent directional PNG sprites from `animation/animation_walk/` inside the SVG. CSS adds a warm cream, brown, coral, blue, and gold palette, responsive sizing, rounded panels, hover states, and mobile-friendly HUD stacking.
@@ -59,7 +72,7 @@ Solo and two-keyboard local co-op remain dependency-free in the browser. Phone c
 
 ## Validation
 
-`npm run check`, recipe unit tests, and Socket.IO relay validation pass. The relay check still covers QR generation, capacity, input/action forwarding, controller feedback, reconnect, and session cleanup. Chromium Solo/local browser validation was not run in this environment because Chromium remote debugging was unavailable at port `9223`; the new character-selection UI should still receive real browser and mobile layout verification.
+`npm run check`, recipe unit tests, and Socket.IO relay validation pass, including the newly allowed phone `skill` action. Chromium Solo/local browser validation was not run in this environment because Chromium remote debugging was unavailable at port `9223`; the new skill buttons, cooldown countdowns, recovery sprite switching, and mobile layout should still receive real browser and mobile verification.
 
 ## Documentation Update
 
