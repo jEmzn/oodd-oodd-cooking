@@ -248,6 +248,46 @@ async function main() {
   await cdp.evaluate("exitGame()");
   assert.deepEqual(await cdp.evaluate(`(() => {
     startSoloGame(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId);
+    const menu = menus[0];
+    const order = (id, expiresAt) => ({ id, menuId: menu.id, name: menu.name, createdAt: Date.now() - 1000, expiresAt, customerId: null });
+    const now = Date.now();
+    setScore(100);
+    orders = [order("expired-one", now - 1), order("active-one", now + 60000)];
+    expireOrders();
+    const afterOneExpiry = { score, hud: scoreElement.textContent, orders: orders.length };
+    setScore(50);
+    orders = [order("expired-two", Date.now() - 1)];
+    expireOrders();
+    const afterSecondExpiry = score;
+    setScore(0);
+    orders = [order("expired-three", Date.now() - 1), order("expired-four", Date.now() - 1)];
+    expireOrders();
+    const afterMultipleExpiryAtZero = score;
+    setScore(100);
+    showResults();
+    const resultsCopy = document.querySelector(".results-score").textContent;
+    setScore(250);
+    startSoloGame(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId);
+    return {
+      afterOneExpiry,
+      afterSecondExpiry,
+      afterMultipleExpiryAtZero,
+      resultsCopy,
+      resetScore: score,
+      resetHud: scoreElement.textContent,
+      hudLabel: document.querySelector(".hud-stats div:nth-child(2) span").textContent
+    };
+  })()`), {
+    afterOneExpiry: { score: 50, hud: "50", orders: 1 },
+    afterSecondExpiry: 0,
+    afterMultipleExpiryAtZero: 0,
+    resultsCopy: "คะแนนรวม 100",
+    resetScore: 0,
+    resetHud: "0",
+    hudLabel: "คะแนน"
+  }, "score points, expiration penalties, clamp, reset, HUD, and results copy behave correctly");
+  assert.deepEqual(await cdp.evaluate(`(() => {
+    startSoloGame(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId);
     return { lifetime: orders[0].expiresAt - orders[0].createdAt, customerCount: customers.length, menuVisible: !orderCard.hidden, customerState: customers[0].state };
   })()`), { lifetime: 60000, customerCount: 1, menuVisible: true, customerState: "entering" }, "solo starts with a customer entering and a visible menu");
   await cdp.evaluate(`(() => {
@@ -344,7 +384,7 @@ async function main() {
     assert.equal(await cdp.evaluate("players[0].elements.heldImages.querySelectorAll('image').length"), 1, `${menu.id}: completed image shown`);
     assert.ok(await cdp.evaluate("document.querySelectorAll('.order-ingredient-icon').length"), `${menu.id}: order recipe icons shown`);
     await interact(cdp, "serve");
-    assert.deepEqual(await cdp.evaluate("({ score, inventory: players[0].inventory, plate: players[0].plate, orders: orders.length })"), { score: 1, inventory: null, plate: null, orders: 0 }, `${menu.id}: served matching order`);
+    assert.deepEqual(await cdp.evaluate("({ score, hud: scoreElement.textContent, inventory: players[0].inventory, plate: players[0].plate, orders: orders.length })"), { score: 100, hud: "100", inventory: null, plate: null, orders: 0 }, `${menu.id}: served matching order awards 100 points`);
   }
 
   await cdp.evaluate("startSoloGame(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");

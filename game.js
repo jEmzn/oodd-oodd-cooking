@@ -87,6 +87,8 @@ const standalonePickupItems = { meat: "meat", vegetable: "vegetable", egg: "egg"
 const menus = cookingData.menus;
 const maxPlayers = 5;
 const orderLifetime = 60000;
+const servedOrderPoints = 100;
+const expiredOrderPenalty = 50;
 const roundDurationSeconds = 300;
 const playerSpeed = 270;
 const playerRadius = 32;
@@ -261,6 +263,16 @@ function createEmptyCookingStations() {
 
 function sanitizeName(value, fallback) {
   return String(value || "").trim().replace(/\s+/g, " ").slice(0, 18) || fallback;
+}
+
+function setScore(nextScore) {
+  score = Math.max(0, nextScore);
+  scoreElement.textContent = `${score}`;
+  return score;
+}
+
+function changeScore(delta) {
+  return setScore(score + delta);
 }
 
 function svgElement(tag, attributes = {}) {
@@ -944,10 +956,9 @@ function interactPlayer(player) {
   if (firstOrder && firstOrder.menuId === menu?.id) {
     orders = orders.filter((order) => order.id !== firstOrder.id);
     beginCustomerExit(firstCustomer);
-    score += 1;
+    changeScore(servedOrderPoints);
     player.stats.ordersServed += 1;
     player.plate = null;
-    scoreElement.textContent = score;
     renderHeldItem(player);
     renderOrders();
     return setPlayerMessage(player, "เสิร์ฟออเดอร์สำเร็จ! ลูกค้ากำลังเดินออกจากร้าน");
@@ -1060,26 +1071,27 @@ function generateOrder() {
 }
 
 function expireOrders() {
+  const expired = orders.filter((order) => order.expiresAt <= Date.now());
   const remaining = orders.filter((order) => order.expiresAt > Date.now());
-  if (remaining.length !== orders.length) {
-    orders.filter((order) => order.expiresAt <= Date.now()).forEach((order) => {
+  if (expired.length) {
+    expired.forEach((order) => {
       const customer = customers.find((item) => item.id === order.customerId);
       beginCustomerExit(customer);
     });
     orders = remaining;
+    changeScore(-expired.length * expiredOrderPenalty);
     renderOrders();
-    setMessage("ลูกค้าบางคนกลับไปแล้ว ออเดอร์ที่เหลือยังรออยู่");
+    setMessage(`ออเดอร์หมดเวลา ${expired.length} รายการ หัก ${expired.length * expiredOrderPenalty} แต้ม`);
   }
 }
 
 function resetRoundState() {
-  score = 0;
+  setScore(0);
   secondsLeft = roundDurationSeconds;
   orders = [];
   customerOrderBonusUntil = 0;
   clearCustomers();
   cookingStations = createEmptyCookingStations();
-  scoreElement.textContent = "0";
   timerElement.textContent = `${secondsLeft}`;
   timerElement.classList.remove("warning");
   createCustomer({ revealOnEntry: true, startY: customerEnterThreshold });
@@ -1291,7 +1303,7 @@ function stopRoundActivity() {
 function finishRound() {
   stopRoundActivity();
   if (mode === "local") relaySocket?.emit("local-host:phase", { phase: "results" });
-  players.forEach((player) => sendControllerState(player, { phase: "results", message: `ทีมเสิร์ฟสำเร็จ ${score} ออเดอร์` }));
+  players.forEach((player) => sendControllerState(player, { phase: "results", message: `ทีมได้ ${score} คะแนน` }));
   resultsTimeoutId = window.setTimeout(() => {
     resultsTimeoutId = undefined;
     showResults();
