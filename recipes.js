@@ -47,37 +47,37 @@
     {
       id: "chicken-rice",
       name: "ข้าวมันไก่",
-      components: ["steamedRice", "boiledMeat"],
+      components: ["boiledMeat", "steamedRice"],
       image: "image/food/ข้าวมันไก่.png",
-      steps: [{ ingredients: ["steamedRice"] }, { tool: "pot", ingredients: ["meat"] }]
+      steps: [{ tool: "pot", ingredients: ["meat"] }, { ingredients: ["steamedRice"] }]
     },
     {
       id: "red-pork-rice",
       name: "ข้าวหมูแดง",
-      components: ["steamedRice", "grilledMeat", "boiledSauce"],
+      components: ["grilledMeat", "boiledSauce", "steamedRice"],
       image: "image/food/ข้าวหมูเเดง.png",
-      steps: [{ ingredients: ["steamedRice"] }, { tool: "grill", ingredients: ["meat"] }, { tool: "pot", ingredients: ["sauce"] }]
+      steps: [{ tool: "grill", ingredients: ["meat"] }, { tool: "pot", ingredients: ["sauce"] }, { ingredients: ["steamedRice"] }]
     },
     {
       id: "braised-pork-rice",
       name: "ข้าวหมูตุ๋น",
-      components: ["steamedRice", "boiledMeatSauce", "boiledEgg"],
+      components: ["boiledMeatSauce", "boiledEgg", "steamedRice"],
       image: "image/food/หมูตุ๋น.png",
-      steps: [{ ingredients: ["steamedRice"] }, { tool: "pot", ingredients: ["meat", "sauce"] }, { tool: "pot", ingredients: ["egg"] }]
+      steps: [{ tool: "pot", ingredients: ["meat", "sauce"] }, { tool: "pot", ingredients: ["egg"] }, { ingredients: ["steamedRice"] }]
     },
     {
       id: "sticky-grilled-pork",
       name: "ข้าวเหนียวหมูปิ้ง",
-      components: ["stickyRice", "grilledMeat"],
+      components: ["grilledMeat", "stickyRice"],
       image: "image/food/หมูปิ้ง.png",
-      steps: [{ ingredients: ["stickyRice"] }, { tool: "grill", ingredients: ["meat"] }]
+      steps: [{ tool: "grill", ingredients: ["meat"] }, { ingredients: ["stickyRice"] }]
     },
     {
       id: "kaprao-pork-egg",
       name: "ข้าวกะเพราหมูสับไข่ดาว",
-      components: ["steamedRice", "friedMeatVegetable", "friedEgg"],
+      components: ["friedMeatVegetable", "friedEgg", "steamedRice"],
       image: "image/food/กะเพราหมูสับไข่ดาว.png",
-      steps: [{ ingredients: ["steamedRice"] }, { tool: "pan", ingredients: ["meat", "vegetable"] }, { tool: "pan", ingredients: ["egg"] }]
+      steps: [{ tool: "pan", ingredients: ["meat", "vegetable"] }, { tool: "pan", ingredients: ["egg"] }, { ingredients: ["steamedRice"] }]
     },
     {
       id: "shrimp-fried-rice",
@@ -88,16 +88,12 @@
     }
   ];
 
-  const validAssemblyStates = new Set([
-    "", "steamedRice", "steamedRice,meat", "steamedRice,boiledMeat",
-    "steamedRice,grilledMeat", "steamedRice,grilledMeat,sauce", "steamedRice,grilledMeat,boiledSauce",
-    "steamedRice,meat,sauce", "steamedRice,boiledMeatSauce", "steamedRice,boiledMeatSauce,egg", "steamedRice,boiledMeatSauce,boiledEgg",
-    "stickyRice", "stickyRice,meat", "stickyRice,grilledMeat",
-    "steamedRice,meat,vegetable", "steamedRice,friedMeatVegetable", "steamedRice,friedMeatVegetable,egg", "steamedRice,friedMeatVegetable,friedEgg",
-    "steamedRice,meat,vegetable,egg", "friedRice",
-    "meat", "sauce", "egg", "meat,sauce", "meat,vegetable",
-    "boiledMeat", "boiledSauce", "boiledMeatSauce", "boiledEgg", "friedMeat", "friedMeatVegetable", "friedEgg", "grilledMeat"
-  ]);
+  const validAssemblyStates = new Set([""]);
+  menus.forEach((menu) => {
+    menu.components.forEach((component, index) => {
+      validAssemblyStates.add(menu.components.slice(0, index + 1).join(","));
+    });
+  });
 
   function sameItems(left, right) {
     return left.length === right.length && left.every((item, index) => item === right[index]);

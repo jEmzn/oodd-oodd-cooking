@@ -9,6 +9,37 @@ test("all six menu component sequences resolve to a menu", () => {
   });
 });
 
+test("plate menu components and steps keep cooked food before rice", () => {
+  const expected = {
+    "chicken-rice": {
+      components: ["boiledMeat", "steamedRice"],
+      steps: [{ tool: "pot", ingredients: ["meat"] }, { ingredients: ["steamedRice"] }]
+    },
+    "red-pork-rice": {
+      components: ["grilledMeat", "boiledSauce", "steamedRice"],
+      steps: [{ tool: "grill", ingredients: ["meat"] }, { tool: "pot", ingredients: ["sauce"] }, { ingredients: ["steamedRice"] }]
+    },
+    "braised-pork-rice": {
+      components: ["boiledMeatSauce", "boiledEgg", "steamedRice"],
+      steps: [{ tool: "pot", ingredients: ["meat", "sauce"] }, { tool: "pot", ingredients: ["egg"] }, { ingredients: ["steamedRice"] }]
+    },
+    "sticky-grilled-pork": {
+      components: ["grilledMeat", "stickyRice"],
+      steps: [{ tool: "grill", ingredients: ["meat"] }, { ingredients: ["stickyRice"] }]
+    },
+    "kaprao-pork-egg": {
+      components: ["friedMeatVegetable", "friedEgg", "steamedRice"],
+      steps: [{ tool: "pan", ingredients: ["meat", "vegetable"] }, { tool: "pan", ingredients: ["egg"] }, { ingredients: ["steamedRice"] }]
+    },
+    "shrimp-fried-rice": {
+      components: ["friedRice"],
+      steps: [{ tool: "pan", ingredients: ["steamedRice", "meat", "vegetable", "egg"] }]
+    }
+  };
+
+  data.menus.forEach((menu) => assert.deepEqual({ components: menu.components, steps: menu.steps }, expected[menu.id], menu.id));
+});
+
 test("multi-ingredient station recipes accept any deposit order", () => {
   assert.equal(data.findExactTransformation("pot", ["sauce", "meat"]).id, "boiled-meat-sauce");
   assert.equal(data.findExactTransformation("pan", ["vegetable", "meat"]).id, "fried-meat-vegetable");
@@ -30,14 +61,29 @@ test("raw ingredients can be held without a plate", () => {
   assert.deepEqual(data.getInventoryImages(data.createIngredient("egg")), data.ingredients.egg.images);
 });
 
-test("wrong order becomes invalid and cannot be appended", () => {
-  const plate = data.normalizePlate({ kind: "plate", components: ["steamedRice", "egg"], dishId: null, invalid: false });
+test("rice before a cooked component is invalid", () => {
+  const emptyPlate = data.createPlate();
+  const plate = data.appendIngredient(emptyPlate, "steamedRice");
   assert.equal(plate.invalid, true);
   assert.equal(data.appendIngredient(plate, "meat"), null);
+  assert.deepEqual(emptyPlate, data.createPlate(), "rejecting rice does not mutate the original plate");
 });
 
-test("plate assembly remains order-sensitive", () => {
-  const plate = data.normalizePlate({ kind: "plate", components: ["boiledMeat", "steamedRice"], dishId: null, invalid: false });
-  assert.equal(plate.dishId, null);
-  assert.equal(plate.invalid, true);
+test("five plate menus assemble when rice is added last", () => {
+  const plateMenus = data.menus.filter((menu) => menu.id !== "shrimp-fried-rice");
+  plateMenus.forEach((menu) => {
+    let plate = data.createPlate();
+    menu.components.forEach((component) => {
+      plate = data.appendIngredient(plate, component);
+      assert.equal(plate.invalid, false, `${menu.id}: ${component} is a valid next component`);
+    });
+    assert.equal(plate.dishId, menu.id);
+  });
+});
+
+test("the original chicken order is now valid", () => {
+  let plate = data.createPlate();
+  plate = data.appendIngredient(plate, "boiledMeat");
+  plate = data.appendIngredient(plate, "steamedRice");
+  assert.equal(plate.dishId, "chicken-rice");
 });

@@ -87,6 +87,8 @@ const standalonePickupItems = { meat: "meat", vegetable: "vegetable", egg: "egg"
 const menus = cookingData.menus;
 const maxPlayers = 5;
 const orderLifetime = 60000;
+const servedOrderPoints = 100;
+const expiredOrderPenalty = 50;
 const roundDurationSeconds = 300;
 const playerSpeed = 270;
 const playerRadius = 32;
@@ -100,6 +102,11 @@ const customerWalkSpeed = 120;
 const customerArrivalInterval = 12000;
 const maxCustomers = 4;
 const playerColors = ["#ba6849", "#4d8f9d", "#64834f", "#b87c2b", "#8d63a8"];
+const playerFootAnchorY = 30;
+const heldItemRadius = 17;
+const playerOverlayGap = 6;
+const playerActionBadgeBounds = { top: -14, bottom: 12 };
+const playerStatusBadgeBounds = { top: -13, bottom: 11 };
 const spawnPositions = [
   { x: 430, y: 335 }, { x: 500, y: 335 }, { x: 570, y: 335 }, { x: 465, y: 405 }, { x: 535, y: 405 }
 ];
@@ -256,6 +263,16 @@ function createEmptyCookingStations() {
 
 function sanitizeName(value, fallback) {
   return String(value || "").trim().replace(/\s+/g, " ").slice(0, 18) || fallback;
+}
+
+function setScore(nextScore) {
+  score = Math.max(0, nextScore);
+  scoreElement.textContent = `${score}`;
+  return score;
+}
+
+function changeScore(delta) {
+  return setScore(score + delta);
 }
 
 function svgElement(tag, attributes = {}) {
@@ -431,30 +448,58 @@ function getRecoverySprite(player) {
   return frames[Math.min(recoveryFrame, frames.length - 1)];
 }
 
+function getPlayerOverlayPosition(player) {
+  const spriteHeight = Number(player.elements?.sprite?.getAttribute("height")) || getPlayerSprite(player).height;
+  const spriteTop = playerFootAnchorY - spriteHeight;
+  const heldY = spriteTop - heldItemRadius - playerOverlayGap;
+  const actionY = heldY - heldItemRadius - playerOverlayGap - playerActionBadgeBounds.bottom;
+  const statusY = actionY + playerActionBadgeBounds.top - playerOverlayGap - playerStatusBadgeBounds.bottom;
+  const overlayTop = statusY + playerStatusBadgeBounds.top;
+  const svg = player.elements?.group?.ownerSVGElement;
+  const viewBoxTop = svg?.viewBox?.baseVal?.y || 0;
+  const topCorrection = Math.max(0, viewBoxTop - ((Number(player.y) || 0) + overlayTop));
+
+  return {
+    heldY: heldY + topCorrection,
+    actionY: actionY + topCorrection,
+    statusY: statusY + topCorrection,
+    spriteTop,
+    topCorrection
+  };
+}
+
+function updatePlayerOverlayPosition(player) {
+  if (!player.elements?.sprite) return;
+  const position = getPlayerOverlayPosition(player);
+  player.elements.held.setAttribute("transform", `translate(0 ${position.heldY})`);
+  player.elements.badge.setAttribute("transform", `translate(0 ${position.actionY})`);
+  player.elements.statusBadge.setAttribute("transform", `translate(0 ${position.statusY})`);
+}
+
 function createPlayerElement(player) {
   const group = svgElement("g", { transform: `translate(${player.x} ${player.y})`, class: "local-player" });
-  const held = svgElement("g", { transform: "translate(0 -55)", opacity: 0 });
+  const held = svgElement("g", { opacity: 0 });
   const heldCircle = svgElement("circle", { class: "held-item-circle", r: 17 });
   const heldImages = svgElement("g");
   held.append(heldCircle, heldImages);
   const shadow = svgElement("circle", { class: "player-shadow", cy: 27, r: 15 });
-  const ring = svgElement("circle", { class: "player-color-ring", cy: 26, r: 22, stroke: player.color });
   const initialSprite = getPlayerSprite(player, "down");
-  const sprite = svgElement("image", { class: "player-sprite", href: initialSprite.href, x: -initialSprite.width / 2, y: 30 - initialSprite.height, width: initialSprite.width, height: initialSprite.height, preserveAspectRatio: "xMidYMid meet" });
-  const label = svgElement("text", { class: "local-player-label", y: -48, fill: player.color });
+  const sprite = svgElement("image", { class: "player-sprite", href: initialSprite.href, x: -initialSprite.width / 2, y: playerFootAnchorY - initialSprite.height, width: initialSprite.width, height: initialSprite.height, preserveAspectRatio: "xMidYMid meet" });
+  const label = svgElement("text", { class: "local-player-label", y: 52, fill: player.color });
   label.textContent = player.name;
-  const badge = svgElement("g", { class: "player-action-badge", transform: "translate(0 -80)", opacity: 0 });
+  const badge = svgElement("g", { class: "player-action-badge", opacity: 0 });
   badge.append(svgElement("rect", { x: -29, y: -14, width: 58, height: 26, rx: 13 }));
   const badgeText = svgElement("text", { y: 4 });
   badgeText.textContent = player.source.startsWith("keyboard") ? keyboardControls[player.source].label : "แตะ";
   badge.append(badgeText);
-  const statusBadge = svgElement("g", { class: "player-status-badge", transform: "translate(0 -108)", opacity: 0 });
+  const statusBadge = svgElement("g", { class: "player-status-badge", opacity: 0 });
   statusBadge.append(svgElement("rect", { x: -58, y: -13, width: 116, height: 24, rx: 12 }));
   const statusText = svgElement("text", { y: 4 });
   statusBadge.append(statusText);
-  group.append(held, shadow, ring, sprite, label, badge, statusBadge);
+  group.append(shadow, sprite, label, held, badge, statusBadge);
   playerLayer.append(group);
   player.elements = { group, held, heldImages, sprite, label, badge, statusBadge, statusText };
+  updatePlayerOverlayPosition(player);
   renderHeldItem(player);
 }
 
@@ -499,19 +544,22 @@ function clearPlayers() {
 
 function setPlayerPosition(player) {
   player.elements.group.setAttribute("transform", `translate(${player.x} ${player.y})`);
+  updatePlayerOverlayPosition(player);
 }
 
 function updatePlayerSprite(player, dx = 0, dy = 0, moving = false, timestamp = performance.now()) {
   if (player.recoveryUntil > Date.now()) {
     const recoverySprite = getRecoverySprite(player);
     const spriteKey = `recovery-${recoverySprite.href}`;
-    if (spriteKey === player.lastSpriteKey) return;
-    player.elements.sprite.setAttribute("href", recoverySprite.href);
-    player.elements.sprite.setAttribute("x", `${-recoverySprite.width / 2}`);
-    player.elements.sprite.setAttribute("y", `${30 - recoverySprite.height}`);
-    player.elements.sprite.setAttribute("width", `${recoverySprite.width}`);
-    player.elements.sprite.setAttribute("height", `${recoverySprite.height}`);
-    player.lastSpriteKey = spriteKey;
+    if (spriteKey !== player.lastSpriteKey) {
+      player.elements.sprite.setAttribute("href", recoverySprite.href);
+      player.elements.sprite.setAttribute("x", `${-recoverySprite.width / 2}`);
+      player.elements.sprite.setAttribute("y", `${playerFootAnchorY - recoverySprite.height}`);
+      player.elements.sprite.setAttribute("width", `${recoverySprite.width}`);
+      player.elements.sprite.setAttribute("height", `${recoverySprite.height}`);
+      player.lastSpriteKey = spriteKey;
+    }
+    updatePlayerOverlayPosition(player);
     return;
   }
   if (moving) {
@@ -522,13 +570,15 @@ function updatePlayerSprite(player, dx = 0, dy = 0, moving = false, timestamp = 
   const frameIndex = moving && player.direction !== "down" ? 1 : moving ? Math.floor(timestamp / 140) % sprites.length : 0;
   const sprite = getPlayerSprite(player, player.direction, frameIndex);
   const spriteKey = `${player.direction}-${frameIndex}`;
-  if (spriteKey === player.lastSpriteKey) return;
-  player.elements.sprite.setAttribute("href", sprite.href);
-  player.elements.sprite.setAttribute("x", `${-sprite.width / 2}`);
-  player.elements.sprite.setAttribute("y", `${30 - sprite.height}`);
-  player.elements.sprite.setAttribute("width", `${sprite.width}`);
-  player.elements.sprite.setAttribute("height", `${sprite.height}`);
-  player.lastSpriteKey = spriteKey;
+  if (spriteKey !== player.lastSpriteKey) {
+    player.elements.sprite.setAttribute("href", sprite.href);
+    player.elements.sprite.setAttribute("x", `${-sprite.width / 2}`);
+    player.elements.sprite.setAttribute("y", `${playerFootAnchorY - sprite.height}`);
+    player.elements.sprite.setAttribute("width", `${sprite.width}`);
+    player.elements.sprite.setAttribute("height", `${sprite.height}`);
+    player.lastSpriteKey = spriteKey;
+  }
+  updatePlayerOverlayPosition(player);
 }
 
 function renderHeldItem(player) {
@@ -784,8 +834,17 @@ function startCooking(player, stationId) {
 function chooseRice(player, requestedRice) {
   if (!player.riceChoice) return;
   const ingredientId = requestedRice === "sticky" ? "stickyRice" : "steamedRice";
-  if (player.plate) player.plate = cookingData.appendIngredient(player.plate, ingredientId);
-  else player.inventory = cookingData.createIngredient(ingredientId);
+  if (player.plate) {
+    const nextPlate = cookingData.appendIngredient(player.plate, ingredientId);
+    if (!nextPlate || nextPlate.invalid) {
+      player.riceChoice = null;
+      renderRiceChoices();
+      return setPlayerMessage(player, "ต้องเติมข้าวหลังอาหารที่ปรุงเสร็จและตามลำดับสูตร");
+    }
+    player.plate = nextPlate;
+  } else {
+    player.inventory = cookingData.createIngredient(ingredientId);
+  }
   player.riceChoice = null;
   renderHeldItem(player);
   renderRiceChoices();
@@ -841,6 +900,7 @@ function interactPlayer(player) {
   if (name === "rice") {
     if (player.inventory) return setPlayerMessage(player, "มือของคุณไม่ว่าง");
     if (player.plate?.dishId || player.plate?.invalid) return setPlayerMessage(player, "จานนี้ใช้ต่อไม่ได้ นำไปทิ้งก่อน");
+    if (player.plate && player.plate.components.length === 0) return setPlayerMessage(player, "ต้องใส่อาหารที่ปรุงเสร็จก่อนเติมข้าว");
     player.riceChoice = { selected: "steamed" };
     renderRiceChoices();
     sendControllerState(player, { canChooseRice: true, message: "เลือกข้าวสวยหรือข้าวเหนียว" });
@@ -896,10 +956,9 @@ function interactPlayer(player) {
   if (firstOrder && firstOrder.menuId === menu?.id) {
     orders = orders.filter((order) => order.id !== firstOrder.id);
     beginCustomerExit(firstCustomer);
-    score += 1;
+    changeScore(servedOrderPoints);
     player.stats.ordersServed += 1;
     player.plate = null;
-    scoreElement.textContent = score;
     renderHeldItem(player);
     renderOrders();
     return setPlayerMessage(player, "เสิร์ฟออเดอร์สำเร็จ! ลูกค้ากำลังเดินออกจากร้าน");
@@ -1012,26 +1071,27 @@ function generateOrder() {
 }
 
 function expireOrders() {
+  const expired = orders.filter((order) => order.expiresAt <= Date.now());
   const remaining = orders.filter((order) => order.expiresAt > Date.now());
-  if (remaining.length !== orders.length) {
-    orders.filter((order) => order.expiresAt <= Date.now()).forEach((order) => {
+  if (expired.length) {
+    expired.forEach((order) => {
       const customer = customers.find((item) => item.id === order.customerId);
       beginCustomerExit(customer);
     });
     orders = remaining;
+    changeScore(-expired.length * expiredOrderPenalty);
     renderOrders();
-    setMessage("ลูกค้าบางคนกลับไปแล้ว ออเดอร์ที่เหลือยังรออยู่");
+    setMessage(`ออเดอร์หมดเวลา ${expired.length} รายการ หัก ${expired.length * expiredOrderPenalty} แต้ม`);
   }
 }
 
 function resetRoundState() {
-  score = 0;
+  setScore(0);
   secondsLeft = roundDurationSeconds;
   orders = [];
   customerOrderBonusUntil = 0;
   clearCustomers();
   cookingStations = createEmptyCookingStations();
-  scoreElement.textContent = "0";
   timerElement.textContent = `${secondsLeft}`;
   timerElement.classList.remove("warning");
   createCustomer({ revealOnEntry: true, startY: customerEnterThreshold });
@@ -1243,7 +1303,7 @@ function stopRoundActivity() {
 function finishRound() {
   stopRoundActivity();
   if (mode === "local") relaySocket?.emit("local-host:phase", { phase: "results" });
-  players.forEach((player) => sendControllerState(player, { phase: "results", message: `ทีมเสิร์ฟสำเร็จ ${score} ออเดอร์` }));
+  players.forEach((player) => sendControllerState(player, { phase: "results", message: `ทีมได้ ${score} คะแนน` }));
   resultsTimeoutId = window.setTimeout(() => {
     resultsTimeoutId = undefined;
     showResults();
