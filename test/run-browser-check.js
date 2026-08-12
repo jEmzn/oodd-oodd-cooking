@@ -67,10 +67,27 @@ async function main() {
   assert.equal(await cdp.evaluate("document.querySelectorAll('[data-object=ingredients]').length"), 0);
   assert.equal(await cdp.evaluate("document.querySelectorAll('[data-tool=pan]').length"), 2, "two pans are rendered");
   assert.equal(await cdp.evaluate("document.querySelectorAll('[data-tool=pot]').length"), 2, "two pots are rendered");
-  assert.equal(await cdp.evaluate(`(() => {
+  await cdp.evaluate("playButton.click()");
+  assert.deepEqual(await cdp.evaluate("({ screen: !characterScreen.hidden, cards: characterGrid.children.length, modal: !characterDetailModal.hidden })"), {
+    screen: true, cards: 5, modal: false
+  }, "solo opens the five-character selection screen");
+  await cdp.evaluate("characterGrid.querySelector('[data-character-id=angel-pork]').click()");
+  assert.deepEqual(await cdp.evaluate("({ modal: !characterDetailModal.hidden, name: characterDetailName.textContent, skill: characterDetailSkill.textContent.length > 0 })"), {
+    modal: true, name: "หมูเทวดา", skill: true
+  }, "character card opens skill details");
+  await cdp.evaluate("characterCancelButton.click(); characterGrid.querySelector('[data-character-id=grilled-pork]').click(); characterConfirmButton.click()");
+  assert.deepEqual(await cdp.evaluate("({ game: !gameScreen.hidden, character: players[0].characterId })"), {
+    game: true, character: "grilled-pork"
+  }, "confirming a character starts solo with that character");
+  await cdp.evaluate("exitGame()");
+  assert.deepEqual(await cdp.evaluate(`(() => {
     startSoloGame(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId);
-    return orders[0].expiresAt - orders[0].createdAt;
-  })()`), 60000, "solo orders last 60 seconds");
+    return { lifetime: orders[0].expiresAt - orders[0].createdAt, customerCount: customers.length, menuVisible: !orderCard.hidden, customerState: customers[0].state };
+  })()`), { lifetime: 60000, customerCount: 1, menuVisible: true, customerState: "entering" }, "solo starts with a customer entering and a visible menu");
+  await sleep(700);
+  assert.deepEqual(await cdp.evaluate("({ state: customers[0].state, x: Math.round(customers[0].x), y: Math.round(customers[0].y) })"), {
+    state: "waiting", x: 500, y: 530
+  }, "customer walks to the serving station");
   assert.deepEqual(await cdp.evaluate("({ secondsLeft, timer: timerElement.textContent })"), { secondsLeft: 120, timer: "120" }, "solo rounds start at two minutes");
 
   for (const station of ["pan-1", "pan-2", "pot-1", "pot-2"]) {

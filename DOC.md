@@ -6,21 +6,21 @@ Oodd Oodd Cooking is a browser cooking game built with HTML, CSS, JavaScript, in
 
 ## Project Files
 
-- `index.html` defines the start screen, game screen, HUD, and SVG kitchen scene.
-- `styles.css` controls the warm visual theme, layout, responsive behavior, buttons, HUD, SVG labels, and screen switching.
-- `game.js` contains the Solo/local co-op engine, per-player movement and inventory, shared station staging, cooking, plate assembly, scoring, timers, and responsive controls.
+- `index.html` defines the start screen, local co-op setup, character selection, game screen, HUD, and SVG kitchen scene.
+- `styles.css` controls the warm visual theme, layout, responsive behavior, buttons, character cards/modal, HUD, SVG labels, and screen switching.
+- `game.js` contains the character selection flow, per-character movement sprites, Solo/local co-op engine, per-player movement and inventory, shared station staging, cooking, plate assembly, scoring, timers, and responsive controls.
 - `recipes.js` contains the shared ingredients, cooking transformations, six menus, plate assembly rules, and food asset paths used by both client and server.
 - `controller.html`, `controller.css`, and `controller.js` provide the phone-as-controller interface.
 - `server/server.js` serves the frontend and relays phone input through Socket.IO on the local network without owning game state.
 - `server/package.json` defines the Node.js server dependencies and start commands.
-- `pork_nae_animation/` contains the active player animation frames, `animation_walk/` retains the earlier sprite set, and `image/food/` contains food/station artwork.
+- `image/charecter/` contains the five character portraits, two customer portraits, `animation/animation_walk/` contains directional walking frames, `animation/animation_skill/` contains skill artwork, and `image/food/` contains food/station artwork.
 - `test/` contains shared-recipe, headless-browser, and multi-client Socket.IO integration checks.
 - `AGENTS.md` contains contributor guidance for this repository.
 - `DOC.md` is this project summary.
 
 ## User Flow
 
-When the page opens, the start screen offers Solo and local co-op. Solo starts immediately. Local co-op supports zero to two keyboard slots and enough phone controllers to reach two to five total players. Keyboard-only co-op works without a server; phone controllers join by scanning a QR from the computer while all devices share one Wi-Fi network or hotspot.
+When the page opens, the start screen offers Solo and local co-op. Both modes open the character selection screen before gameplay. Each player selects one of the five characters, opens a skill-details popup, and can cancel or confirm the choice. In local co-op, characters are selected one player at a time and cannot be duplicated within the team. Local co-op supports zero to two keyboard slots and enough phone controllers to reach two to five total players. Keyboard-only co-op works without a server; phone controllers join by scanning a QR from the computer while all devices share one Wi-Fi network or hotspot.
 
 After 120 seconds, the game stops, clears its timers and animation loop, waits briefly for a transition, and returns to the results screen. Starting a new round resets the player position, timer, and total score.
 
@@ -35,9 +35,23 @@ After 120 seconds, the game stops, clears its timers and animation loop, waits b
 - A "PRESS E TO INTERACT" prompt appears when an object is within range.
 - The HUD displays remaining time and total score; the timer changes color during the final 10 seconds.
 
+## Customer Queue and Serving
+
+Customers use `image/charecter/customer1.png` and `image/charecter/customer2.png` as static portraits. A round starts with one customer entering from the lower edge of the kitchen. Additional arrivals are generated every twelve seconds, usually one customer with a 25% chance of two customers, up to four active customers. Customers walk to the serving station at `500,530`; later customers target positions behind the first customer to form a queue.
+
+An order is linked to its customer. The order card stays hidden when no customer order is active and appears when a customer crosses into the shop. Only the first customer in the queue can be served, so a completed dish for a later menu waits until the front customer has been served. After a successful serve, the front customer walks down and out of the shop while the remaining queue advances. Expired orders also send their customers out and remove their menus.
+
+## Character Selection and Animation
+
+The character selection screen uses the five portraits in `image/charecter/`: หมูย่าง, หมูเทวดา, หมูป่า, หมูเร็ก, and หมูน้อย. Selecting a card opens a popup with the portrait, skill artwork, skill description, cooldown, active time, recovery time, and movement behavior. Cancel closes the popup without assigning the character; confirm assigns it and advances to the next local-co-op player.
+
+After confirmation, the selected character is stored on the browser-side player object. The runtime uses that character's `Stand Still`, `Walk Forward`, `Walk towards the left side`, and `Walk towards the right side` frames from `animation/animation_walk/`, keeping the shared bottom-center foot anchor. Boar also uses the documented slower movement speed. The relay remains unaware of character identity and continues to forward only controller input.
+
+While moving up, left, or right, the matching directional walking image stays active instead of alternating with `Stand Still`. When movement stops, the character returns to its standing pose; the downward direction keeps the available standing pose because no backward-walk asset is provided.
+
 ## Visual Design
 
-The game world uses inline SVG for the patterned floor, room border, station labels, player placement, shadows, and interaction prompt. The local player is rendered with transparent directional PNG sprites from `pork_nae_animation/` inside the SVG. CSS adds a warm cream, brown, coral, blue, and gold palette, responsive sizing, rounded panels, hover states, and mobile-friendly HUD stacking.
+The game world uses inline SVG for the patterned floor, room border, station labels, player placement, shadows, and interaction prompt. Local players are rendered with the selected character's transparent directional PNG sprites from `animation/animation_walk/` inside the SVG. CSS adds a warm cream, brown, coral, blue, and gold palette, responsive sizing, rounded panels, hover states, and mobile-friendly HUD stacking.
 
 ## Technical Notes
 
@@ -45,7 +59,7 @@ Solo and two-keyboard local co-op remain dependency-free in the browser. Phone c
 
 ## Validation
 
-Syntax checks and recipe unit tests pass. Chromium Solo validation covers all six menus, keyboard/touch responsiveness, cleanup, and direct `file://` startup. Local browser validation covers simultaneous two-keyboard movement, independent inventories, five-player setup, phone movement, and phone rice selection. Socket.IO relay validation covers QR generation, capacity, input/action forwarding, controller feedback, reconnect, and session cleanup.
+`npm run check`, recipe unit tests, and Socket.IO relay validation pass. The relay check still covers QR generation, capacity, input/action forwarding, controller feedback, reconnect, and session cleanup. Chromium Solo/local browser validation was not run in this environment because Chromium remote debugging was unavailable at port `9223`; the new character-selection UI should still receive real browser and mobile layout verification.
 
 ## Documentation Update
 
@@ -60,7 +74,7 @@ Multiplayer mode supports temporary names, 5-character room codes, 2 to 5 player
 
 ## Gameplay Update
 
-The game uses a 120-second cooking round with customer orders that each last 60 seconds. Six Thai menus are assembled from rice and outputs produced by the pot, pan, or grill. Raw ingredients are collected individually without a plate, staged at a compatible station, and cooked for 2 seconds after an empty-handed interaction. A plate is required only to collect cooked outputs, combine them with rice in recipe order, and serve the completed dish. Successful service increases the team score; an expired order is removed without clearing the players' held items or assembly plates.
+The game uses a 120-second cooking round with customer orders that each last 60 seconds. Six Thai menus are assembled from rice and outputs produced by the pot, pan, or grill. Raw ingredients are collected individually without a plate, staged at a compatible station, and cooked for 2 seconds after an empty-handed interaction. A plate is required only to collect cooked outputs, combine them with rice in recipe order, and serve the completed dish. Successful service increases the team score; an expired order sends its customer away without clearing the players' held items or assembly plates.
 
 
 ## Held Food Indicator
