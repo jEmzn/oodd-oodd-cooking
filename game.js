@@ -40,6 +40,7 @@ const characterDetailSkill = document.querySelector("#character-detail-skill");
 const characterDetailStats = document.querySelector("#character-detail-stats");
 const fullscreenButton = document.querySelector("#fullscreen-button");
 const mobileInteractButton = document.querySelector("#mobile-interact-button");
+const mobileSkillButton = document.querySelector("#mobile-skill-button");
 const directionButtons = [...document.querySelectorAll("[data-direction]")];
 const soundToggles = [...document.querySelectorAll(".sound-toggle")];
 const exitGameButton = document.querySelector("#exit-game-button");
@@ -107,10 +108,17 @@ const characterDefinitions = [
     id: "grilled-pork",
     name: "พี่หมูปิ้ง",
     image: "image/charecter/Grilled_Pork.png",
-    skillImage: "animation/animation_skill/Grill_Skill.png",
+    skillImage: "animation/animation_cooldownskill/Grill_Cooldownskill1.png",
+    recoverySprites: [{ href: "animation/animation_cooldownskill/Grill_Cooldownskill1.png", width: 75, height: 92 }, { href: "animation/animation_cooldownskill/Grill_Cooldownskill2.png", width: 93, height: 92 }],
+    skillCooldownSeconds: 15,
+    activeSeconds: 40,
+    recoverySeconds: 9,
+    skillEffect: "order-time-boost",
+    effectDurationSeconds: 10,
+    orderBonusSeconds: 10,
     role: "เชฟผู้ใจดี ใจเย็น ไม่วีน",
     skill: "ทำให้ลูกค้าใจเย็นลง เพิ่มเวลารออาหารของทุกเมนูในช่วงที่กดสกิลเท่านั้น",
-    stats: [["คูลดาวน์สกิล", "9 วินาที"], ["เวลาเล่น", "40 วินาที"], ["พักฟื้น", "9 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
+    stats: [["คูลดาวน์สกิล", "15 วินาที"], ["เวลาเล่น", "40 วินาที"], ["พักฟื้น", "9 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
       down: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 92 }, { href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height:92 }],
       up: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 92 }, { href: "animation/animation_walk/Grilled_Pork_animation/Walk%20Forward.png", width: 69, height: 92 }],
@@ -122,10 +130,15 @@ const characterDefinitions = [
     id: "angel-pork",
     name: "นางฟ้าหมูจิ๋ว",
     image: "image/charecter/Angel_pork.png",
-    skillImage: "animation/animation_skill/Angel_Skill.png",
+    skillImage: "animation/animation_cooldownskill/Angel_Cooldownskill1.png",
+    recoverySprites: [{ href: "animation/animation_cooldownskill/Angel_Cooldownskill1.png", width: 140, height: 85 }, { href: "animation/animation_cooldownskill/Angel_Cooldownskill2.png", width: 140, height: 106 }],
+    skillCooldownSeconds: 15,
+    activeSeconds: 25,
+    recoverySeconds: 9,
+    skillEffect: "customer-surge",
     role: "เชฟผู้น่ารักสดใส แต่ขี้เกียจ เหนื่อยง่าย",
     skill: "เรียกลูกค้าเข้าร้าน เพิ่มจำนวนลูกค้าเข้าร้านมากขึ้น แต่จะเหนื่อยง่ายหลังใช้สกิล",
-    stats: [["คูลดาวน์สกิล", "8 วินาที"], ["เวลาเล่น", "25 วินาที"], ["พักฟื้น", "5 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
+    stats: [["คูลดาวน์สกิล", "15 วินาที"], ["เวลาเล่น", "25 วินาที"], ["พักฟื้น", "9 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
       down: [{ href: "animation/animation_walk/Angel_Pork_animation/Stand%20Still.png", width: 220, height: 80 }, { href: "animation/animation_walk/Angel_Pork_animation/Stand%20Still.png", width: 220, height: 80 }],
       up: [{ href: "animation/animation_walk/Angel_Pork_animation/Stand%20Still.png", width: 220, height: 80 }, { href: "animation/animation_walk/Angel_Pork_animation/Walk%20Forward.png", width: 220, height: 80 }],
@@ -137,10 +150,15 @@ const characterDefinitions = [
     id: "boar",
     name: "ลุงหมูป่า",
     image: "image/charecter/Boar.png",
-    skillImage: "animation/animation_skill/Boar_Skill.png",
+    skillImage: "animation/animation_cooldownskill/Boar_Cooldownskill1.png",
+    recoverySprites: [{ href: "animation/animation_cooldownskill/Boar_Cooldownskill1.png", width: 74, height: 95 }, { href: "animation/animation_cooldownskill/Boar_Cooldownskill2.png", width: 89, height: 92 }],
+    skillCooldownSeconds: 15,
+    activeSeconds: 50,
+    recoverySeconds: 15,
+    skillEffect: "reset-recovery",
     role: "เชฟผู้ถึกทนทุกสถานการ์ณ",
     skill: "รีเซ็ตเวลาพักฟื้นของเพื่อนร่วมทีมทุกคนให้กลับมาเป็นปกติได้ในช่วงที่กดสกิล",
-    stats: [["คูลดาวน์สกิล", "12 วินาที"], ["เวลาเล่น", "50 นาที"], ["พักฟื้น", "15 วินาที"], ["การเคลื่อนไหว", "ช้าลง 1.5 เท่า"]],
+    stats: [["คูลดาวน์สกิล", "15 วินาที"], ["เวลาเล่น", "50 วินาที"], ["พักฟื้น", "15 วินาที"], ["การเคลื่อนไหว", "ช้าลง 1.5 เท่า"]],
     sprites: {
       down: [{ href: "animation/animation_walk/Boar_animation/Stand%20Still.png", width: 72, height: 95 }, { href: "animation/animation_walk/Boar_animation/Stand%20Still.png", width: 72, height: 95 }],
       up: [{ href: "animation/animation_walk/Boar_animation/Stand%20Still.png", width: 72, height: 95 }, { href: "animation/animation_walk/Boar_animation/Walk%20Forward.png", width: 75, height: 95 }],
@@ -152,7 +170,13 @@ const characterDefinitions = [
     id: "rek-pork",
     name: "น้องเร้กหมูตุ๋น",
     image: "image/charecter/Rek_Pork.png",
-    skillImage: "animation/animation_skill/Rek_Skill.png",
+    skillImage: "animation/animation_cooldownskill/Rek_Cooldownskill1.png",
+    recoverySprites: [{ href: "animation/animation_cooldownskill/Rek_Cooldownskill1.png", width: 98, height: 80 }, { href: "animation/animation_cooldownskill/Rek_Cooldownskill2.png", width: 114, height: 80 }],
+    skillCooldownSeconds: 14,
+    activeSeconds: 30,
+    recoverySeconds: 12,
+    skillEffect: "cooldown-reduction",
+    cooldownReduction: 3,
     role: "เชฟผู้ใจเย็น แต่ขี้วีน ",
     skill: "ลดเวลาคูลดาวน์สกิลให้เพื่อนร่วมทีม โดยไม่รวมตัวเอง",
     stats: [["คูลดาวน์สกิล", "14 วินาที"], ["เวลาเล่น", "30 วินาที"], ["พักฟื้น", "12 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
@@ -167,7 +191,14 @@ const characterDefinitions = [
     id: "baby-pork",
     name: "ทารกหมูเด้ง",
     image: "image/charecter/Baby_Pork.png",
-    skillImage: "animation/animation_skill/Baby_Skill.png",
+    skillImage: "animation/animation_cooldownskill/Baby_Cooldownskill1.png",
+    recoverySprites: [{ href: "animation/animation_cooldownskill/Baby_Cooldownskill1.png", width: 70, height: 85 }, { href: "animation/animation_cooldownskill/Baby_Cooldownskill2.png", width: 140, height: 80 }],
+    skillCooldownSeconds: 10,
+    activeSeconds: 30,
+    recoverySeconds: 7,
+    skillEffect: "cooking-boost",
+    effectDurationSeconds: 10,
+    cookingMultiplier: 1,
     role: "เชฟตัวจิ๋วผู้ว่องไว แต่ขี้โวยวาย",
     skill: "ช่วยให้เพื่อนทำอาหารได้ไวขึ้น แต่ถ้าจุกหลุดจะวิ่งปั่นป่วนทั่วครัว",
     stats: [["คูลดาวน์สกิล", "10 วินาที"], ["เวลาเล่น", "30 วินาที"], ["พักฟื้น", "7 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
@@ -180,8 +211,8 @@ const characterDefinitions = [
   }
 ];
 const keyboardControls = {
-  keyboard1: { left: "a", right: "d", up: "w", down: "s", interact: "e", label: "E" },
-  keyboard2: { left: "arrowleft", right: "arrowright", up: "arrowup", down: "arrowdown", interact: "enter", label: "Enter" }
+  keyboard1: { left: "a", right: "d", up: "w", down: "s", interact: "e", skill: "q", label: "E", skillLabel: "Q" },
+  keyboard2: { left: "arrowleft", right: "arrowright", up: "arrowup", down: "arrowdown", interact: "enter", skill: "\\", label: "Enter", skillLabel: "\\" }
 };
 
 objects.forEach(({ element, name }) => {
@@ -217,6 +248,7 @@ let characterSelectionMode = "solo";
 let characterSelectionConfigs = [];
 let characterSelectionIndex = 0;
 let pendingCharacterId = null;
+let customerOrderBonusUntil = 0;
 
 function createEmptyCookingStations() {
   return Object.fromEntries([...cookingStationTools.keys()].map((stationId) => [stationId, null]));
@@ -274,7 +306,8 @@ function revealCustomerOrder(customer) {
   if (customer.orderVisible) return;
   const createdAt = Date.now();
   customer.order.createdAt = createdAt;
-  customer.order.expiresAt = createdAt + orderLifetime;
+  const bonus = createdAt < customerOrderBonusUntil ? 10000 : 0;
+  customer.order.expiresAt = createdAt + orderLifetime + bonus;
   customer.orderVisible = true;
   orders.push(customer.order);
   renderOrders();
@@ -378,9 +411,24 @@ function getCharacterDefinition(characterId) {
   return characterDefinitions.find((character) => character.id === characterId) || characterDefinitions[0];
 }
 
+function getCharacterStats(character) {
+  return [
+    ["คูลดาวน์สกิล", `${character.skillCooldownSeconds} วินาที`],
+    ["เวลาเล่น", `${character.activeSeconds} วินาที`],
+    ["พักฟื้น", `${character.recoverySeconds} วินาที`],
+    ["การเคลื่อนไหว", character.id === "boar" ? "ช้าลง 1.5 เท่า" : "ปกติ"]
+  ];
+}
+
 function getPlayerSprite(player, direction = player.direction, frameIndex = 0) {
   const sprites = player.character?.sprites?.[direction] || characterDefinitions[0].sprites[direction];
   return sprites[frameIndex % sprites.length];
+}
+
+function getRecoverySprite(player) {
+  const frames = player.character?.recoverySprites || [getPlayerSprite(player, "down")];
+  const recoveryFrame = Date.now() - player.recoveryStartedAt < 1000 ? 0 : 1;
+  return frames[Math.min(recoveryFrame, frames.length - 1)];
 }
 
 function createPlayerElement(player) {
@@ -400,9 +448,13 @@ function createPlayerElement(player) {
   const badgeText = svgElement("text", { y: 4 });
   badgeText.textContent = player.source.startsWith("keyboard") ? keyboardControls[player.source].label : "แตะ";
   badge.append(badgeText);
-  group.append(held, shadow, ring, sprite, label, badge);
+  const statusBadge = svgElement("g", { class: "player-status-badge", transform: "translate(0 -108)", opacity: 0 });
+  statusBadge.append(svgElement("rect", { x: -58, y: -13, width: 116, height: 24, rx: 12 }));
+  const statusText = svgElement("text", { y: 4 });
+  statusBadge.append(statusText);
+  group.append(held, shadow, ring, sprite, label, badge, statusBadge);
   playerLayer.append(group);
-  player.elements = { group, held, heldImages, sprite, label, badge };
+  player.elements = { group, held, heldImages, sprite, label, badge, statusBadge, statusText };
   renderHeldItem(player);
 }
 
@@ -424,6 +476,13 @@ function createPlayer(config, index) {
     direction: "down",
     lastSpriteKey: "",
     riceChoice: null,
+    skillCooldownUntil: 0,
+    activeUntil: 0,
+    recoveryUntil: 0,
+    recoveryStartedAt: 0,
+    cookingBoostUntil: 0,
+    cookingBoostMultiplier: 1,
+    lastAbilityStateKey: "",
     connected: config.connected !== false,
     stats: { ordersServed: 0 },
     elements: null
@@ -443,6 +502,18 @@ function setPlayerPosition(player) {
 }
 
 function updatePlayerSprite(player, dx = 0, dy = 0, moving = false, timestamp = performance.now()) {
+  if (player.recoveryUntil > Date.now()) {
+    const recoverySprite = getRecoverySprite(player);
+    const spriteKey = `recovery-${recoverySprite.href}`;
+    if (spriteKey === player.lastSpriteKey) return;
+    player.elements.sprite.setAttribute("href", recoverySprite.href);
+    player.elements.sprite.setAttribute("x", `${-recoverySprite.width / 2}`);
+    player.elements.sprite.setAttribute("y", `${30 - recoverySprite.height}`);
+    player.elements.sprite.setAttribute("width", `${recoverySprite.width}`);
+    player.elements.sprite.setAttribute("height", `${recoverySprite.height}`);
+    player.lastSpriteKey = spriteKey;
+    return;
+  }
   if (moving) {
     if (Math.abs(dx) >= Math.abs(dy)) player.direction = dx < 0 ? "left" : "right";
     else player.direction = dy < 0 ? "up" : "down";
@@ -487,6 +558,7 @@ function setMessage(text) {
 
 function sendControllerState(player, extra = {}) {
   if (!relaySocket || player.source !== "phone") return;
+  const ability = getAbilityState(player);
   relaySocket.emit("local-host:controller-state", {
     playerId: player.id,
     state: {
@@ -494,14 +566,142 @@ function sendControllerState(player, extra = {}) {
       name: player.name,
       color: player.color,
       canChooseRice: Boolean(player.riceChoice),
+      canUseSkill: ability.canUseSkill,
+      recovering: ability.recovering,
+      recoveryRemaining: ability.recoveryRemaining,
+      skillCooldownRemaining: ability.skillCooldownRemaining,
+      skillLabel: ability.skillLabel,
+      skillKey: ability.skillKey,
       ...extra
     }
   });
 }
 
+function getAbilityState(player, now = Date.now()) {
+  const recoveryRemaining = Math.max(0, Math.ceil((player.recoveryUntil - now) / 1000));
+  const skillCooldownRemaining = Math.max(0, Math.ceil((player.skillCooldownUntil - now) / 1000));
+  const recovering = player.recoveryUntil > now;
+  return {
+    canUseSkill: gameRunning && player.connected && !player.riceChoice && !recovering && skillCooldownRemaining === 0,
+    recovering,
+    recoveryRemaining,
+    skillCooldownRemaining,
+    skillLabel: player.character.skill,
+    skillKey: player.source.startsWith("keyboard") ? keyboardControls[player.source].skillLabel : "สกิล"
+  };
+}
+
+function renderPlayerAbilityState(player, now = Date.now()) {
+  const state = getAbilityState(player, now);
+  if (player.elements?.statusBadge) {
+    const visible = state.recovering || state.skillCooldownRemaining > 0;
+    player.elements.statusBadge.setAttribute("opacity", visible ? "1" : "0");
+    player.elements.statusText.textContent = state.recovering
+      ? `พักฟื้น ${state.recoveryRemaining}`
+      : `สกิลคูลดาวน์ ${state.skillCooldownRemaining}`;
+  }
+  const stateKey = `${state.canUseSkill}-${state.recovering}-${state.recoveryRemaining}-${state.skillCooldownRemaining}`;
+  if (stateKey !== player.lastAbilityStateKey) {
+    player.lastAbilityStateKey = stateKey;
+    sendControllerState(player, state);
+  }
+  return state;
+}
+
+function resetPlayerAbilityState(player, now = Date.now()) {
+  player.skillCooldownUntil = 0;
+  player.activeUntil = now + player.character.activeSeconds * 1000;
+  player.recoveryUntil = 0;
+  player.recoveryStartedAt = 0;
+  player.cookingBoostUntil = 0;
+  player.cookingBoostMultiplier = 1;
+  player.lastAbilityStateKey = "";
+  player.lastSpriteKey = "";
+}
+
+function endPlayerRecovery(player, now = Date.now()) {
+  player.recoveryUntil = 0;
+  player.activeUntil = now + player.character.activeSeconds * 1000;
+  player.lastSpriteKey = "";
+  updatePlayerSprite(player);
+  setMessage(`${player.name} ฟื้นฟูแล้ว กลับมาเล่นต่อได้`);
+  renderPlayerAbilityState(player, now);
+}
+
+function beginPlayerRecovery(player, now = Date.now()) {
+  if (player.recoveryUntil > now) return;
+  player.activeUntil = 0;
+  player.recoveryStartedAt = now;
+  player.recoveryUntil = now + player.character.recoverySeconds * 1000;
+  player.input = { left: false, right: false, up: false, down: false };
+  if (player.riceChoice) {
+    player.riceChoice = null;
+    renderRiceChoices();
+  }
+  player.lastSpriteKey = "";
+  updatePlayerSprite(player);
+  setMessage(`${player.name} เหนื่อยแล้ว เข้าสู่สถานะพักฟื้น ${player.character.recoverySeconds} วินาที`);
+  renderPlayerAbilityState(player, now);
+}
+
+function updatePlayerAbilityState(player, now = Date.now()) {
+  if (player.recoveryUntil > 0) {
+    if (player.recoveryUntil <= now) endPlayerRecovery(player, now);
+    return;
+  }
+  if (player.activeUntil > 0 && player.activeUntil <= now) beginPlayerRecovery(player, now);
+}
+
+function usePlayerSkill(player) {
+  if (!gameRunning || !player || !player.connected) return;
+  const now = Date.now();
+  const state = getAbilityState(player, now);
+  if (state.recovering) return setPlayerMessage(player, `กำลังพักฟื้นอีก ${state.recoveryRemaining} วินาที`);
+  if (state.skillCooldownRemaining > 0) return setPlayerMessage(player, `สกิลยังคูลดาวน์อีก ${state.skillCooldownRemaining} วินาที`);
+  if (player.riceChoice) return;
+
+  player.skillCooldownUntil = now + player.character.skillCooldownSeconds * 1000;
+  const effectDurationMs = (player.character.effectDurationSeconds || 0) * 1000;
+  if (player.character.skillEffect === "customer-surge") {
+    spawnCustomerBatch();
+    spawnCustomerBatch();
+    setPlayerMessage(player, "ใช้สกิลเรียกลูกค้าแล้ว");
+  } else if (player.character.skillEffect === "cooking-boost") {
+    players.filter((teammate) => teammate !== player && teammate.connected).forEach((teammate) => {
+      teammate.cookingBoostUntil = now + effectDurationMs;
+      teammate.cookingBoostMultiplier = player.character.cookingMultiplier || 0.5;
+    });
+    setPlayerMessage(player, `เพื่อนร่วมทีมทำอาหารเร็วขึ้น ${player.character.effectDurationSeconds} วินาที`);
+  } else if (player.character.skillEffect === "order-time-boost") {
+    const bonusMs = (player.character.orderBonusSeconds || 0) * 1000;
+    customerOrderBonusUntil = now + effectDurationMs;
+    orders.forEach((order) => { order.expiresAt += bonusMs; });
+    renderOrders();
+    setPlayerMessage(player, "ลูกค้าใจเย็นลง ออเดอร์มีเวลารอเพิ่มขึ้น");
+  } else if (player.character.skillEffect === "cooldown-reduction") {
+    const reduction = player.character.cooldownReduction || 0.5;
+    players.filter((teammate) => teammate !== player && teammate.connected && teammate.skillCooldownUntil > now).forEach((teammate) => {
+      const remaining = teammate.skillCooldownUntil - now;
+      teammate.skillCooldownUntil = now + Math.ceil(remaining * reduction);
+      teammate.lastAbilityStateKey = "";
+    });
+    setPlayerMessage(player, "ลดเวลาคูลดาวน์สกิลให้เพื่อนร่วมทีมแล้ว");
+  } else if (player.character.skillEffect === "reset-recovery") {
+    players.filter((teammate) => teammate !== player && teammate.connected && teammate.recoveryUntil > now)
+      .forEach((teammate) => endPlayerRecovery(teammate, now));
+    setPlayerMessage(player, "รีเซ็ตสถานะพักฟื้นของเพื่อนร่วมทีมแล้ว");
+  }
+  renderPlayerAbilityState(player, now);
+}
+
 function setPlayerMessage(player, text) {
   setMessage(`${player.name}: ${text}`);
   sendControllerState(player, { message: text });
+}
+
+function getCookingDuration(player) {
+  const boosted = player.cookingBoostUntil > Date.now();
+  return boosted ? 2000 * player.cookingBoostMultiplier : 2000;
 }
 
 function updatePlayerPrompt(player) {
@@ -538,7 +738,7 @@ function renderCookingStatuses() {
         }));
       });
     } else {
-      const progress = station.phase === "ready" ? 1 : Math.min(1, (Date.now() - station.startedAt) / 2000);
+      const progress = station.phase === "ready" ? 1 : Math.min(1, (Date.now() - station.startedAt) / (station.duration || 2000));
       label.textContent = station.phase === "ready" ? "พร้อมใส่จาน" : "กำลังทำ";
       group.append(card, label);
       group.append(svgElement("rect", { x: -53, y: -103, width: 106, height: 8, rx: 4, class: "cooking-progress-track" }));
@@ -567,7 +767,8 @@ function startCooking(player, stationId) {
   station.playerId = player.id;
   station.transformation = transformation;
   station.startedAt = Date.now();
-  setPlayerMessage(player, `กำลังปรุงด้วย${stationLabels[stationId]}... 2 วินาที`);
+  station.duration = getCookingDuration(player);
+  setPlayerMessage(player, `กำลังปรุงด้วย${stationLabels[stationId]}... ${station.duration / 1000} วินาที`);
   cancelAnimationFrame(cookingAnimationId);
   cookingAnimationId = requestAnimationFrame(animateCookingStatuses);
   station.timeoutId = window.setTimeout(() => {
@@ -577,7 +778,7 @@ function startCooking(player, stationId) {
     current.output = transformation.output;
     renderCookingStatuses();
     setMessage(`อาหารที่${stationLabels[stationId]}พร้อมใส่จานแล้ว`);
-  }, 2000);
+  }, station.duration);
 }
 
 function chooseRice(player, requestedRice) {
@@ -625,6 +826,7 @@ function renderRiceChoices() {
 
 function interactPlayer(player) {
   if (!gameRunning || !player || !player.connected) return;
+  if (player.recoveryUntil > Date.now()) return setPlayerMessage(player, `กำลังพักฟื้นอีก ${Math.ceil((player.recoveryUntil - Date.now()) / 1000)} วินาที`);
   if (player.riceChoice) return chooseRice(player, player.riceChoice.selected);
   const nearest = nearestObject(player);
   if (!nearest.object || nearest.distance >= interactionDistance) return setPlayerMessage(player, "เดินเข้าใกล้สถานีก่อน");
@@ -709,7 +911,7 @@ function interactPlayer(player) {
 }
 
 function inputForPlayer(player) {
-  if (!player.connected || player.riceChoice) return { left: false, right: false, up: false, down: false };
+  if (!player.connected || player.riceChoice || player.recoveryUntil > Date.now()) return { left: false, right: false, up: false, down: false };
   if (player.source === "phone") return player.input;
   if (mode === "solo") {
     return {
@@ -737,6 +939,8 @@ function gameLoop(timestamp) {
   updateCustomers(delta);
   let someoneMoving = false;
   players.forEach((player) => {
+    updatePlayerAbilityState(player);
+    renderPlayerAbilityState(player);
     const input = inputForPlayer(player);
     let dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     let dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
@@ -824,12 +1028,15 @@ function resetRoundState() {
   score = 0;
   secondsLeft = roundDurationSeconds;
   orders = [];
+  customerOrderBonusUntil = 0;
   clearCustomers();
   cookingStations = createEmptyCookingStations();
   scoreElement.textContent = "0";
   timerElement.textContent = `${secondsLeft}`;
   timerElement.classList.remove("warning");
   createCustomer({ revealOnEntry: true, startY: customerEnterThreshold });
+  const now = Date.now();
+  players.forEach((player) => resetPlayerAbilityState(player, now));
   renderOrders();
   renderCookingStatuses();
 }
@@ -909,7 +1116,7 @@ function openCharacterDetails(characterId) {
   characterDetailRole.textContent = character.role;
   characterDetailSkill.textContent = character.skill;
   characterDetailStats.replaceChildren();
-  character.stats.forEach(([label, value]) => {
+  getCharacterStats(character).forEach(([label, value]) => {
     const stat = document.createElement("div");
     stat.className = "character-stat";
     const statLabel = document.createElement("span");
@@ -948,7 +1155,7 @@ function startRound() {
   resetRoundState();
   showScreen(gameScreen);
   gameRunning = true;
-  setMessage(mode === "solo" ? "ใช้ WASD หรือลูกศรเพื่อเดิน และ E เพื่อโต้ตอบ" : "ช่วยกันทำอาหาร ผู้เล่นแต่ละคนใช้ปุ่มโต้ตอบของตัวเอง");
+  setMessage(mode === "solo" ? "เดินด้วย WASD/ลูกศร • E โต้ตอบ • Q ใช้สกิล" : "ช่วยกันทำอาหาร • โต้ตอบด้วยปุ่มของผู้เล่น • ใช้สกิลด้วย Q หรือ \\");
   players.forEach((player) => sendControllerState(player, { phase: "playing", message: "เกมเริ่มแล้ว!" }));
   if (mode === "local") relaySocket?.emit("local-host:phase", { phase: "playing" });
   timerId = window.setInterval(() => {
@@ -1259,6 +1466,7 @@ async function connectPhoneRelay() {
         const player = players.find((item) => item.id === playerId && item.source === "phone");
         if (!player) return;
         if (action === "interact") interactPlayer(player);
+        else if (action === "skill") usePlayerSkill(player);
         else if (action === "rice-steamed") chooseRice(player, "steamed");
         else if (action === "rice-sticky") chooseRice(player, "sticky");
         else if (action === "rice-cancel") cancelRiceChoice(player);
@@ -1350,6 +1558,11 @@ function playerForControlKey(key) {
   return players.find((player) => player.source.startsWith("keyboard") && keyboardControls[player.source].interact === key);
 }
 
+function playerForSkillKey(key) {
+  if (mode === "solo") return key === keyboardControls.keyboard1.skill ? players[0] : null;
+  return players.find((player) => player.source.startsWith("keyboard") && keyboardControls[player.source].skill === key);
+}
+
 function handleRiceNavigation(key) {
   const player = players.find((item) => {
     if (!item.riceChoice || !item.source.startsWith("keyboard")) return false;
@@ -1383,6 +1596,7 @@ lanAddress.addEventListener("change", renderJoinOption);
 [keyboard1Enabled, keyboard2Enabled].forEach((input) => input.addEventListener("change", renderLocalSetup));
 [keyboard1Name, keyboard2Name].forEach((input) => input.addEventListener("input", renderLocalSetup));
 mobileInteractButton.addEventListener("click", () => interactPlayer(players[0]));
+mobileSkillButton.addEventListener("click", () => usePlayerSkill(players[0]));
 directionButtons.forEach((button) => {
   button.addEventListener("pointerdown", (event) => {
     event.preventDefault();
@@ -1405,7 +1619,7 @@ window.addEventListener("keydown", (event) => {
   if (!startScreen.hidden) syncLobbyMusic(true);
   if (!gameScreen.hidden) syncGameMusic(true);
   const key = event.key.toLowerCase();
-  if (["arrowleft", "arrowright", "arrowup", "arrowdown", " ", "enter"].includes(key) && !gameScreen.hidden) event.preventDefault();
+  if (["arrowleft", "arrowright", "arrowup", "arrowdown", " ", "enter", "\\"].includes(key) && !gameScreen.hidden) event.preventDefault();
   if (!gameRunning && !characterScreen.hidden && key === "escape") {
     if (characterDetailModal.hidden) cancelCharacterSelection();
     else closeCharacterDetails();
@@ -1417,6 +1631,11 @@ window.addEventListener("keydown", (event) => {
     return;
   }
   if (handleRiceNavigation(key)) return;
+  const skillPlayer = playerForSkillKey(key);
+  if (skillPlayer && !event.repeat) {
+    usePlayerSkill(skillPlayer);
+    return;
+  }
   const player = playerForControlKey(key);
   if (player && !event.repeat) {
     interactPlayer(player);

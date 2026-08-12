@@ -99,6 +99,9 @@ async function main() {
   const actionPromise = host.waitFor("local-host:action", ({ playerId, action }) => playerId === joinedB.playerId && action === "interact");
   controllerB.emit("local-controller:action", { action: "interact" });
   assert.equal((await actionPromise).action, "interact");
+  const skillPromise = host.waitFor("local-host:action", ({ playerId, action }) => playerId === joinedB.playerId && action === "skill");
+  controllerB.emit("local-controller:action", { action: "skill" });
+  assert.equal((await skillPromise).action, "skill");
 
   const statePromise = controllerA.waitFor("local-controller:state", (state) => state.canChooseRice === true);
   host.emit("local-host:controller-state", { playerId: joinedA.playerId, state: { canChooseRice: true, message: "เลือกข้าว" } });
