@@ -64,9 +64,12 @@ async function main() {
   assert.deepEqual(await host.evaluate("({ count: localPlayerCount.textContent, rows: localPlayerList.children.length, startDisabled: startLocalButton.disabled })"), {
     count: "2/5", rows: 2, startDisabled: false
   });
-  await host.evaluate("startLocalButton.click(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
+  await host.evaluate("startLocalButton.click()");
+  assert.equal(await host.evaluate("characterGrid.children.length"), 5, "local co-op opens character selection");
+  await host.evaluate("characterGrid.querySelector('[data-character-id=grilled-pork]').click(); characterConfirmButton.click(); characterGrid.querySelector('[data-character-id=angel-pork]').click(); characterConfirmButton.click(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
   assert.equal(await host.evaluate("players.length"), 2);
   assert.deepEqual(await host.evaluate("players.map((player) => player.source)"), ["keyboard1", "keyboard2"]);
+  assert.deepEqual(await host.evaluate("players.map((player) => player.characterId)"), ["grilled-pork", "angel-pork"]);
   const before = await host.evaluate("players.map((player) => player.x)");
   await host.evaluate(`(() => {
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "d" }));
@@ -102,7 +105,7 @@ async function main() {
     phone.waitFor("!controlsView.hidden")
   ]);
   assert.equal(await host.evaluate("localPlayerCount.textContent"), "2/5");
-  await host.evaluate("startLocalButton.click(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
+  await host.evaluate("startLocalButton.click(); characterGrid.querySelector('[data-character-id=grilled-pork]').click(); characterConfirmButton.click(); characterGrid.querySelector('[data-character-id=angel-pork]').click(); characterConfirmButton.click(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
   assert.deepEqual(await host.evaluate("players.map((player) => player.source)"), ["keyboard1", "phone"]);
   await phone.waitFor("latestState.phase === 'playing' && !gameControls.hidden");
   await host.send("Page.bringToFront");

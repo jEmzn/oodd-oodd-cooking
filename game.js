@@ -1,5 +1,6 @@
 const startScreen = document.querySelector("#start-screen");
 const multiplayerScreen = document.querySelector("#multiplayer-screen");
+const characterScreen = document.querySelector("#character-screen");
 const gameScreen = document.querySelector("#game-screen");
 const resultsScreen = document.querySelector("#results-screen");
 const playButton = document.querySelector("#play-button");
@@ -21,6 +22,22 @@ const localSessionCode = document.querySelector("#local-session-code");
 const setupMessage = document.querySelector("#setup-message");
 const playAgainButton = document.querySelector("#play-again-button");
 const resultsButton = document.querySelector("#results-button");
+const characterSelectionCopy = document.querySelector("#character-selection-copy");
+const characterProgress = document.querySelector("#character-progress");
+const characterGrid = document.querySelector("#character-grid");
+const characterRoster = document.querySelector("#character-roster");
+const characterRosterHint = document.querySelector("#character-roster-hint");
+const characterBackButton = document.querySelector("#character-back-button");
+const characterDetailModal = document.querySelector("#character-detail-modal");
+const characterModalClose = document.querySelector("#character-modal-close");
+const characterCancelButton = document.querySelector("#character-cancel-button");
+const characterConfirmButton = document.querySelector("#character-confirm-button");
+const characterDetailImage = document.querySelector("#character-detail-image");
+const characterDetailSkillImage = document.querySelector("#character-detail-skill-image");
+const characterDetailName = document.querySelector("#character-detail-name");
+const characterDetailRole = document.querySelector("#character-detail-role");
+const characterDetailSkill = document.querySelector("#character-detail-skill");
+const characterDetailStats = document.querySelector("#character-detail-stats");
 const fullscreenButton = document.querySelector("#fullscreen-button");
 const mobileInteractButton = document.querySelector("#mobile-interact-button");
 const directionButtons = [...document.querySelectorAll("[data-direction]")];
@@ -29,10 +46,12 @@ const exitGameButton = document.querySelector("#exit-game-button");
 const resultsList = document.querySelector("#results-list");
 const resultsScore = document.querySelector("#results-score");
 const playerLayer = document.querySelector("#players");
+const customerLayer = document.querySelector("#customers");
 const cookingStatuses = document.querySelector("#cooking-statuses");
 const riceChoices = document.querySelector("#rice-choices");
 const timerElement = document.querySelector("#timer");
 const scoreElement = document.querySelector("#score");
+const orderCard = document.querySelector("#order-card");
 const orderList = document.querySelector("#order-list");
 const message = document.querySelector("#game-message");
 const walkingSound = new Audio("Sound/walking-for-cartoon.mp3");
@@ -66,34 +85,100 @@ const cookingStationTools = new Map(objects.filter((object) => object.tool).map(
 const standalonePickupItems = { meat: "meat", vegetable: "vegetable", egg: "egg", sauce: "sauce" };
 const menus = cookingData.menus;
 const maxPlayers = 5;
-const maxOrders = 2;
 const orderLifetime = 60000;
-const roundDurationSeconds = 120;
+const roundDurationSeconds = 300;
 const playerSpeed = 270;
 const playerRadius = 32;
 const interactionDistance = playerRadius + 72;
+const serveStationPosition = objects.find((object) => object.name === "serve") || { x: 500, y: 470 };
+const customerEntry = { x: serveStationPosition.x, y: 660 };
+const customerServicePoint = { x: serveStationPosition.x, y: serveStationPosition.y + 60 };
+const customerQueueSpacing = 48;
+const customerEnterThreshold = 600;
+const customerWalkSpeed = 120;
+const customerArrivalInterval = 12000;
+const maxCustomers = 4;
 const playerColors = ["#ba6849", "#4d8f9d", "#64834f", "#b87c2b", "#8d63a8"];
 const spawnPositions = [
   { x: 430, y: 335 }, { x: 500, y: 335 }, { x: 570, y: 335 }, { x: 465, y: 405 }, { x: 535, y: 405 }
 ];
-const playerSprites = {
-  down: [
-    { href: "pork_nae_animation/Stand%20Still.png", width: 132, height: 74 },
-    { href: "pork_nae_animation/Stand%20Still.png", width: 132, height: 74 }
-  ],
-  up: [
-    { href: "pork_nae_animation/Stand%20Still.png", width: 132, height: 74 },
-    { href: "pork_nae_animation/Walk%20Forward.png", width: 132, height: 74 }
-  ],
-  left: [
-    { href: "pork_nae_animation/Stand%20Still.png", width: 132, height: 74 },
-    { href: "pork_nae_animation/Walk%20towards%20the%20left%20side.png", width: 132, height: 74 }
-  ],
-  right: [
-    { href: "pork_nae_animation/Stand%20Still.png", width: 132, height: 74 },
-    { href: "pork_nae_animation/Walk%20towards%20the%20right%20side.png", width: 132, height: 74 }
-  ]
-};
+const characterDefinitions = [
+  {
+    id: "grilled-pork",
+    name: "พี่หมูปิ้ง",
+    image: "image/charecter/Grilled_Pork.png",
+    skillImage: "animation/animation_skill/Grill_Skill.png",
+    role: "เชฟผู้ดูแลจังหวะของร้าน",
+    skill: "ทำให้ลูกค้าใจเย็นลง เพิ่มเวลารออาหารของทุกเมนูในช่วงที่กดสกิลเท่านั้น",
+    stats: [["คูลดาวน์สกิล", "9 วินาที"], ["เวลาเล่น", "40 วินาที"], ["พักฟื้น", "9 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
+    sprites: {
+      down: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 92 }, { href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height:92 }],
+      up: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 92 }, { href: "animation/animation_walk/Grilled_Pork_animation/Walk%20Forward.png", width: 69, height: 92 }],
+      left: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 92 }, { href: "animation/animation_walk/Grilled_Pork_animation/Walk%20towards%20the%20left%20side.png", width: 66, height: 92 }],
+      right: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 92 }, { href: "animation/animation_walk/Grilled_Pork_animation/Walk%20towards%20the%20right%20side.png", width: 63, height: 92 }]
+    }
+  },
+  {
+    id: "angel-pork",
+    name: "นางฟ้าหมูจิ๋ว",
+    image: "image/charecter/Angel_pork.png",
+    skillImage: "animation/animation_skill/Angel_Skill.png",
+    role: "เชฟผู้เรียกลูกค้า",
+    skill: "เรียกลูกค้าเข้าร้าน เพิ่มจำนวนลูกค้าเข้าร้านมากขึ้น แต่จะเหนื่อยง่ายหลังใช้สกิล",
+    stats: [["คูลดาวน์สกิล", "8 วินาที"], ["เวลาเล่น", "25 วินาที"], ["พักฟื้น", "5 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
+    sprites: {
+      down: [{ href: "animation/animation_walk/Angel_Pork_animation/Stand%20Still.png", width: 220, height: 80 }, { href: "animation/animation_walk/Angel_Pork_animation/Stand%20Still.png", width: 220, height: 80 }],
+      up: [{ href: "animation/animation_walk/Angel_Pork_animation/Stand%20Still.png", width: 220, height: 80 }, { href: "animation/animation_walk/Angel_Pork_animation/Walk%20Forward.png", width: 220, height: 80 }],
+      left: [{ href: "animation/animation_walk/Angel_Pork_animation/Stand%20Still.png", width: 220, height: 80 }, { href: "animation/animation_walk/Angel_Pork_animation/Walk%20towards%20the%20left%20side.png", width: 220, height: 80 }],
+      right: [{ href: "animation/animation_walk/Angel_Pork_animation/Stand%20Still.png", width: 220, height: 80 }, { href: "animation/animation_walk/Angel_Pork_animation/Walk%20towards%20the%20right%20side.png", width: 220, height: 80 }]
+    }
+  },
+  {
+    id: "boar",
+    name: "ลุงหมูป่า",
+    image: "image/charecter/Boar.png",
+    skillImage: "animation/animation_skill/Boar_Skill.png",
+    role: "เชฟสายอึดของทีม",
+    skill: "รีเซ็ตเวลาพักฟื้นของเพื่อนร่วมทีมทุกคนให้กลับมาเป็นปกติได้ในช่วงที่กดสกิล",
+    stats: [["คูลดาวน์สกิล", "12 วินาที"], ["เวลาเล่น", "50 นาที"], ["พักฟื้น", "15 วินาที"], ["การเคลื่อนไหว", "ช้าลง 1.5 เท่า"]],
+    sprites: {
+      down: [{ href: "animation/animation_walk/Boar_animation/Stand%20Still.png", width: 72, height: 95 }, { href: "animation/animation_walk/Boar_animation/Stand%20Still.png", width: 72, height: 95 }],
+      up: [{ href: "animation/animation_walk/Boar_animation/Stand%20Still.png", width: 72, height: 95 }, { href: "animation/animation_walk/Boar_animation/Walk%20Forward.png", width: 75, height: 95 }],
+      left: [{ href: "animation/animation_walk/Boar_animation/Stand%20Still.png", width: 72, height: 95 }, { href: "animation/animation_walk/Boar_animation/Walk%20towards%20the%20left%20side.png", width: 64, height: 95 }],
+      right: [{ href: "animation/animation_walk/Boar_animation/Stand%20Still.png", width: 72, height: 95 }, { href: "animation/animation_walk/Boar_animation/Walk%20towards%20the%20right%20side.png", width: 88, height: 95 }]
+    }
+  },
+  {
+    id: "rek-pork",
+    name: "น้องเร้กหมูตุ๋น",
+    image: "image/charecter/Rek_Pork.png",
+    skillImage: "animation/animation_skill/Rek_Skill.png",
+    role: "เชฟซัพพอร์ตสายคูลดาวน์",
+    skill: "ลดเวลาคูลดาวน์สกิลให้เพื่อนร่วมทีม โดยไม่รวมตัวเอง",
+    stats: [["คูลดาวน์สกิล", "14 วินาที"], ["เวลาเล่น", "30 วินาที"], ["พักฟื้น", "12 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
+    sprites: {
+      down: [{ href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 80 }, { href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 80 }],
+      up: [{ href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 80 }, { href: "animation/animation_walk/Rek_Pork_animation/Walk%20Forward.png", width: 71, height: 80 }],
+      left: [{ href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 80 }, { href: "animation/animation_walk/Rek_Pork_animation/Walk%20towards%20the%20left%20side.png", width: 78, height: 80 }],
+      right: [{ href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 80 }, { href: "animation/animation_walk/Rek_Pork_animation/Walk%20towards%20the%20right%20side.png", width: 66, height: 80 }]
+    }
+  },
+  {
+    id: "baby-pork",
+    name: "ทารกหมูเด้ง",
+    image: "image/charecter/Baby_Pork.png",
+    skillImage: "animation/animation_skill/Baby_Skill.png",
+    role: "เชฟตัวจิ๋วผู้เร่งการทำอาหาร",
+    skill: "ช่วยให้เพื่อนทำอาหารได้ไวขึ้น แต่ถ้าจุกหลุดจะวิ่งปั่นป่วนทั่วครัว",
+    stats: [["คูลดาวน์สกิล", "10 วินาที"], ["เวลาเล่น", "30 วินาที"], ["พักฟื้น", "7 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
+    sprites: {
+      down: [{ href: "animation/animation_walk/Baby_Pork_animation/Stand%20Still.png", width: 67, height: 60 }, { href: "animation/animation_walk/Baby_Pork_animation/Stand%20Still.png", width: 67, height: 60 }],
+      up: [{ href: "animation/animation_walk/Baby_Pork_animation/Stand%20Still.png", width: 67, height: 60 }, { href: "animation/animation_walk/Baby_Pork_animation/Walk%20Forward.png", width: 72, height: 60 }],
+      left: [{ href: "animation/animation_walk/Baby_Pork_animation/Stand%20Still.png", width: 67, height: 60 }, { href: "animation/animation_walk/Baby_Pork_animation/Walk%20towards%20the%20left%20side.png", width: 76, height: 60 }],
+      right: [{ href: "animation/animation_walk/Baby_Pork_animation/Stand%20Still.png", width: 67, height: 60 }, { href: "animation/animation_walk/Baby_Pork_animation/Walk%20towards%20the%20right%20side.png", width: 81, height: 60 }]
+    }
+  }
+];
 const keyboardControls = {
   keyboard1: { left: "a", right: "d", up: "w", down: "s", interact: "e", label: "E" },
   keyboard2: { left: "arrowleft", right: "arrowright", up: "arrowup", down: "arrowdown", interact: "enter", label: "Enter" }
@@ -109,6 +194,7 @@ let players = [];
 let score = 0;
 let secondsLeft = roundDurationSeconds;
 let orders = [];
+let customers = [];
 let cookingStations = createEmptyCookingStations();
 let orderSequence = 0;
 let mode = "solo";
@@ -127,6 +213,10 @@ let relayLoader;
 let localSession;
 let phoneControllers = [];
 let joinOptions = [];
+let characterSelectionMode = "solo";
+let characterSelectionConfigs = [];
+let characterSelectionIndex = 0;
+let pendingCharacterId = null;
 
 function createEmptyCookingStations() {
   return Object.fromEntries([...cookingStationTools.keys()].map((stationId) => [stationId, null]));
@@ -142,6 +232,157 @@ function svgElement(tag, attributes = {}) {
   return element;
 }
 
+const customerSprites = [
+  { href: "image/charecter/customer1.png", width: 64, height: 91 },
+  { href: "image/charecter/customer2.png", width: 57, height: 92 }
+];
+
+function activeCustomers() {
+  return customers.filter((customer) => customer.state !== "exiting");
+}
+
+function customerQueueTarget(customer) {
+  const queueIndex = activeCustomers().indexOf(customer);
+  return {
+    x: customerServicePoint.x,
+    y: customerServicePoint.y + Math.max(0, queueIndex) * customerQueueSpacing
+  };
+}
+
+function setCustomerPosition(customer) {
+  customer.elements.group.setAttribute("transform", `translate(${customer.x} ${customer.y})`);
+}
+
+function createCustomerElement(customer) {
+  const group = svgElement("g", { class: "customer-group", transform: `translate(${customer.x} ${customer.y})` });
+  const shadow = svgElement("ellipse", { class: "customer-shadow", cx: 0, cy: 3, rx: 20, ry: 6 });
+  const sprite = svgElement("image", {
+    class: "customer-sprite",
+    href: customer.sprite.href,
+    x: -customer.sprite.width / 2,
+    y: -customer.sprite.height,
+    width: customer.sprite.width,
+    height: customer.sprite.height,
+    preserveAspectRatio: "xMidYMax meet"
+  });
+  group.append(shadow, sprite);
+  customerLayer.append(group);
+  customer.elements = { group, sprite };
+}
+
+function revealCustomerOrder(customer) {
+  if (customer.orderVisible) return;
+  const createdAt = Date.now();
+  customer.order.createdAt = createdAt;
+  customer.order.expiresAt = createdAt + orderLifetime;
+  customer.orderVisible = true;
+  orders.push(customer.order);
+  renderOrders();
+  setMessage(`ลูกค้าเข้าร้านแล้ว ต้องการ${customer.order.name}`);
+}
+
+function createCustomer({ revealOnEntry = false, startY = customerEntry.y } = {}) {
+  const menu = menus[Math.floor(Math.random() * menus.length)];
+  const createdAt = Date.now();
+  const customer = {
+    id: `customer-${createdAt}-${orderSequence++}`,
+    sprite: customerSprites[Math.floor(Math.random() * customerSprites.length)],
+    x: customerEntry.x,
+    y: startY,
+    targetX: customerServicePoint.x,
+    targetY: customerServicePoint.y,
+    state: "entering",
+    orderVisible: false,
+    order: {
+      id: `local-${createdAt}-${orderSequence++}`,
+      customerId: null,
+      menuId: menu.id,
+      name: menu.name,
+      createdAt: null,
+      expiresAt: null
+    },
+    elements: null
+  };
+  customer.order.customerId = customer.id;
+  customers.push(customer);
+  createCustomerElement(customer);
+  refreshCustomerTargets();
+  if (revealOnEntry) revealCustomerOrder(customer);
+  return customer;
+}
+
+function refreshCustomerTargets() {
+  activeCustomers().forEach((customer) => {
+    const target = customerQueueTarget(customer);
+    customer.targetX = target.x;
+    customer.targetY = target.y;
+  });
+}
+
+function beginCustomerExit(customer) {
+  if (!customer || customer.state === "exiting") return;
+  customer.state = "exiting";
+  customer.targetX = customerEntry.x;
+  customer.targetY = customerEntry.y + 45;
+  refreshCustomerTargets();
+}
+
+function clearCustomers() {
+  customers = [];
+  customerLayer.replaceChildren();
+}
+
+function moveCustomerTowardsTarget(customer, delta) {
+  const dx = customer.targetX - customer.x;
+  const dy = customer.targetY - customer.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance <= customerWalkSpeed * delta || distance < 1) {
+    customer.x = customer.targetX;
+    customer.y = customer.targetY;
+    return true;
+  }
+  customer.x += (dx / distance) * customerWalkSpeed * delta;
+  customer.y += (dy / distance) * customerWalkSpeed * delta;
+  return false;
+}
+
+function updateCustomers(delta) {
+  refreshCustomerTargets();
+  customers.slice().forEach((customer) => {
+    if (customer.state === "exiting") {
+      const leftShop = moveCustomerTowardsTarget(customer, delta);
+      setCustomerPosition(customer);
+      if (leftShop) {
+        customer.elements.group.remove();
+        customers = customers.filter((item) => item !== customer);
+        refreshCustomerTargets();
+      }
+      return;
+    }
+    const reachedQueuePosition = moveCustomerTowardsTarget(customer, delta);
+    if (!customer.orderVisible && customer.y <= customerEnterThreshold) revealCustomerOrder(customer);
+    if (reachedQueuePosition) customer.state = "waiting";
+    setCustomerPosition(customer);
+  });
+}
+
+function spawnCustomerBatch() {
+  const freeSlots = maxCustomers - activeCustomers().length;
+  if (freeSlots <= 0) return false;
+  const amount = Math.min(freeSlots, Math.random() < 0.25 ? 2 : 1);
+  for (let index = 0; index < amount; index += 1) createCustomer();
+  return true;
+}
+
+function getCharacterDefinition(characterId) {
+  return characterDefinitions.find((character) => character.id === characterId) || characterDefinitions[0];
+}
+
+function getPlayerSprite(player, direction = player.direction, frameIndex = 0) {
+  const sprites = player.character?.sprites?.[direction] || characterDefinitions[0].sprites[direction];
+  return sprites[frameIndex % sprites.length];
+}
+
 function createPlayerElement(player) {
   const group = svgElement("g", { transform: `translate(${player.x} ${player.y})`, class: "local-player" });
   const held = svgElement("g", { transform: "translate(0 -55)", opacity: 0 });
@@ -150,7 +391,8 @@ function createPlayerElement(player) {
   held.append(heldCircle, heldImages);
   const shadow = svgElement("circle", { class: "player-shadow", cy: 27, r: 15 });
   const ring = svgElement("circle", { class: "player-color-ring", cy: 26, r: 22, stroke: player.color });
-  const sprite = svgElement("image", { class: "player-sprite", href: playerSprites.down[0].href, x: -66, y: -44, width: 132, height: 74, preserveAspectRatio: "xMidYMid meet" });
+  const initialSprite = getPlayerSprite(player, "down");
+  const sprite = svgElement("image", { class: "player-sprite", href: initialSprite.href, x: -initialSprite.width / 2, y: 30 - initialSprite.height, width: initialSprite.width, height: initialSprite.height, preserveAspectRatio: "xMidYMid meet" });
   const label = svgElement("text", { class: "local-player-label", y: -48, fill: player.color });
   label.textContent = player.name;
   const badge = svgElement("g", { class: "player-action-badge", transform: "translate(0 -80)", opacity: 0 });
@@ -166,11 +408,14 @@ function createPlayerElement(player) {
 
 function createPlayer(config, index) {
   const spawn = spawnPositions[index] || spawnPositions[0];
+  const character = getCharacterDefinition(config.characterId);
   const player = {
     id: config.id,
     name: sanitizeName(config.name, `ผู้เล่น ${index + 1}`),
     color: playerColors[index],
     source: config.source,
+    characterId: character.id,
+    character,
     x: spawn.x,
     y: spawn.y,
     input: { left: false, right: false, up: false, down: false },
@@ -202,9 +447,9 @@ function updatePlayerSprite(player, dx = 0, dy = 0, moving = false, timestamp = 
     if (Math.abs(dx) >= Math.abs(dy)) player.direction = dx < 0 ? "left" : "right";
     else player.direction = dy < 0 ? "up" : "down";
   }
-  const sprites = playerSprites[player.direction];
-  const frameIndex = moving ? Math.floor(timestamp / 140) % sprites.length : 0;
-  const sprite = sprites[frameIndex];
+  const sprites = player.character.sprites[player.direction];
+  const frameIndex = moving && player.direction !== "down" ? 1 : moving ? Math.floor(timestamp / 140) % sprites.length : 0;
+  const sprite = getPlayerSprite(player, player.direction, frameIndex);
   const spriteKey = `${player.direction}-${frameIndex}`;
   if (spriteKey === player.lastSpriteKey) return;
   player.elements.sprite.setAttribute("href", sprite.href);
@@ -441,17 +686,23 @@ function interactPlayer(player) {
     return setPlayerMessage(player, "ต้องถือวัตถุดิบเพื่อใส่สถานี หรือถือจานเพื่อรับอาหาร");
   }
   const menu = player.plate?.dishId ? menus.find((item) => item.id === player.plate.dishId) : null;
-  const matchingOrder = orders.find((order) => order.menuId === menu?.id);
-  if (matchingOrder) {
-    orders = orders.filter((order) => order.id !== matchingOrder.id);
+  const firstOrder = orders[0];
+  const firstCustomer = firstOrder?.customerId ? customers.find((customer) => customer.id === firstOrder.customerId) : null;
+  if (firstOrder && firstCustomer && firstCustomer.state !== "waiting") {
+    return setPlayerMessage(player, "ลูกค้าคนแรกกำลังเดินมาที่จุดเสิร์ฟ");
+  }
+  if (firstOrder && firstOrder.menuId === menu?.id) {
+    orders = orders.filter((order) => order.id !== firstOrder.id);
+    beginCustomerExit(firstCustomer);
     score += 1;
     player.stats.ordersServed += 1;
     player.plate = null;
     scoreElement.textContent = score;
     renderHeldItem(player);
     renderOrders();
-    return setPlayerMessage(player, "เสิร์ฟออเดอร์สำเร็จ!");
+    return setPlayerMessage(player, "เสิร์ฟออเดอร์สำเร็จ! ลูกค้ากำลังเดินออกจากร้าน");
   }
+  if (firstOrder && menu?.id !== firstOrder.menuId) return setPlayerMessage(player, `ลูกค้าคนแรกต้องการ${firstOrder.name}`);
   if (player.plate?.dishId) return setPlayerMessage(player, "ไม่มีลูกค้ารอเมนูนี้");
   if (Object.values(cookingStations).some((station) => station?.phase === "cooking")) return setPlayerMessage(player, "อาหารยังทำไม่เสร็จ");
   setPlayerMessage(player, "ทำอาหารก่อนนำไปเสิร์ฟ");
@@ -483,6 +734,7 @@ function gameLoop(timestamp) {
   }
   const delta = lastFrameAt ? Math.min((timestamp - lastFrameAt) / 1000, 0.05) : 0;
   lastFrameAt = timestamp;
+  updateCustomers(delta);
   let someoneMoving = false;
   players.forEach((player) => {
     const input = inputForPlayer(player);
@@ -493,8 +745,9 @@ function gameLoop(timestamp) {
       const length = Math.hypot(dx, dy);
       dx /= length;
       dy /= length;
-      player.x = Math.max(65, Math.min(935, player.x + dx * playerSpeed * delta));
-      player.y = Math.max(105, Math.min(555, player.y + dy * playerSpeed * delta));
+      const movementSpeed = player.character.id === "boar" ? playerSpeed / 1.5 : playerSpeed;
+      player.x = Math.max(65, Math.min(935, player.x + dx * movementSpeed * delta));
+      player.y = Math.max(105, Math.min(555, player.y + dy * movementSpeed * delta));
       setPlayerPosition(player);
       someoneMoving = true;
     }
@@ -507,11 +760,8 @@ function gameLoop(timestamp) {
 
 function renderOrders() {
   orderList.replaceChildren();
+  orderCard.hidden = !orders.length;
   if (!orders.length) {
-    const empty = document.createElement("p");
-    empty.className = "order-empty";
-    empty.textContent = "ไม่มีลูกค้ารออยู่";
-    orderList.append(empty);
     return;
   }
   const now = Date.now();
@@ -554,20 +804,19 @@ function renderOrders() {
 }
 
 function generateOrder() {
-  if (orders.length >= maxOrders) return false;
-  const menu = menus[Math.floor(Math.random() * menus.length)];
-  const createdAt = Date.now();
-  orders.push({ id: `local-${createdAt}-${orderSequence++}`, menuId: menu.id, name: menu.name, createdAt, expiresAt: createdAt + orderLifetime });
-  renderOrders();
-  return true;
+  return spawnCustomerBatch();
 }
 
 function expireOrders() {
   const remaining = orders.filter((order) => order.expiresAt > Date.now());
   if (remaining.length !== orders.length) {
+    orders.filter((order) => order.expiresAt <= Date.now()).forEach((order) => {
+      const customer = customers.find((item) => item.id === order.customerId);
+      beginCustomerExit(customer);
+    });
     orders = remaining;
     renderOrders();
-    setMessage("ลูกค้ากลับไปแล้ว ออเดอร์ที่เหลือยังรออยู่");
+    setMessage("ลูกค้าบางคนกลับไปแล้ว ออเดอร์ที่เหลือยังรออยู่");
   }
 }
 
@@ -575,12 +824,123 @@ function resetRoundState() {
   score = 0;
   secondsLeft = roundDurationSeconds;
   orders = [];
+  clearCustomers();
   cookingStations = createEmptyCookingStations();
   scoreElement.textContent = "0";
   timerElement.textContent = `${secondsLeft}`;
   timerElement.classList.remove("warning");
-  generateOrder();
+  createCustomer({ revealOnEntry: true, startY: customerEnterThreshold });
+  renderOrders();
   renderCookingStatuses();
+}
+
+function closeCharacterDetails() {
+  characterDetailModal.hidden = true;
+  pendingCharacterId = null;
+}
+
+function renderCharacterSelection() {
+  const currentConfig = characterSelectionConfigs[characterSelectionIndex];
+  if (!currentConfig) return;
+  const currentCharacterId = currentConfig.characterId;
+  const selectedCount = characterSelectionConfigs.filter((config) => config.characterId).length;
+  const isSolo = characterSelectionMode === "solo";
+  characterSelectionCopy.textContent = isSolo
+    ? "เลือกเชฟของคุณ แล้วดูรายละเอียดสกิลก่อนยืนยัน"
+    : "ผู้เล่นแต่ละคนเลือกเชฟของตัวเอง ตัวละครในทีมจะไม่ซ้ำกัน";
+  characterProgress.textContent = isSolo
+    ? `กำลังเลือกให้ ${currentConfig.name}`
+    : `ผู้เล่น ${characterSelectionIndex + 1}/${characterSelectionConfigs.length}: ${currentConfig.name}`;
+  characterRosterHint.textContent = `เลือกแล้ว ${selectedCount}/${characterSelectionConfigs.length} คน`;
+  characterGrid.replaceChildren();
+  characterDefinitions.forEach((character) => {
+    const occupiedByOther = characterSelectionConfigs.some((config, index) => index !== characterSelectionIndex && config.characterId === character.id);
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = `character-card${currentCharacterId === character.id ? " is-selected" : ""}`;
+    card.dataset.characterId = character.id;
+    card.disabled = occupiedByOther;
+    card.setAttribute("aria-label", `เลือก${character.name}`);
+    const imageWrap = document.createElement("span");
+    imageWrap.className = "character-card-image-wrap";
+    const image = document.createElement("img");
+    image.src = character.image;
+    image.alt = character.name;
+    imageWrap.append(image);
+    const name = document.createElement("h3");
+    name.textContent = character.name;
+    const role = document.createElement("small");
+    role.textContent = character.role;
+    card.append(imageWrap, name, role);
+    if (currentCharacterId === character.id) {
+      const check = document.createElement("span");
+      check.className = "character-card-check";
+      check.textContent = "✓";
+      card.append(check);
+    }
+    card.addEventListener("click", () => openCharacterDetails(character.id));
+    characterGrid.append(card);
+  });
+  characterRoster.replaceChildren();
+  characterSelectionConfigs.forEach((config, index) => {
+    const item = document.createElement("div");
+    item.className = `character-roster-item${index === characterSelectionIndex ? " active" : ""}`;
+    const image = document.createElement("img");
+    const character = config.characterId ? getCharacterDefinition(config.characterId) : null;
+    image.src = character?.image || "image/charecter/Baby_Pork.png";
+    image.alt = character?.name || "ยังไม่ได้เลือก";
+    const copy = document.createElement("span");
+    copy.textContent = config.name;
+    const selected = document.createElement("small");
+    selected.textContent = character?.name || "รอเลือก";
+    copy.append(selected);
+    item.append(image, copy);
+    characterRoster.append(item);
+  });
+}
+
+function openCharacterDetails(characterId) {
+  const character = getCharacterDefinition(characterId);
+  pendingCharacterId = character.id;
+  characterDetailImage.src = character.image;
+  characterDetailImage.alt = character.name;
+  characterDetailSkillImage.src = character.skillImage;
+  characterDetailName.textContent = character.name;
+  characterDetailRole.textContent = character.role;
+  characterDetailSkill.textContent = character.skill;
+  characterDetailStats.replaceChildren();
+  character.stats.forEach(([label, value]) => {
+    const stat = document.createElement("div");
+    stat.className = "character-stat";
+    const statLabel = document.createElement("span");
+    statLabel.textContent = label;
+    const statValue = document.createElement("strong");
+    statValue.textContent = value;
+    stat.append(statLabel, statValue);
+    characterDetailStats.append(stat);
+  });
+  characterDetailModal.hidden = false;
+  characterConfirmButton.focus();
+}
+
+function startCharacterSelection(selectionMode) {
+  const configs = selectionMode === "solo"
+    ? [{ id: "solo", name: "คุณ", source: "keyboard1" }]
+    : [
+      ...activeKeyboardConfigs(),
+      ...phoneControllers.filter((item) => item.connected).map((item) => ({ id: item.id, name: item.name, source: "phone", connected: true }))
+    ];
+  if (selectionMode === "local" && (configs.length < 2 || configs.length > maxPlayers)) {
+    setupMessage.textContent = "ต้องมีผู้เล่นที่พร้อมใช้งาน 2–5 คน";
+    return;
+  }
+  mode = selectionMode;
+  characterSelectionMode = selectionMode;
+  characterSelectionConfigs = configs.map((config) => ({ ...config, characterId: null }));
+  characterSelectionIndex = 0;
+  closeCharacterDetails();
+  showScreen(characterScreen);
+  renderCharacterSelection();
 }
 
 function startRound() {
@@ -601,15 +961,15 @@ function startRound() {
     expireOrders();
     renderOrders();
   }, 1000);
-  orderGenerationId = window.setInterval(generateOrder, 7000);
+  orderGenerationId = window.setInterval(generateOrder, customerArrivalInterval);
   lastFrameAt = undefined;
   animationId = requestAnimationFrame(gameLoop);
 }
 
-function startSoloGame() {
+function startSoloGame(characterId = characterDefinitions[0].id) {
   mode = "solo";
   clearPlayers();
-  players.push(createPlayer({ id: "solo", name: "คุณ", source: "keyboard1" }, 0));
+  players.push(createPlayer({ id: "solo", name: "คุณ", source: "keyboard1", characterId }, 0));
   startRound();
 }
 
@@ -620,8 +980,8 @@ function activeKeyboardConfigs() {
   return configs;
 }
 
-function startLocalGame() {
-  const configs = [
+function startLocalGame(selectedConfigs = null) {
+  const configs = selectedConfigs || [
     ...activeKeyboardConfigs(),
     ...phoneControllers.filter((item) => item.connected).map((item) => ({ id: item.id, name: item.name, source: "phone", connected: true }))
   ];
@@ -631,8 +991,24 @@ function startLocalGame() {
   }
   mode = "local";
   clearPlayers();
-  players = configs.map((config, index) => createPlayer(config, index));
+  players = configs.map((config, index) => createPlayer({ ...config, characterId: config.characterId || characterDefinitions[index % characterDefinitions.length].id }, index));
   startRound();
+}
+
+function confirmCharacterSelection() {
+  const currentConfig = characterSelectionConfigs[characterSelectionIndex];
+  if (!currentConfig || !pendingCharacterId) return;
+  currentConfig.characterId = pendingCharacterId;
+  closeCharacterDetails();
+  if (characterSelectionIndex < characterSelectionConfigs.length - 1) {
+    characterSelectionIndex += 1;
+    renderCharacterSelection();
+    return;
+  }
+  const selectedConfigs = characterSelectionConfigs.map((config) => ({ ...config }));
+  characterSelectionConfigs = [];
+  if (characterSelectionMode === "solo") startSoloGame(selectedConfigs[0].characterId);
+  else startLocalGame(selectedConfigs);
 }
 
 function stopRoundActivity() {
@@ -722,7 +1098,7 @@ function updateSound() {
     toggle.setAttribute("aria-pressed", `${!soundEnabled}`);
     toggle.setAttribute("aria-label", soundEnabled ? "ปิดเพลง" : "เปิดเพลง");
   });
-  if (soundEnabled && !startScreen.hidden) syncLobbyMusic(true);
+  if (soundEnabled && (!startScreen.hidden || !multiplayerScreen.hidden || !characterScreen.hidden)) syncLobbyMusic(true);
   if (soundEnabled && !gameScreen.hidden) syncGameMusic(true);
 }
 
@@ -764,10 +1140,10 @@ async function toggleFullscreen() {
 }
 
 function showScreen(screen) {
-  [startScreen, multiplayerScreen, gameScreen, resultsScreen].forEach((item) => { item.hidden = item !== screen; });
+  [startScreen, multiplayerScreen, characterScreen, gameScreen, resultsScreen].forEach((item) => { item.hidden = item !== screen; });
   if (screen !== gameScreen) clearFullscreenPresentation();
   if (screen !== gameScreen) riceChoices.replaceChildren();
-  syncLobbyMusic(screen === startScreen);
+  syncLobbyMusic(screen === startScreen || screen === multiplayerScreen || screen === characterScreen);
   syncGameMusic(screen === gameScreen);
 }
 
@@ -926,13 +1302,18 @@ function closeLocalSession() {
 function exitGame() {
   stopRoundActivity();
   if (mode === "local") closeLocalSession();
+  closeCharacterDetails();
+  characterSelectionConfigs = [];
+  clearCustomers();
+  orders = [];
+  renderOrders();
   clearPlayers();
   showScreen(startScreen);
 }
 
 function replayGame() {
   if (mode === "solo") {
-    startSoloGame();
+    startCharacterSelection("solo");
     return;
   }
   stopRoundActivity();
@@ -941,6 +1322,17 @@ function replayGame() {
   setupMessage.textContent = "ทีมเดิมพร้อมแล้ว ปรับผู้เล่นหรือเริ่มรอบใหม่ได้เลย";
   renderLocalSetup();
   showScreen(multiplayerScreen);
+}
+
+function cancelCharacterSelection() {
+  closeCharacterDetails();
+  characterSelectionConfigs = [];
+  if (characterSelectionMode === "local") {
+    renderLocalSetup();
+    showScreen(multiplayerScreen);
+  } else {
+    showScreen(startScreen);
+  }
 }
 
 function releaseTouchDirection(button) {
@@ -974,14 +1366,18 @@ function blockGamePageCopy(event) {
   if (gameScreen.contains(event.target)) event.preventDefault();
 }
 
-playButton.addEventListener("click", startSoloGame);
+playButton.addEventListener("click", () => startCharacterSelection("solo"));
 multiplayerButton.addEventListener("click", setupLocalGame);
-startLocalButton.addEventListener("click", startLocalGame);
+startLocalButton.addEventListener("click", () => startCharacterSelection("local"));
 connectPhonesButton.addEventListener("click", connectPhoneRelay);
 backButton.addEventListener("click", () => { closeLocalSession(); showScreen(startScreen); });
 playAgainButton.addEventListener("click", replayGame);
 resultsButton.addEventListener("click", exitGame);
 exitGameButton.addEventListener("click", exitGame);
+characterBackButton.addEventListener("click", cancelCharacterSelection);
+characterModalClose.addEventListener("click", closeCharacterDetails);
+characterCancelButton.addEventListener("click", closeCharacterDetails);
+characterConfirmButton.addEventListener("click", confirmCharacterSelection);
 fullscreenButton.addEventListener("click", toggleFullscreen);
 lanAddress.addEventListener("change", renderJoinOption);
 [keyboard1Enabled, keyboard2Enabled].forEach((input) => input.addEventListener("change", renderLocalSetup));
@@ -1002,6 +1398,7 @@ soundToggles.forEach((toggle) => toggle.addEventListener("click", () => { soundE
 
 window.addEventListener("pointerdown", () => {
   if (!startScreen.hidden) syncLobbyMusic(true);
+  if (!multiplayerScreen.hidden || !characterScreen.hidden) syncLobbyMusic(true);
   if (!gameScreen.hidden) syncGameMusic(true);
 });
 window.addEventListener("keydown", (event) => {
@@ -1009,6 +1406,11 @@ window.addEventListener("keydown", (event) => {
   if (!gameScreen.hidden) syncGameMusic(true);
   const key = event.key.toLowerCase();
   if (["arrowleft", "arrowright", "arrowup", "arrowdown", " ", "enter"].includes(key) && !gameScreen.hidden) event.preventDefault();
+  if (!gameRunning && !characterScreen.hidden && key === "escape") {
+    if (characterDetailModal.hidden) cancelCharacterSelection();
+    else closeCharacterDetails();
+    return;
+  }
   if (!gameRunning) return;
   if (key === "escape") {
     players.filter((player) => player.riceChoice).forEach(cancelRiceChoice);
@@ -1031,4 +1433,5 @@ document.addEventListener("fullscreenchange", updateFullscreenButton);
 document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
 
 renderLocalSetup();
+renderOrders();
 showScreen(startScreen);

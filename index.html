@@ -58,6 +58,54 @@
       </section>
     </main>
 
+    <main id="character-screen" class="screen character-screen" hidden>
+      <section class="character-panel">
+        <div class="character-heading">
+          <p class="eyebrow">CHOOSE YOUR CHEF</p>
+          <h2>เลือกตัวละคร</h2>
+          <p id="character-selection-copy" class="setup-copy"></p>
+        </div>
+        <div id="character-progress" class="character-progress" aria-live="polite"></div>
+        <div id="character-grid" class="character-grid" role="list" aria-label="ตัวละครที่เลือกได้"></div>
+        <div class="character-roster-heading">
+          <h3>ตัวละครในทีม</h3>
+          <span id="character-roster-hint">ยังไม่ได้เลือก</span>
+        </div>
+        <div id="character-roster" class="character-roster" aria-live="polite"></div>
+        <div class="character-actions">
+          <button id="character-back-button" class="button button-secondary" type="button">ย้อนกลับ</button>
+        </div>
+      </section>
+
+      <div id="character-detail-modal" class="character-modal" hidden role="dialog" aria-modal="true" aria-labelledby="character-detail-name">
+        <section class="character-modal-card">
+          <button id="character-modal-close" class="modal-close" type="button" aria-label="ยกเลิกการเลือกตัวละคร">×</button>
+          <div class="character-detail-layout">
+            <div class="character-detail-visual">
+              <div class="character-detail-image-wrap">
+                <img id="character-detail-image" alt="" />
+              </div>
+              <img id="character-detail-skill-image" class="character-skill-image" alt="ภาพสกิลตัวละคร" />
+            </div>
+            <div class="character-detail-copy">
+              <p class="eyebrow">รายละเอียดตัวละคร</p>
+              <h3 id="character-detail-name"></h3>
+              <p id="character-detail-role" class="character-detail-role"></p>
+              <div class="character-skill-block">
+                <h4>สกิลพิเศษ</h4>
+                <p id="character-detail-skill"></p>
+              </div>
+              <div id="character-detail-stats" class="character-detail-stats"></div>
+            </div>
+          </div>
+          <div class="character-modal-actions">
+            <button id="character-cancel-button" class="button button-secondary" type="button">ยกเลิก</button>
+            <button id="character-confirm-button" class="button" type="button">ยืนยันตัวละคร</button>
+          </div>
+        </section>
+      </div>
+    </main>
+
     <main id="game-screen" class="screen game-screen" hidden>
       <div id="orientation-warning" class="orientation-warning" role="status">
         <strong>กรุณาหมุนอุปกรณ์</strong>
@@ -111,6 +159,7 @@
           <g class="object station" data-object="plate" data-x="850" data-y="160" transform="translate(0 -340)" tabindex="0"><rect x="815" y="470" width="70" height="65" rx="12" fill="#9bc9d1" stroke="#4d8f9d" stroke-width="4" /><ellipse cx="850" cy="502" rx="24" ry="15" fill="#fffdf9" stroke="#d7c7b2" stroke-width="4" /><text x="850" y="550" class="object-label">PLATE</text></g>
           <g class="object station" data-object="serve" data-x="500" data-y="470" transform="translate(0 15)" tabindex="0"><rect x="425" y="390" width="150" height="125" rx="18" class="object-shadow" /><rect x="425" y="380" width="150" height="125" rx="18" fill="#e4a94f" stroke="#b87c2b" stroke-width="5" /><ellipse cx="500" cy="442" rx="48" ry="24" fill="#fffaf2" stroke="#b87c2b" stroke-width="4" /><text x="500" y="550" class="object-label">SERVE</text></g>
           <g id="cooking-statuses" aria-label="Cooking progress"></g>
+          <g id="customers" aria-label="ลูกค้าที่กำลังรออาหาร"></g>
           <g id="players"></g>
           </svg>
           <section id="order-card" class="order-card" aria-live="polite">
