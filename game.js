@@ -108,7 +108,7 @@ const characterDefinitions = [
     name: "พี่หมูปิ้ง",
     image: "image/charecter/Grilled_Pork.png",
     skillImage: "animation/animation_skill/Grill_Skill.png",
-    role: "เชฟผู้ดูแลจังหวะของร้าน",
+    role: "เชฟผู้ใจดี ใจเย็น ไม่วีน",
     skill: "ทำให้ลูกค้าใจเย็นลง เพิ่มเวลารออาหารของทุกเมนูในช่วงที่กดสกิลเท่านั้น",
     stats: [["คูลดาวน์สกิล", "9 วินาที"], ["เวลาเล่น", "40 วินาที"], ["พักฟื้น", "9 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
@@ -123,7 +123,7 @@ const characterDefinitions = [
     name: "นางฟ้าหมูจิ๋ว",
     image: "image/charecter/Angel_pork.png",
     skillImage: "animation/animation_skill/Angel_Skill.png",
-    role: "เชฟผู้เรียกลูกค้า",
+    role: "เชฟผู้น่ารักสดใส แต่ขี้เกียจ เหนื่อยง่าย",
     skill: "เรียกลูกค้าเข้าร้าน เพิ่มจำนวนลูกค้าเข้าร้านมากขึ้น แต่จะเหนื่อยง่ายหลังใช้สกิล",
     stats: [["คูลดาวน์สกิล", "8 วินาที"], ["เวลาเล่น", "25 วินาที"], ["พักฟื้น", "5 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
@@ -138,7 +138,7 @@ const characterDefinitions = [
     name: "ลุงหมูป่า",
     image: "image/charecter/Boar.png",
     skillImage: "animation/animation_skill/Boar_Skill.png",
-    role: "เชฟสายอึดของทีม",
+    role: "เชฟผู้ถึกทนทุกสถานการ์ณ",
     skill: "รีเซ็ตเวลาพักฟื้นของเพื่อนร่วมทีมทุกคนให้กลับมาเป็นปกติได้ในช่วงที่กดสกิล",
     stats: [["คูลดาวน์สกิล", "12 วินาที"], ["เวลาเล่น", "50 นาที"], ["พักฟื้น", "15 วินาที"], ["การเคลื่อนไหว", "ช้าลง 1.5 เท่า"]],
     sprites: {
@@ -153,7 +153,7 @@ const characterDefinitions = [
     name: "น้องเร้กหมูตุ๋น",
     image: "image/charecter/Rek_Pork.png",
     skillImage: "animation/animation_skill/Rek_Skill.png",
-    role: "เชฟซัพพอร์ตสายคูลดาวน์",
+    role: "เชฟผู้ใจเย็น แต่ขี้วีน ",
     skill: "ลดเวลาคูลดาวน์สกิลให้เพื่อนร่วมทีม โดยไม่รวมตัวเอง",
     stats: [["คูลดาวน์สกิล", "14 วินาที"], ["เวลาเล่น", "30 วินาที"], ["พักฟื้น", "12 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
@@ -168,7 +168,7 @@ const characterDefinitions = [
     name: "ทารกหมูเด้ง",
     image: "image/charecter/Baby_Pork.png",
     skillImage: "animation/animation_skill/Baby_Skill.png",
-    role: "เชฟตัวจิ๋วผู้เร่งการทำอาหาร",
+    role: "เชฟตัวจิ๋วผู้ว่องไว แต่ขี้โวยวาย",
     skill: "ช่วยให้เพื่อนทำอาหารได้ไวขึ้น แต่ถ้าจุกหลุดจะวิ่งปั่นป่วนทั่วครัว",
     stats: [["คูลดาวน์สกิล", "10 วินาที"], ["เวลาเล่น", "30 วินาที"], ["พักฟื้น", "7 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
