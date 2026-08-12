@@ -93,12 +93,114 @@ async function main() {
     };
   })()`), {
     ringCount: 0,
-    labelText: "ผู้เล่น 1",
+    labelText: "คุณ",
     labelColorMatchesPlayer: true,
     labelY: 52,
     spriteBottom: 30,
     labelBelowSprite: true
   }, "local player name is below the sprite without a color ring");
+  assert.deepEqual(await cdp.evaluate(`(() => {
+    const directions = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] };
+    const readTranslateY = (element) => Number(element.getAttribute("transform").match(/translate\\(0 ([^)]+)\\)/)[1]);
+    const readOverlay = (player) => {
+      const spriteY = Number(player.elements.sprite.getAttribute("y"));
+      const spriteHeight = Number(player.elements.sprite.getAttribute("height"));
+      const heldY = readTranslateY(player.elements.held);
+      const actionY = readTranslateY(player.elements.badge);
+      const statusY = readTranslateY(player.elements.statusBadge);
+      return {
+        heldGap: spriteY - (heldY + heldItemRadius),
+        actionHeldGap: (heldY - heldItemRadius) - (actionY + playerActionBadgeBounds.bottom),
+        statusActionGap: (actionY + playerActionBadgeBounds.top) - (statusY + playerStatusBadgeBounds.bottom),
+        overlayTop: player.y + Math.min(heldY - heldItemRadius, actionY + playerActionBadgeBounds.top, statusY + playerStatusBadgeBounds.top),
+        footAnchor: spriteY + spriteHeight,
+        imageCount: player.elements.heldImages.querySelectorAll("image").length
+      };
+    };
+
+    clearPlayers();
+    const testPlayers = characterDefinitions.map((character, index) => createPlayer({
+      id: "overlay-" + character.id,
+      name: character.name,
+      source: "keyboard1",
+      characterId: character.id
+    }, index));
+    const normalChecks = [];
+    const recoveryChecks = [];
+    let footAnchorsStable = true;
+    let positionsStable = true;
+
+    testPlayers.forEach((player) => {
+      player.inventory = cookingData.createIngredient("meat");
+      player.elements.badge.setAttribute("opacity", "1");
+      player.elements.statusBadge.setAttribute("opacity", "1");
+      renderHeldItem(player);
+      const originalPosition = { x: player.x, y: player.y };
+
+      Object.entries(directions).forEach(([direction, [dx, dy]]) => {
+        player.recoveryUntil = 0;
+        player.direction = direction;
+        player.lastSpriteKey = "";
+        updatePlayerSprite(player, dx, dy, true, 280);
+        const overlay = readOverlay(player);
+        normalChecks.push(overlay);
+        footAnchorsStable = footAnchorsStable && overlay.footAnchor === playerFootAnchorY;
+        positionsStable = positionsStable && player.x === originalPosition.x && player.y === originalPosition.y;
+      });
+
+      [0, 1500].forEach((startedAgo) => {
+        player.recoveryUntil = Date.now() + 10000;
+        player.recoveryStartedAt = Date.now() - startedAgo;
+        player.lastSpriteKey = "";
+        updatePlayerSprite(player);
+        const overlay = readOverlay(player);
+        recoveryChecks.push(overlay);
+        footAnchorsStable = footAnchorsStable && overlay.footAnchor === playerFootAnchorY;
+      });
+
+      player.recoveryUntil = 0;
+      player.lastSpriteKey = "";
+      updatePlayerSprite(player);
+      player.y = 105;
+      setPlayerPosition(player);
+      player.edgeOverlay = readOverlay(player);
+      player.edgePosition = { x: player.x, y: player.y };
+    });
+
+    testPlayers[0].inventory = null;
+    testPlayers[0].plate = cookingData.createPlate();
+    renderHeldItem(testPlayers[0]);
+    const edgeChecks = testPlayers.map((player) => player.edgeOverlay);
+    const result = {
+      normalCount: normalChecks.length,
+      recoveryCount: recoveryChecks.length,
+      normalGaps: normalChecks.every((overlay) => overlay.heldGap === playerOverlayGap && overlay.actionHeldGap === playerOverlayGap && overlay.statusActionGap === playerOverlayGap),
+      recoveryGaps: recoveryChecks.every((overlay) => overlay.heldGap === playerOverlayGap && overlay.actionHeldGap === playerOverlayGap && overlay.statusActionGap === playerOverlayGap),
+      heldImages: testPlayers.every((player) => player.elements.held.getAttribute("opacity") === "1" && player.elements.heldImages.querySelectorAll("image").length === 1),
+      plateImage: testPlayers[0].elements.heldImages.querySelectorAll("image").length === 1,
+      footAnchorsStable,
+      positionsStable,
+      edgeOverlaysInside: edgeChecks.every((overlay) => overlay.overlayTop >= 0),
+      edgeGapReduced: edgeChecks.some((overlay) => overlay.heldGap < playerOverlayGap),
+      edgePositionsStable: testPlayers.every((player) => player.edgePosition.x === player.x && player.edgePosition.y === player.y),
+      spriteBeforeHeld: testPlayers.every((player) => [...player.elements.group.children].indexOf(player.elements.sprite) < [...player.elements.group.children].indexOf(player.elements.held))
+    };
+    clearPlayers();
+    return result;
+  })()`), {
+    normalCount: 20,
+    recoveryCount: 10,
+    normalGaps: true,
+    recoveryGaps: true,
+    heldImages: true,
+    plateImage: true,
+    footAnchorsStable: true,
+    positionsStable: true,
+    edgeOverlaysInside: true,
+    edgeGapReduced: true,
+    edgePositionsStable: true,
+    spriteBeforeHeld: true
+  }, "held item, action, and recovery overlays follow every sprite height");
   await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: false });
   await cdp.send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(150);

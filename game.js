@@ -100,6 +100,11 @@ const customerWalkSpeed = 120;
 const customerArrivalInterval = 12000;
 const maxCustomers = 4;
 const playerColors = ["#ba6849", "#4d8f9d", "#64834f", "#b87c2b", "#8d63a8"];
+const playerFootAnchorY = 30;
+const heldItemRadius = 17;
+const playerOverlayGap = 6;
+const playerActionBadgeBounds = { top: -14, bottom: 12 };
+const playerStatusBadgeBounds = { top: -13, bottom: 11 };
 const spawnPositions = [
   { x: 430, y: 335 }, { x: 500, y: 335 }, { x: 570, y: 335 }, { x: 465, y: 405 }, { x: 535, y: 405 }
 ];
@@ -431,29 +436,58 @@ function getRecoverySprite(player) {
   return frames[Math.min(recoveryFrame, frames.length - 1)];
 }
 
+function getPlayerOverlayPosition(player) {
+  const spriteHeight = Number(player.elements?.sprite?.getAttribute("height")) || getPlayerSprite(player).height;
+  const spriteTop = playerFootAnchorY - spriteHeight;
+  const heldY = spriteTop - heldItemRadius - playerOverlayGap;
+  const actionY = heldY - heldItemRadius - playerOverlayGap - playerActionBadgeBounds.bottom;
+  const statusY = actionY + playerActionBadgeBounds.top - playerOverlayGap - playerStatusBadgeBounds.bottom;
+  const overlayTop = statusY + playerStatusBadgeBounds.top;
+  const svg = player.elements?.group?.ownerSVGElement;
+  const viewBoxTop = svg?.viewBox?.baseVal?.y || 0;
+  const topCorrection = Math.max(0, viewBoxTop - ((Number(player.y) || 0) + overlayTop));
+
+  return {
+    heldY: heldY + topCorrection,
+    actionY: actionY + topCorrection,
+    statusY: statusY + topCorrection,
+    spriteTop,
+    topCorrection
+  };
+}
+
+function updatePlayerOverlayPosition(player) {
+  if (!player.elements?.sprite) return;
+  const position = getPlayerOverlayPosition(player);
+  player.elements.held.setAttribute("transform", `translate(0 ${position.heldY})`);
+  player.elements.badge.setAttribute("transform", `translate(0 ${position.actionY})`);
+  player.elements.statusBadge.setAttribute("transform", `translate(0 ${position.statusY})`);
+}
+
 function createPlayerElement(player) {
   const group = svgElement("g", { transform: `translate(${player.x} ${player.y})`, class: "local-player" });
-  const held = svgElement("g", { transform: "translate(0 -55)", opacity: 0 });
+  const held = svgElement("g", { opacity: 0 });
   const heldCircle = svgElement("circle", { class: "held-item-circle", r: 17 });
   const heldImages = svgElement("g");
   held.append(heldCircle, heldImages);
   const shadow = svgElement("circle", { class: "player-shadow", cy: 27, r: 15 });
   const initialSprite = getPlayerSprite(player, "down");
-  const sprite = svgElement("image", { class: "player-sprite", href: initialSprite.href, x: -initialSprite.width / 2, y: 30 - initialSprite.height, width: initialSprite.width, height: initialSprite.height, preserveAspectRatio: "xMidYMid meet" });
+  const sprite = svgElement("image", { class: "player-sprite", href: initialSprite.href, x: -initialSprite.width / 2, y: playerFootAnchorY - initialSprite.height, width: initialSprite.width, height: initialSprite.height, preserveAspectRatio: "xMidYMid meet" });
   const label = svgElement("text", { class: "local-player-label", y: 52, fill: player.color });
   label.textContent = player.name;
-  const badge = svgElement("g", { class: "player-action-badge", transform: "translate(0 -80)", opacity: 0 });
+  const badge = svgElement("g", { class: "player-action-badge", opacity: 0 });
   badge.append(svgElement("rect", { x: -29, y: -14, width: 58, height: 26, rx: 13 }));
   const badgeText = svgElement("text", { y: 4 });
   badgeText.textContent = player.source.startsWith("keyboard") ? keyboardControls[player.source].label : "แตะ";
   badge.append(badgeText);
-  const statusBadge = svgElement("g", { class: "player-status-badge", transform: "translate(0 -108)", opacity: 0 });
+  const statusBadge = svgElement("g", { class: "player-status-badge", opacity: 0 });
   statusBadge.append(svgElement("rect", { x: -58, y: -13, width: 116, height: 24, rx: 12 }));
   const statusText = svgElement("text", { y: 4 });
   statusBadge.append(statusText);
-  group.append(held, shadow, sprite, label, badge, statusBadge);
+  group.append(shadow, sprite, label, held, badge, statusBadge);
   playerLayer.append(group);
   player.elements = { group, held, heldImages, sprite, label, badge, statusBadge, statusText };
+  updatePlayerOverlayPosition(player);
   renderHeldItem(player);
 }
 
@@ -498,19 +532,22 @@ function clearPlayers() {
 
 function setPlayerPosition(player) {
   player.elements.group.setAttribute("transform", `translate(${player.x} ${player.y})`);
+  updatePlayerOverlayPosition(player);
 }
 
 function updatePlayerSprite(player, dx = 0, dy = 0, moving = false, timestamp = performance.now()) {
   if (player.recoveryUntil > Date.now()) {
     const recoverySprite = getRecoverySprite(player);
     const spriteKey = `recovery-${recoverySprite.href}`;
-    if (spriteKey === player.lastSpriteKey) return;
-    player.elements.sprite.setAttribute("href", recoverySprite.href);
-    player.elements.sprite.setAttribute("x", `${-recoverySprite.width / 2}`);
-    player.elements.sprite.setAttribute("y", `${30 - recoverySprite.height}`);
-    player.elements.sprite.setAttribute("width", `${recoverySprite.width}`);
-    player.elements.sprite.setAttribute("height", `${recoverySprite.height}`);
-    player.lastSpriteKey = spriteKey;
+    if (spriteKey !== player.lastSpriteKey) {
+      player.elements.sprite.setAttribute("href", recoverySprite.href);
+      player.elements.sprite.setAttribute("x", `${-recoverySprite.width / 2}`);
+      player.elements.sprite.setAttribute("y", `${playerFootAnchorY - recoverySprite.height}`);
+      player.elements.sprite.setAttribute("width", `${recoverySprite.width}`);
+      player.elements.sprite.setAttribute("height", `${recoverySprite.height}`);
+      player.lastSpriteKey = spriteKey;
+    }
+    updatePlayerOverlayPosition(player);
     return;
   }
   if (moving) {
@@ -521,13 +558,15 @@ function updatePlayerSprite(player, dx = 0, dy = 0, moving = false, timestamp = 
   const frameIndex = moving && player.direction !== "down" ? 1 : moving ? Math.floor(timestamp / 140) % sprites.length : 0;
   const sprite = getPlayerSprite(player, player.direction, frameIndex);
   const spriteKey = `${player.direction}-${frameIndex}`;
-  if (spriteKey === player.lastSpriteKey) return;
-  player.elements.sprite.setAttribute("href", sprite.href);
-  player.elements.sprite.setAttribute("x", `${-sprite.width / 2}`);
-  player.elements.sprite.setAttribute("y", `${30 - sprite.height}`);
-  player.elements.sprite.setAttribute("width", `${sprite.width}`);
-  player.elements.sprite.setAttribute("height", `${sprite.height}`);
-  player.lastSpriteKey = spriteKey;
+  if (spriteKey !== player.lastSpriteKey) {
+    player.elements.sprite.setAttribute("href", sprite.href);
+    player.elements.sprite.setAttribute("x", `${-sprite.width / 2}`);
+    player.elements.sprite.setAttribute("y", `${playerFootAnchorY - sprite.height}`);
+    player.elements.sprite.setAttribute("width", `${sprite.width}`);
+    player.elements.sprite.setAttribute("height", `${sprite.height}`);
+    player.lastSpriteKey = spriteKey;
+  }
+  updatePlayerOverlayPosition(player);
 }
 
 function renderHeldItem(player) {

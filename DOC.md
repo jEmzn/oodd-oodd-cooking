@@ -358,6 +358,14 @@ Native fullscreen และ fallback fullscreen ใช้สัดส่วน�
 
 ## Player Name Placement
 
-ลบวงสี `.player-color-ring` ใต้ตัวละคร local ออก โดยคงเงาตัวละครไว้ และย้ายชื่อผู้เล่นจากเหนือ sprite มาเป็น baseline ใต้เท้าที่ `y=52` ภายในกลุ่มตัวละคร ชื่อยังใช้ `player.color` เพื่อแยกผู้เล่น ขณะที่ held item, action badge, recovery status และ sprite anchor ไม่เปลี่ยน
+ลบวงสี `.player-color-ring` ใต้ตัวละคร local ออก โดยคงเงาตัวละครไว้ และย้ายชื่อผู้เล่นจากเหนือ sprite มาเป็น baseline ใต้เท้าที่ `y=52` ภายในกลุ่มตัวละคร ชื่อยังใช้ `player.color` เพื่อแยกผู้เล่น โดยคงขนาด held item ข้อมูลสถานะ และ sprite foot anchor เดิมไว้; การวาง overlay ตามความสูงของ sprite อธิบายไว้ในหัวข้อถัดไป
 
 เพิ่ม browser regression ให้ตรวจว่าไม่สร้างวงสี ชื่อยังแสดงด้วยสีของผู้เล่น และ baseline อยู่ต่ำกว่าขอบล่างของ sprite การตรวจ syntax ผ่านแล้ว; ควรรัน Solo/local browser checks และตรวจด้วยตาในโหมดคีย์บอร์ดกับโทรศัพท์จริงเพิ่มเติม
+
+## Height-Aware Held Item Overlay
+
+ปรับตำแหน่ง held item ของผู้เล่นให้คำนวณจาก `height` ของ sprite ที่กำลังแสดง แทนการใช้ตำแหน่งคงที่ จึงรองรับความสูงที่ต่างกันของตัวละครทั้งห้าตัว เฟรมเดิน และ recovery sprite โดยยังคง foot anchor ที่ `y=30-height`, ตำแหน่งผู้เล่น, collision, ระยะโต้ตอบ และขนาดภาพของถือ `26x26` กับ clip circle เดิมไว้
+
+held bubble อยู่เหนือขอบบนของ sprite ด้วยระยะปกติ 6 world units ส่วน action badge และ status badge เรียงต่อขึ้นไปด้วยระยะเดียวกันและไม่ชนกันในพื้นที่ปกติ การเรียงลำดับ SVG วาง sprite ก่อน held item เพื่อให้รูปของถือแสดงทับฉากตัวละครอย่างชัดเจน ตำแหน่ง overlay ถูกอัปเดตเมื่อสร้างผู้เล่น เปลี่ยนเฟรม/ทิศทาง เปลี่ยน recovery sprite และเคลื่อนผู้เล่น เมื่อผู้เล่นอยู่ใกล้ขอบบนของ `viewBox` ระบบจะลดระยะห่างของ stack ลงเท่าที่จำเป็นเพื่อให้ overlay ยังอยู่ในฉาก โดยไม่ย้ายไปด้านข้างหรือซ่อนรูป
+
+เพิ่ม browser regression สำหรับตัวละครทั้งห้าตัวในทิศทางหลักและ recovery frames ตรวจระยะห่างของ held/action/status, การแสดง held image, ลำดับ sprite กับ held, foot anchor, ตำแหน่ง gameplay และการ clamp ที่ขอบบนแล้ว ผล validation ล่าสุด: `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo` และ `npm run test:browser:local` ผ่านแล้ว การตรวจด้วยตาบนเครื่องจริง โดยเฉพาะ Grilled Pork, Boar, recovery state และโทรศัพท์จริงยังควรทำเพิ่มเติม
