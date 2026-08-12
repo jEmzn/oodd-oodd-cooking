@@ -88,6 +88,57 @@ async function main() {
     players[0].x = target.x; players[0].y = target.y; interactPlayer(players[0]);
     return players.map((player) => player.inventory?.ingredientId || null);
   })()`), ["meat", null], "players keep independent inventories");
+  assert.deepEqual(await host.evaluate(`(() => {
+    clearCustomers();
+    orders = [];
+    setScore(0);
+    const serve = objects.find((item) => item.name === "serve");
+    const menu = menus.find((item) => item.id === "chicken-rice");
+    const customer = createCustomer({ startY: serve.y });
+    customer.state = "waiting";
+    customer.x = serve.x;
+    customer.y = serve.y;
+    customer.orderVisible = true;
+    customer.order.menuId = menu.id;
+    customer.order.name = menu.name;
+    customer.order.createdAt = Date.now();
+    customer.order.expiresAt = Date.now() + 60000;
+    setCustomerPosition(customer);
+    orders = [customer.order];
+    renderOrders();
+    players[0].inventory = null;
+    players[0].plate = { dishId: menu.id };
+    players[0].x = serve.x;
+    players[0].y = serve.y;
+    setPlayerPosition(players[0]);
+    interactPlayer(players[0]);
+    const afterFirstServe = { score, stats: players.map((player) => player.stats.ordersServed), plate: players[0].plate };
+    const secondCustomer = createCustomer({ startY: serve.y });
+    secondCustomer.state = "waiting";
+    secondCustomer.x = serve.x;
+    secondCustomer.y = serve.y;
+    secondCustomer.orderVisible = true;
+    secondCustomer.order.menuId = menu.id;
+    secondCustomer.order.name = menu.name;
+    secondCustomer.order.createdAt = Date.now();
+    secondCustomer.order.expiresAt = Date.now() + 60000;
+    setCustomerPosition(secondCustomer);
+    orders = [secondCustomer.order];
+    renderOrders();
+    players[1].inventory = null;
+    players[1].plate = { dishId: menu.id };
+    players[1].x = serve.x;
+    players[1].y = serve.y;
+    setPlayerPosition(players[1]);
+    interactPlayer(players[1]);
+    return {
+      afterFirstServe,
+      afterSecondServe: { score, hud: scoreElement.textContent, stats: players.map((player) => player.stats.ordersServed) }
+    };
+  })()`), {
+    afterFirstServe: { score: 100, stats: [1, 0], plate: null },
+    afterSecondServe: { score: 200, hud: "200", stats: [1, 1] }
+  }, "local co-op shares team points while keeping per-player served-dish stats");
   await host.evaluate(`(() => {
     exitGame(); setupLocalGame();
     phoneControllers = [1, 2, 3].map((id) => ({ id: "fake-" + id, name: "มือถือ " + id, connected: true }));
@@ -129,6 +180,9 @@ async function main() {
   ]);
   await phone.evaluate("document.querySelector('[data-action=rice-sticky]').click()");
   await host.waitFor("players.find((player) => player.source === 'phone').inventory?.ingredientId === 'stickyRice'");
+  await host.evaluate("setScore(100); finishRound()");
+  await phone.waitFor("latestState.phase === 'results' && latestState.message === 'ทีมได้ 100 คะแนน'");
+  assert.equal(await phone.evaluate("latestState.message"), "ทีมได้ 100 คะแนน", "controller results message uses team points");
   await host.evaluate("exitGameButton.click()");
   await phone.waitFor("!joinView.hidden");
   assert.deepEqual(host.exceptions, []);

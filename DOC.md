@@ -32,7 +32,9 @@ After 120 seconds, the game stops, clears its timers and animation loop, waits b
 - Press `Q` for the keyboard 1 character skill; keyboard 2 uses `\\` (the key above Enter). Touch and phone players use the on-screen `สกิล` button.
 - Carry raw ingredients to a compatible station, deposit each ingredient, then press `E` empty-handed to cook.
 - Use a plate only to collect cooked components, combine the completed menu, and serve it.
-- Each successfully served order increases the shared team score.
+- Each successfully served order awards `100` points to the shared team score.
+- Each order that expires deducts `50` points; the shared score is clamped at a minimum of `0`.
+- Local co-op shares the team score, while each player's `ordersServed` statistic still counts that player's served dishes.
 - A "PRESS E TO INTERACT" prompt appears when an object is within range.
 - The HUD displays remaining time and total score; the timer changes color during the final 10 seconds.
 
@@ -41,6 +43,10 @@ After 120 seconds, the game stops, clears its timers and animation loop, waits b
 Customers use `image/charecter/customer1.png` and `image/charecter/customer2.png` as static portraits. A round starts with one customer entering from the lower edge of the kitchen. Additional arrivals are generated every twelve seconds, usually one customer with a 25% chance of two customers, up to four active customers. Customers walk to the serving station at `500,530`; later customers target positions behind the first customer to form a queue.
 
 An order is linked to its customer. The order card stays hidden when no customer order is active and appears when a customer crosses into the shop. Only the first customer in the queue can be served, so a completed dish for a later menu waits until the front customer has been served. After a successful serve, the front customer walks down and out of the shop while the remaining queue advances. Expired orders also send their customers out and remove their menus.
+
+## Scoring
+
+The browser-authoritative score is a shared team total in Solo and local co-op. Serving a matching completed dish adds `100` points. Each order removed by `expireOrders()` subtracts `50` points, including each order when several expire in the same tick, and the score never goes below `0`. Starting a new round resets the score to `0`. The HUD and Results screen show points; phone controllers receive the team result as points. Results still list each player's served-dish count separately.
 
 ## Character Selection and Animation
 
@@ -72,11 +78,15 @@ Solo and two-keyboard local co-op remain dependency-free in the browser. Phone c
 
 ## Validation
 
-`npm run check`, recipe unit tests, and Socket.IO relay validation pass, including the newly allowed phone `skill` action. Chromium Solo/local browser validation was not run in this environment because Chromium remote debugging was unavailable at port `9223`; the new skill buttons, cooldown countdowns, recovery sprite switching, and mobile layout should still receive real browser and mobile verification.
+`npm run check`, recipe unit tests, Socket.IO relay validation, Chromium Solo browser validation, and Chromium local co-op browser validation pass. The browser regression now also verifies the shared score rules: serving awards 100 points, expiration deducts 50 points per order, the score clamps at 0, a new round resets it, and HUD/Results/controller copy describes points. Physical mobile validation remains recommended for device-specific layout and touch behavior.
 
 ## Documentation Update
 
 This summary was updated alongside `AGENTS.md` to document the current flat project structure and the repository rule that every completed task must update `DOC.md` with the relevant change and validation status.
+
+## Team Scoring Update
+
+Team scoring is browser-authoritative and unchanged in transport: a completed served order adds `100` points, each order expired by the countdown removes `50` points, and the total cannot become negative. Solo and local co-op use the same shared total; Results keeps each player's `ordersServed` value as a separate served-dish count. Validation passed with `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo`, and `npm run test:browser:local`.
 
 ## Multiplayer Update
 
@@ -87,7 +97,7 @@ Multiplayer mode supports temporary names, 5-character room codes, 2 to 5 player
 
 ## Gameplay Update
 
-The game uses a 120-second cooking round with customer orders that each last 60 seconds. Six Thai menus are assembled from rice and outputs produced by the pot, pan, or grill. Raw ingredients are collected individually without a plate, staged at a compatible station, and cooked for 2 seconds after an empty-handed interaction. A plate is required only to collect cooked outputs, combine them with rice in recipe order, and serve the completed dish. Successful service increases the team score; an expired order sends its customer away without clearing the players' held items or assembly plates.
+The game uses a 120-second cooking round with customer orders that each last 60 seconds. Six Thai menus are assembled from rice and outputs produced by the pot, pan, or grill. Raw ingredients are collected individually without a plate, staged at a compatible station, and cooked for 2 seconds after an empty-handed interaction. A plate is required only to collect cooked outputs, combine them with rice in recipe order, and serve the completed dish. Successful service adds 100 shared team points; an expired order deducts 50 points and sends its customer away without clearing the players' held items or assembly plates.
 
 
 ## Held Food Indicator
@@ -191,7 +201,7 @@ Text selection, copying, cutting, and context-menu actions are disabled within t
 
 Solo and multiplayer rounds maintain a shared-style queue of up to two customer orders. One order appears when a round starts, and the game attempts to add another order every seven seconds while the queue has space. Each order has its own 35-second expiry timer; generation pauses at two queued orders. The game UI displays all waiting orders with individual countdowns.
 
-Cooking is free-form: players may prepare any of the six shared recipes without first selecting a displayed order. Serving removes the oldest waiting order matching the completed assembly plate and increases the score. A completed dish remains on the plate when no matching order is available. The multiplayer `room-state` payload sends an `orders` array with timestamps so every client renders the same queue and individual countdowns.
+Cooking is free-form: players may prepare any of the six shared recipes without first selecting a displayed order. Serving removes the oldest waiting order matching the completed assembly plate and adds 100 points to the shared score. A completed dish remains on the plate when no matching order is available. The multiplayer `room-state` payload sends an `orders` array with timestamps so every client renders the same queue and individual countdowns.
 
 ## Repository Guidelines Update
 
@@ -326,8 +336,46 @@ Validation ล่าสุดผ่านครบทั้ง `npm run check`, 
 
 ## Local Co-op and Phone Controllers
 
-Online multiplayer ถูกแทนที่ด้วย local co-op บนจอคอมเครื่องเดียว ผู้เล่นรวม 2–5 คน โดยเลือกผู้เล่นคีย์บอร์ดได้ 0–2 คน: Player 1 ใช้ `WASD` + `E` และ Player 2 ใช้ลูกศร + `Enter` ผู้เล่นที่เหลือใช้โทรศัพท์เป็นจอยผ่าน Wi-Fi/hotspot เดียวกัน ทุกคนมีตำแหน่ง มือ จาน สี และสถิติของตัวเอง แต่แชร์ออเดอร์ เวลา คะแนน และสถานีทำอาหาร ผู้เล่นไม่ชนกันเพื่อป้องกันการขวางทางในครัว
+Online multiplayer ถูกแทนที่ด้วย local co-op บนจอคอมเครื่องเดียว ผู้เล่นรวม 2–5 คน โดยเลือกผู้เล่นคีย์บอร์ดได้ 0–2 คน: Player 1 ใช้ `WASD` + `E` และ Player 2 ใช้ลูกศร + `Enter` ผู้เล่นที่เหลือใช้โทรศัพท์เป็นจอยผ่าน Wi-Fi/hotspot เดียวกัน ทุกคนมีตำแหน่ง มือ จาน สี และสถิติของตัวเอง แต่แชร์ออเดอร์ เวลา คะแนนทีม (เสิร์ฟ +100 แต้ม, หมดเวลา -50 แต้ม, ต่ำสุด 0) และสถานีทำอาหาร ผู้เล่นไม่ชนกันเพื่อป้องกันการขวางทางในครัว
 
 Solo และ local co-op แบบสองคีย์บอร์ดเปิดจาก `index.html` ได้โดยตรง การใช้โทรศัพท์ให้รัน `npm start` ใน `server/`; local relay จะแสดง LAN URL และหน้าเกมสร้าง QR ที่มีรหัส session โทรศัพท์มี D-pad, ปุ่มโต้ตอบ และตัวเลือกข้าวเฉพาะตัว Server ทำหน้าที่ส่ง input เท่านั้น ไม่ประมวลผล gameplay และให้เวลาโทรศัพท์ reconnect 30 วินาทีก่อนถอนช่องผู้เล่น
 
 เพิ่ม dependency `qrcode` ฝั่ง server สำหรับสร้าง QR ภายในเครื่อง และแทนชุดทดสอบออนไลน์เดิมด้วย relay/local co-op checks คำสั่งล่าสุดคือ `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo`, และ `npm run test:browser:local` Validation ผ่านทั้งหมด โดย browser checks ครอบคลุมสูตรทั้ง 6 เมนู, direct-file Solo, responsive touch, ผู้เล่นคีย์บอร์ดพร้อมกัน, roster 5 คน, โทรศัพท์จำลอง, การเลือกข้าว, relay capacity, reconnect และ session cleanup การสแกน QR บนโทรศัพท์จริงหลายรุ่นยังควรตรวจบนเครือข่ายเป้าหมายและยอมรับ firewall prompt ของระบบปฏิบัติการหากมี
+
+## Desktop Two-Column Gameplay Layout
+
+หน้าจอเกมบน desktop ที่กว้างตั้งแต่ 851px ใช้ CSS Grid สองคอลัมน์ โดยคอลัมน์ซ้ายประมาณ 30% สำหรับคิวออเดอร์ และคอลัมน์ขวาประมาณ 70% สำหรับฉากครัว การ์ดออเดอร์ ชื่อเมนู countdown ไอคอนวัตถุดิบ/เครื่องมือ และ HUD ถูกขยายให้อ่านง่ายขึ้น ขณะที่ `viewBox` SVG พิกัดสถานี collision และขนาด gameplay ยังคงเดิม
+
+Native fullscreen และ fallback fullscreen ใช้สัดส่วนสองคอลัมน์เดียวกับ desktop ปกติ ส่วน mobile และ landscape touch ยังคง stage แบบเดิม: การ์ดออเดอร์วางทับมุมซ้ายของฉาก และครัวใช้พื้นที่ที่เหลือภายใน viewport โดยไม่เปลี่ยนการควบคุมหรือ geometry ของเกม
+
+เพิ่ม assertions ใน `test/run-browser-check.js` เพื่อตรวจคอลัมน์ ตำแหน่ง สัดส่วน ขนาด UI และ fallback fullscreen รวมถึงตรวจว่า 640×360 landscape ยังคงใช้ compact touch layout การตรวจ `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo` และ `npm run test:browser:local` ผ่านแล้ว การตรวจภาพบน desktop หลายอัตราส่วนและอุปกรณ์ touch จริงยังควรทำเพิ่มเติม
+
+แก้พื้นหลัง native และ fallback fullscreen ให้ใช้สีครีม `#fbf8f3` เดียวกับหน้าเกม และกำหนด `::backdrop` สำหรับ Fullscreen API เพื่อไม่ให้พื้นที่รอบเกมแสดงเป็นสีดำ
+
+## Fullscreen Interaction Reflow Fix
+
+แก้ closing tag ของ `.game-shell` ใน `index.html` ให้ `#game-message` อยู่นอกกรอบฉากครัวตามโครงสร้างที่ตั้งใจไว้ เดิม desktop fullscreen เปลี่ยน `.game-shell` เป็น flex ทำให้ข้อความสถานะกลายเป็นคอลัมน์ข้างฉาก และเมื่อกดโต้ตอบแล้ว `setMessage()` เปลี่ยนข้อความจึงทำให้ layout reflow และ UI เลื่อน ปัจจุบัน fullscreen ไม่ใช้ flex กับ `.game-shell` และจองพื้นที่ข้อความไว้คงที่สองบรรทัด
+
+เพิ่ม browser regression ที่ตรวจ parent DOM, การจัดวางสองคอลัมน์, ตำแหน่งฉาก/ออเดอร์ก่อนและหลังการกดโต้ตอบ และ scroll position การตรวจ `npm run check`, `npm test` และ Solo browser/responsive check ผ่านแล้ว
+
+## Plate Recipe Assembly Order
+
+ปรับ `recipes.js` ให้สอดคล้องกับลำดับใหม่ใน `FOOD.md`: เมนูข้าวมันไก่ ข้าวหมูแดง ข้าวหมูตุ๋น ข้าวเหนียวหมูปิ้ง และข้าวกะเพราหมูสับไข่ดาว ต้องใส่อาหารที่ปรุงเสร็จก่อน แล้วจึงเติมข้าวเป็นส่วนผสมสุดท้าย ส่วนข้าวผัดกุ้งยังนำข้าว เนื้อ ผัก และไข่ลงกระทะรวมกันแบบไม่บังคับลำดับเดิม
+
+สถานีข้าวจะไม่เปิดตัวเลือกเมื่อถือจานว่าง และ `chooseRice()` จะตรวจผลการประกอบก่อนบันทึกลงจาน หากลำดับข้าวไม่ตรงสูตร จานเดิมและวัตถุดิบในมือจะยังอยู่ครบ พร้อมข้อความแนะนำ ผู้เล่นที่ไม่มีจานยังเลือกข้าวดิบเพื่อใส่กระทะข้าวผัดได้เหมือนเดิม ลำดับ valid ของจานสร้างจาก prefix ของ `menu.components` เพื่อให้ข้อมูลสูตรเป็น source of truth เดียว
+
+เพิ่ม unit และ browser regression สำหรับลำดับ components/steps ของทั้งหกเมนู การปฏิเสธข้าวก่อนอาหารปรุง การเติมข้าวหลัง cooked component การรักษาจานเมื่อเติมข้าวผิดสูตร และการทำงานเดิมของข้าวผัดกุ้ง; validation ล่าสุด `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo` และ `npm run test:browser:local` ผ่านแล้ว
+
+## Player Name Placement
+
+ลบวงสี `.player-color-ring` ใต้ตัวละคร local ออก โดยคงเงาตัวละครไว้ และย้ายชื่อผู้เล่นจากเหนือ sprite มาเป็น baseline ใต้เท้าที่ `y=52` ภายในกลุ่มตัวละคร ชื่อยังใช้ `player.color` เพื่อแยกผู้เล่น โดยคงขนาด held item ข้อมูลสถานะ และ sprite foot anchor เดิมไว้; การวาง overlay ตามความสูงของ sprite อธิบายไว้ในหัวข้อถัดไป
+
+เพิ่ม browser regression ให้ตรวจว่าไม่สร้างวงสี ชื่อยังแสดงด้วยสีของผู้เล่น และ baseline อยู่ต่ำกว่าขอบล่างของ sprite การตรวจ syntax ผ่านแล้ว; ควรรัน Solo/local browser checks และตรวจด้วยตาในโหมดคีย์บอร์ดกับโทรศัพท์จริงเพิ่มเติม
+
+## Height-Aware Held Item Overlay
+
+ปรับตำแหน่ง held item ของผู้เล่นให้คำนวณจาก `height` ของ sprite ที่กำลังแสดง แทนการใช้ตำแหน่งคงที่ จึงรองรับความสูงที่ต่างกันของตัวละครทั้งห้าตัว เฟรมเดิน และ recovery sprite โดยยังคง foot anchor ที่ `y=30-height`, ตำแหน่งผู้เล่น, collision, ระยะโต้ตอบ และขนาดภาพของถือ `26x26` กับ clip circle เดิมไว้
+
+held bubble อยู่เหนือขอบบนของ sprite ด้วยระยะปกติ 6 world units ส่วน action badge และ status badge เรียงต่อขึ้นไปด้วยระยะเดียวกันและไม่ชนกันในพื้นที่ปกติ การเรียงลำดับ SVG วาง sprite ก่อน held item เพื่อให้รูปของถือแสดงทับฉากตัวละครอย่างชัดเจน ตำแหน่ง overlay ถูกอัปเดตเมื่อสร้างผู้เล่น เปลี่ยนเฟรม/ทิศทาง เปลี่ยน recovery sprite และเคลื่อนผู้เล่น เมื่อผู้เล่นอยู่ใกล้ขอบบนของ `viewBox` ระบบจะลดระยะห่างของ stack ลงเท่าที่จำเป็นเพื่อให้ overlay ยังอยู่ในฉาก โดยไม่ย้ายไปด้านข้างหรือซ่อนรูป
+
+เพิ่ม browser regression สำหรับตัวละครทั้งห้าตัวในทิศทางหลักและ recovery frames ตรวจระยะห่างของ held/action/status, การแสดง held image, ลำดับ sprite กับ held, foot anchor, ตำแหน่ง gameplay และการ clamp ที่ขอบบนแล้ว ผล validation ล่าสุด: `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo` และ `npm run test:browser:local` ผ่านแล้ว การตรวจด้วยตาบนเครื่องจริง โดยเฉพาะ Grilled Pork, Boar, recovery state และโทรศัพท์จริงยังควรทำเพิ่มเติม
