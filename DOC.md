@@ -331,3 +331,9 @@ Online multiplayer ถูกแทนที่ด้วย local co-op บนจ
 Solo และ local co-op แบบสองคีย์บอร์ดเปิดจาก `index.html` ได้โดยตรง การใช้โทรศัพท์ให้รัน `npm start` ใน `server/`; local relay จะแสดง LAN URL และหน้าเกมสร้าง QR ที่มีรหัส session โทรศัพท์มี D-pad, ปุ่มโต้ตอบ และตัวเลือกข้าวเฉพาะตัว Server ทำหน้าที่ส่ง input เท่านั้น ไม่ประมวลผล gameplay และให้เวลาโทรศัพท์ reconnect 30 วินาทีก่อนถอนช่องผู้เล่น
 
 เพิ่ม dependency `qrcode` ฝั่ง server สำหรับสร้าง QR ภายในเครื่อง และแทนชุดทดสอบออนไลน์เดิมด้วย relay/local co-op checks คำสั่งล่าสุดคือ `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo`, และ `npm run test:browser:local` Validation ผ่านทั้งหมด โดย browser checks ครอบคลุมสูตรทั้ง 6 เมนู, direct-file Solo, responsive touch, ผู้เล่นคีย์บอร์ดพร้อมกัน, roster 5 คน, โทรศัพท์จำลอง, การเลือกข้าว, relay capacity, reconnect และ session cleanup การสแกน QR บนโทรศัพท์จริงหลายรุ่นยังควรตรวจบนเครือข่ายเป้าหมายและยอมรับ firewall prompt ของระบบปฏิบัติการหากมี
+
+## Rek Pork Cooldown Fix
+
+แก้สกิลของ Rek Pork ให้ลดเวลาคูลดาวน์ที่เหลือของเพื่อนร่วมทีมลงครึ่งหนึ่งตามคำอธิบาย จากเดิมที่ตั้งค่าตัวคูณเป็น `3` ซึ่งทำให้เวลาคูลดาวน์เพิ่มขึ้นสามเท่า ตอนนี้ใช้ตัวคูณ `0.5` และยังไม่กระทบคูลดาวน์ของ Rek Pork เอง
+
+Validation: `npm run check` และ `npm test` ผ่านแล้ว

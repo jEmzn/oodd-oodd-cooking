@@ -176,7 +176,7 @@ const characterDefinitions = [
     activeSeconds: 30,
     recoverySeconds: 12,
     skillEffect: "cooldown-reduction",
-    cooldownReduction: 3,
+    cooldownReduction: 0.5,
     role: "เชฟผู้ใจเย็น แต่ขี้วีน ",
     skill: "ลดเวลาคูลดาวน์สกิลให้เพื่อนร่วมทีม โดยไม่รวมตัวเอง",
     stats: [["คูลดาวน์สกิล", "14 วินาที"], ["เวลาเล่น", "30 วินาที"], ["พักฟื้น", "12 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
