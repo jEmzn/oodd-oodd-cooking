@@ -22,7 +22,7 @@ Oodd Oodd Cooking is a browser cooking game built with HTML, CSS, JavaScript, in
 
 When the page opens, the start screen offers Solo and local co-op. Both modes open the character selection screen before gameplay. Each player selects one of the five characters, opens a skill-details popup, and can cancel or confirm the choice. In local co-op, characters are selected one player at a time and cannot be duplicated within the team. Local co-op supports zero to two keyboard slots and enough phone controllers to reach two to five total players. Keyboard-only co-op works without a server; phone controllers join by scanning a QR from the computer while all devices share one Wi-Fi network or hotspot.
 
-After 120 seconds, the game stops, clears its timers and animation loop, waits briefly for a transition, and returns to the results screen. Starting a new round resets the player position, timer, and total score.
+After 420 seconds, the game stops, clears its timers and animation loop, waits briefly for a transition, and returns to the results screen. Starting a new round resets the player position, timer, and total score.
 
 ## Gameplay
 
@@ -92,12 +92,12 @@ Team scoring is browser-authoritative and unchanged in transport: a completed se
 
 > Superseded: the online authoritative multiplayer implementation described in older history below has been replaced by the Local Co-op update at the end of this document.
 
-Multiplayer mode supports temporary names, 5-character room codes, 2 to 5 players, a Ready lobby, host-controlled round start, shared 120-second rounds, 35-second orders, server-authoritative movement, per-player raw inventory and assembly plate state, shared cooking stations and score, disconnect removal, and a results screen. Active room data is in-memory and resets when the server restarts.
+Multiplayer mode supports temporary names, 5-character room codes, 2 to 5 players, a Ready lobby, host-controlled round start, shared 420-second rounds, 60-second orders, server-authoritative movement, per-player raw inventory and assembly plate state, shared cooking stations and score, disconnect removal, and a results screen. Active room data is in-memory and resets when the server restarts.
 
 
 ## Gameplay Update
 
-The game uses a 120-second cooking round with customer orders that each last 60 seconds. Six Thai menus are assembled from rice and outputs produced by the pot, pan, or grill. Raw ingredients are collected individually without a plate, staged at a compatible station, and cooked for 2 seconds after an empty-handed interaction. A plate is required only to collect cooked outputs, combine them with rice in recipe order, and serve the completed dish. Successful service adds 100 shared team points; an expired order deducts 50 points and sends its customer away without clearing the players' held items or assembly plates.
+The game uses a 420-second cooking round with customer orders that each last 60 seconds. Six Thai menus are assembled from rice and outputs produced by the pot, pan, or grill. Raw ingredients are collected individually without a plate, staged at a compatible station, and cooked for 2 seconds after an empty-handed interaction. A plate is required only to collect cooked outputs, combine the exact menu components in any order, and serve the completed dish. Successful service adds 100 shared team points; an expired order deducts 50 points and sends its customer away without clearing the players' held items or assembly plates.
 
 
 ## Held Food Indicator
@@ -199,13 +199,13 @@ Text selection, copying, cutting, and context-menu actions are disabled within t
 
 ## Timed Order Queue
 
-Solo and multiplayer rounds maintain a shared-style queue of up to two customer orders. One order appears when a round starts, and the game attempts to add another order every seven seconds while the queue has space. Each order has its own 35-second expiry timer; generation pauses at two queued orders. The game UI displays all waiting orders with individual countdowns.
+Solo and local co-op rounds maintain a shared-style queue of up to two customer orders. One order appears when a round starts, and the game attempts to add another order every twelve seconds while the queue has space. Each order has its own 60-second expiry timer; generation pauses at two queued orders. The game UI displays all waiting orders with individual countdowns.
 
 Cooking is free-form: players may prepare any of the six shared recipes without first selecting a displayed order. Serving removes the oldest waiting order matching the completed assembly plate and adds 100 points to the shared score. A completed dish remains on the plate when no matching order is available. The multiplayer `room-state` payload sends an `orders` array with timestamps so every client renders the same queue and individual countdowns.
 
 ## Repository Guidelines Update
 
-`AGENTS.md` now documents the current client/server structure, sprite assets, multiplayer development commands, two-minute gameplay validation checklist, synchronization requirements, and server-specific security considerations. Syntax validation with `node --check game.js` and `node --check server/server.js` passes; browser validation remains recommended for the full solo and multiplayer flows.
+`AGENTS.md` now documents the current client/server structure, sprite assets, multiplayer development commands, 420-second gameplay validation checklist, synchronization requirements, and server-specific security considerations. Syntax validation with `node --check game.js` and `node --check server/server.js` passes; browser validation remains recommended for the full solo and multiplayer flows.
 
 ## Mobile Home Screen Fit
 
@@ -272,11 +272,11 @@ Exit Game now sits directly to the right of Fullscreen in the gameplay HUD, usin
 
 ## Two-Order Queue Limit
 
-Solo and multiplayer customer queues hold at most two orders. Both the client order generator and authoritative server generation use the same cap and a 35-second lifetime for every order. Expired orders leave the queue without consuming a completed dish that no longer has a matching customer.
+Solo and local co-op customer queues hold at most two orders. The client order generator uses the same cap and a 60-second lifetime for every order. Expired orders leave the queue without consuming a completed dish that no longer has a matching customer.
 
 ## Order Queue Reference Fix
 
-Ingredient collection no longer references the removed single `currentOrder` state; it gives a generic instruction because cooking is free-form with the shared order queue. Finished food pickup uses the menu stored on the cooking station, so Solo and Multiplayer can correctly transfer the completed dish even when multiple orders are waiting. The Solo round duration uses the same 120-second value shown by the HUD and used by the server. `node --check game.js` and `node --check server/server.js` pass; browser validation of collection, cooking pickup, serving, and timeout remains recommended.
+Ingredient collection no longer references the removed single `currentOrder` state; it gives a generic instruction because cooking is free-form with the shared order queue. Finished food pickup uses the menu stored on the cooking station, so Solo and Multiplayer can correctly transfer the completed dish even when multiple orders are waiting. The Solo round duration uses the same 420-second value shown by the HUD; the browser remains authoritative for the game timer while the relay only forwards controller input. `node --check game.js` and `node --check server/server.js` pass; browser validation of collection, cooking pickup, serving, and timeout remains recommended.
 
 ## Thai Game Text
 
@@ -286,9 +286,9 @@ Ingredient collection no longer references the removed single `currentOrder` sta
 
 ระบบทำอาหารถูกปรับตาม `REF.md` โดยแยกของดิบในมือออกจากจานประกอบอาหาร ผู้เล่นหยิบข้าว เนื้อ ผัก ไข่ หรือซอสได้โดยไม่ต้องมีจาน แล้วนำวัตถุดิบไปใส่หม้อ กระทะ หรือเตาย่างทีละชิ้น สถานีสะสมวัตถุดิบสำหรับการปรุงหนึ่ง batch และไม่บังคับลำดับการใส่ เช่น ผักตามด้วยเนื้อหรือเนื้อตามด้วยผักให้ผลเป็นผัดเนื้อและผักเหมือนกัน เมื่อชุดปัจจุบันตรงสูตรให้กดโต้ตอบด้วยมือเปล่าเพื่อเริ่มปรุง 2 วินาที สถานีจะเก็บอาหารที่ปรุงเสร็จไว้จนกว่าผู้เล่นที่มีจานจะมารับ
 
-ระหว่าง staging สถานีแสดงรูปวัตถุดิบทุกชิ้นที่ใส่ไว้ หากชุดปัจจุบันยังเป็นเพียงส่วนหนึ่งของสูตรจะแสดง `รอวัตถุดิบเพิ่ม`; เมื่อชุดตรงสูตรจะแสดง `พร้อมเริ่ม • กด E` แต่ยังสามารถเพิ่มวัตถุดิบเพื่อเลือกสูตรที่ยาวกว่าได้ วัตถุดิบที่ไม่สามารถใช้ร่วมกับของในสถานีจะถูกปฏิเสธและยังอยู่ในมือผู้เล่น ลำดับการประกอบอาหารบนจานยังคงเคร่งตามสูตรเมนูเดิม
+ระหว่าง staging สถานีแสดงรูปวัตถุดิบทุกชิ้นที่ใส่ไว้ หากชุดปัจจุบันยังเป็นเพียงส่วนหนึ่งของสูตรจะแสดง `รอวัตถุดิบเพิ่ม`; เมื่อชุดตรงสูตรจะแสดง `พร้อมเริ่ม • กด E` แต่ยังสามารถเพิ่มวัตถุดิบเพื่อเลือกสูตรที่ยาวกว่าได้ วัตถุดิบที่ไม่สามารถใช้ร่วมกับของในสถานีจะถูกปฏิเสธและยังอยู่ในมือผู้เล่น ส่วนจานจะตรวจชนิดและจำนวนส่วนผสมแบบไม่เรียงลำดับตาม `menu.components`
 
-จานใช้เฉพาะขั้นประกอบเมนู โดยเพิ่มข้าวและอาหารที่ปรุงเสร็จตามลำดับสูตร หากประกอบผิดลำดับ จานจะต้องถูกนำไปทิ้ง เมื่อส่วนผสมตรงหนึ่งในหกเมนู จานจะแสดงรูปอาหารสำเร็จและนำไปเสิร์ฟได้ ผู้เล่นสามารถมีจานประกอบอาหารและถือวัตถุดิบดิบหนึ่งชิ้นพร้อมกันได้ เพื่อไม่ให้จานขัดขวางการขนวัตถุดิบไปยังสถานี
+จานใช้เฉพาะขั้นประกอบเมนู โดยเพิ่มข้าวหรืออาหารที่ปรุงเสร็จในลำดับใดก็ได้ ตราบใดที่ส่วนผสมแต่ละชิ้นยังเป็น subset ของเมนูเดียวกัน จึงใส่ข้าวก่อนอาหารปรุงได้ เมื่อส่วนผสมตรงหนึ่งในหกเมนูจานจะแสดงรูปอาหารสำเร็จและนำไปเสิร์ฟได้ ส่วนผสมผิดเมนูหรือเกินจำนวนจะถูกปฏิเสธโดยไม่ทำลายจานเดิมและ output ที่สถานี ผู้เล่นสามารถมีจานประกอบอาหารและถือวัตถุดิบดิบหนึ่งชิ้นพร้อมกันได้ เพื่อไม่ให้จานขัดขวางการขนวัตถุดิบไปยังสถานี
 
 ข้อมูลวัตถุดิบ transformation สูตรอาหาร และ asset path อยู่ใน `recipes.js` ซึ่งโหลดใน browser และ require จาก server เพื่อให้ Solo กับ Multiplayer ใช้กติกาเดียวกัน สถานีวัตถุดิบรวมถูกลบออกแล้ว สถานีปรุงอาหารแบบ Multiplayer เป็นทรัพยากรร่วม: ผู้เล่นคนหนึ่งใส่วัตถุดิบและเริ่มปรุง ส่วนผู้เล่นอีกคนที่มีจานสามารถรับอาหารที่พร้อมแล้วได้ ใบออเดอร์ใช้รูปวัตถุดิบแบบกลุ่มและไอคอนสถานี ส่วนของที่ถือเหนือหัวใช้รูปจริงแบบวงกลมและซ้อนเฉียง
 
@@ -300,7 +300,7 @@ Validation: `node --check game.js`, `node --check server/server.js`, `node --che
 
 Multiplayer checks เชื่อม Socket.IO จริงด้วย client อิสระหลายตัว ครอบคลุมห้อง 5 คน การปฏิเสธคนที่ 6 readiness และ host gating, authoritative movement, การถือวัตถุดิบโดยไม่มีจาน, station staging, shared station lock, cooking handoff ไปยังผู้เล่นที่ถือจาน, อายุออเดอร์ 60 วินาที, score synchronization, queue limit, round results, replay, host transfer และ disconnect cleanup นอกจากนี้ browser สองแท็บยืนยัน lobby UI, remote-player rendering และ movement interpolation แล้ว ระหว่างทดสอบพบและแก้กรณีผู้เล่นที่เพิ่ง join เห็น avatar ของตัวเองซ้ำในกลุ่ม remote players โดย renderer จะลบ ID ที่ไม่อยู่ใน remote-player set ปัจจุบันทุก snapshot
 
-Validation ล่าสุด: `node --check` ผ่านสำหรับ client, server, shared recipe data และ test scripts; `npm test --prefix server` ผ่าน โดย unit tests ครอบคลุม unordered station matching และ ordered plate assembly; Chromium Solo ทำและเสิร์ฟครบ 6 เมนูด้วยการกลับลำดับวัตถุดิบทุกสูตรหลายชิ้น พร้อมตรวจรูปและสถานะ staging, keyboard, touch, landscape และ portrait; browser multiplayer สองแท็บผ่าน; Socket.IO integration ผ่านด้วยผู้เล่นจริง 5 clients และปฏิเสธ client ที่ 6 โดยรอบล่าสุดได้เมนูข้าวหมูแดงและผ่าน shared station, handoff, score, results, replay และ host transfer
+Validation ล่าสุด: `node --check` ผ่านสำหรับ client, server, shared recipe data และ test scripts; `npm test --prefix server` ผ่าน โดย unit tests ครอบคลุม unordered station matching และ unordered plate assembly; Chromium Solo ทำและเสิร์ฟครบ 6 เมนู พร้อมตรวจรูปและสถานะ staging, keyboard, touch, landscape และ portrait; browser multiplayer สองแท็บผ่าน; Socket.IO integration ผ่านด้วยผู้เล่นจริง 5 clients และปฏิเสธ client ที่ 6 โดยรอบล่าสุดได้เมนูข้าวหมูแดงและผ่าน shared station, handoff, score, results, replay และ host transfer
 
 ## Independent Duplicate Pans and Pots
 
@@ -310,9 +310,9 @@ Socket.IO event `interact` ยังคงส่ง `{ station }` แต่ส�
 
 Validation: syntax checks ผ่านสำหรับ client, server และ test scripts; `npm test --prefix server` ผ่าน; Chromium Solo ผ่านครบ 6 เมนูพร้อมตรวจว่ากระทะสองใบและหม้อสองใบปรุงพร้อมกันและเปลี่ยนเป็น READY แยกกัน; browser multiplayer สองแท็บผ่าน; Socket.IO integration 5 clients ผ่านพร้อมตรวจสองผู้เล่นใช้กระทะคนละใบพร้อมกัน, shared state, replay, host transfer และ disconnect cleanup
 
-## Two-Minute Rounds
+## Seven-Minute Rounds
 
-ระยะเวลาเล่นต่อรอบเพิ่มจาก 40 เป็น 120 วินาทีทั้ง Solo และ Multiplayer ค่าเริ่มต้นใน HUD, client timer และ authoritative server ใช้ค่าเดียวกัน โดยช่วงเตือนสิบวินาทีสุดท้ายยังคงเดิม และอายุออเดอร์ปัจจุบันคือ 60 วินาที ชุดทดสอบ browser ตรวจว่า Solo และ Multiplayer เริ่มที่ `120`; Socket.IO integration ปล่อยให้ server นับถอยหลังครบสองนาทีและยืนยันการเปลี่ยนเป็น Results ที่วินาที 0 แล้ว Syntax checks, recipe unit tests, Solo browser, browser multiplayer และ multiplayer integration ผ่านทั้งหมด
+ระยะเวลาเล่นต่อรอบเป็น 420 วินาทีทั้ง Solo และ local co-op ค่าเริ่มต้นใน HUD และ client timer ใช้ค่าเดียวกัน โดยช่วงเตือนสิบวินาทีสุดท้ายและการจบรอบที่วินาที `0` ยังคงเดิม ออเดอร์แต่ละรายการยังมีอายุ 60 วินาทีแยกจากเวลาเกม ชุดทดสอบ browser ตรวจว่า Solo และ local co-op เริ่มที่ `420`, HUD แสดง `420`, และการจำลองนับถอยหลังถึงศูนย์เปิด Results โดยไม่ต้องรอเล่นจริงครบเจ็ดนาที
 
 ## Client Cleanup and Test Commands
 
@@ -332,7 +332,7 @@ npm run test:browser:local
 
 Socket และ browser checks ต้องเปิด server ที่พอร์ต `3210` ก่อนด้วย `PORT=3210 npm start` ส่วน browser checks ต้องมี Chromium remote debugging ที่พอร์ต `9223` เช่น `chromium-browser --headless --remote-debugging-port=9223 --user-data-dir="$(mktemp -d)" about:blank` อายุออเดอร์ที่ assertions ใช้ทั้ง Solo และ Multiplayer คือ 60 วินาที
 
-Validation ล่าสุดผ่านครบทั้ง `npm run check`, recipe tests, Chromium Solo/responsive check, browser Multiplayer สองแท็บ และ Socket.IO integration เต็มรอบ 120 วินาที Regression checks ยืนยันว่า Solo exit ล้าง order-generation interval, delayed Results ไม่เปิดทับหน้าเริ่มต้น, Multiplayer leave ส่ง event ครั้งเดียว และ local/remote animation state ถูกล้างแล้ว
+Validation ล่าสุดผ่านครบทั้ง `npm run check`, recipe tests, Chromium Solo/responsive check, browser local co-op และ relay checks. Regression checks ยืนยันว่า Solo และ local co-op เริ่มที่ 420 วินาที, ออเดอร์ยังหมดอายุที่ 60 วินาที, Solo exit ล้าง order-generation interval, delayed Results ไม่เปิดทับหน้าเริ่มต้น, local leave ส่ง event ครั้งเดียว และ local/remote animation state ถูกล้างแล้ว
 
 ## Local Co-op and Phone Controllers
 
@@ -363,13 +363,13 @@ Native fullscreen และ fallback fullscreen ใช้สัดส่วน�
 
 เพิ่ม browser regression ที่ตรวจ parent DOM, การจัดวางสองคอลัมน์, ตำแหน่งฉาก/ออเดอร์ก่อนและหลังการกดโต้ตอบ และ scroll position การตรวจ `npm run check`, `npm test` และ Solo browser/responsive check ผ่านแล้ว
 
-## Plate Recipe Assembly Order
+## Unordered Plate Recipe Assembly
 
-ปรับ `recipes.js` ให้สอดคล้องกับลำดับใหม่ใน `FOOD.md`: เมนูข้าวมันไก่ ข้าวหมูแดง ข้าวหมูตุ๋น ข้าวเหนียวหมูปิ้ง และข้าวกะเพราหมูสับไข่ดาว ต้องใส่อาหารที่ปรุงเสร็จก่อน แล้วจึงเติมข้าวเป็นส่วนผสมสุดท้าย ส่วนข้าวผัดกุ้งยังนำข้าว เนื้อ ผัก และไข่ลงกระทะรวมกันแบบไม่บังคับลำดับเดิม
+ปรับ `recipes.js` ให้การประกอบจานเทียบ `menu.components` แบบ exact multiset โดยไม่ใช้ลำดับเป็นเงื่อนไข เมนูทั้งหกจึงใส่ข้าวและอาหารที่ปรุงเสร็จได้ทุก permutation รวมถึงใส่ข้าวก่อนอาหารปรุง ส่วนข้าวผัดกุ้งยังนำข้าว เนื้อ ผัก และไข่ลงกระทะรวมกันแบบไม่บังคับลำดับเดิม
 
-สถานีข้าวจะไม่เปิดตัวเลือกเมื่อถือจานว่าง และ `chooseRice()` จะตรวจผลการประกอบก่อนบันทึกลงจาน หากลำดับข้าวไม่ตรงสูตร จานเดิมและวัตถุดิบในมือจะยังอยู่ครบ พร้อมข้อความแนะนำ ผู้เล่นที่ไม่มีจานยังเลือกข้าวดิบเพื่อใส่กระทะข้าวผัดได้เหมือนเดิม ลำดับ valid ของจานสร้างจาก prefix ของ `menu.components` เพื่อให้ข้อมูลสูตรเป็น source of truth เดียว
+สถานีข้าวเปิดตัวเลือกได้แม้ถือจานว่าง และ `chooseRice()` จะตรวจว่าองค์ประกอบใหม่ยังเป็น subset ของเมนูใดเมนูหนึ่งก่อนบันทึกลงจาน หากข้าวหรืออาหารปรุงผิดเมนู/เกินจำนวน จานเดิมและ output ที่สถานีจะยังอยู่ครบ พร้อมข้อความกลางว่าไม่สามารถรับส่วนผสมนี้ได้ ผู้เล่นที่ไม่มีจานยังเลือกข้าวดิบเพื่อใส่กระทะข้าวผัดได้เหมือนเดิม โดย `menu.components` ยังคงเป็น source of truth เดียว
 
-เพิ่ม unit และ browser regression สำหรับลำดับ components/steps ของทั้งหกเมนู การปฏิเสธข้าวก่อนอาหารปรุง การเติมข้าวหลัง cooked component การรักษาจานเมื่อเติมข้าวผิดสูตร และการทำงานเดิมของข้าวผัดกุ้ง; validation ล่าสุด `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo` และ `npm run test:browser:local` ผ่านแล้ว
+เพิ่ม unit และ browser regression สำหรับทุก permutation ของ components ทั้งหกเมนู การใส่ข้าวก่อน cooked component แล้วประกอบต่อจนสำเร็จ การปฏิเสธส่วนผสมผิดเมนู/เกินจำนวนโดยรักษาจานเดิม และการทำงานเดิมของข้าวผัดกุ้ง พร้อมตรวจกรอบสีแยกตาม `order-step` และขนาดไอคอนใบออเดอร์บน desktop/640×360 landscape; validation ล่าสุดผ่านครบ `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo` และ `npm run test:browser:local`
 
 ## Player Name Placement
 

@@ -52,7 +52,7 @@ Manually verify:
 
 - Start screen, Solo start, results screen, Play Again, and Return to Start.
 - Solo WASD/arrow/touch movement, Player 1 `WASD` + `E`, and Player 2 arrows + `Enter`.
-- Ingredient collection, two-second cooking, READY pickup, serving, score updates, order queue growth, 60-second order expiry, and the two-minute timeout.
+- Ingredient collection, two-second cooking, READY pickup, serving, score updates, order queue growth, 60-second order expiry, and the 420-second timeout.
 - Desktop layout, narrow layout, landscape touch controls, portrait rotate-device warning, fullscreen, music, and sprite direction changes.
 - Local co-op with 0–2 keyboard slots and phone controllers up to five total players, independent inventories, shared orders/stations/score, results, and replay.
 - LAN QR joining, controller movement/interactions/rice choices, capacity, 30-second reconnect, disconnect input cleanup, and host session closure.

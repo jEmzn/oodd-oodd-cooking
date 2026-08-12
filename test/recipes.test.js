@@ -2,10 +2,17 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const data = require("../recipes.js");
 
-test("all six menu component sequences resolve to a menu", () => {
+function permutations(items) {
+  if (items.length < 2) return [items];
+  return items.flatMap((item, index) => permutations([...items.slice(0, index), ...items.slice(index + 1)]).map((rest) => [item, ...rest]));
+}
+
+test("all menu component permutations resolve to the same menu", () => {
   data.menus.forEach((menu) => {
-    const plate = { kind: "plate", components: menu.components, dishId: null, invalid: false };
-    assert.equal(data.normalizePlate(plate).dishId, menu.id);
+    permutations(menu.components).forEach((components) => {
+      const plate = { kind: "plate", components, dishId: null, invalid: false };
+      assert.equal(data.normalizePlate(plate).dishId, menu.id, `${menu.id}: ${components.join(",")}`);
+    });
   });
 });
 
@@ -61,29 +68,28 @@ test("raw ingredients can be held without a plate", () => {
   assert.deepEqual(data.getInventoryImages(data.createIngredient("egg")), data.ingredients.egg.images);
 });
 
-test("rice before a cooked component is invalid", () => {
-  const emptyPlate = data.createPlate();
-  const plate = data.appendIngredient(emptyPlate, "steamedRice");
-  assert.equal(plate.invalid, true);
-  assert.equal(data.appendIngredient(plate, "meat"), null);
-  assert.deepEqual(emptyPlate, data.createPlate(), "rejecting rice does not mutate the original plate");
-});
-
-test("five plate menus assemble when rice is added last", () => {
-  const plateMenus = data.menus.filter((menu) => menu.id !== "shrimp-fried-rice");
-  plateMenus.forEach((menu) => {
-    let plate = data.createPlate();
-    menu.components.forEach((component) => {
-      plate = data.appendIngredient(plate, component);
-      assert.equal(plate.invalid, false, `${menu.id}: ${component} is a valid next component`);
+test("plate components can be assembled in any order, including rice first", () => {
+  data.menus.forEach((menu) => {
+    permutations(menu.components).forEach((components) => {
+      let plate = data.createPlate();
+      components.forEach((component) => {
+        plate = data.appendIngredient(plate, component);
+        assert.equal(plate.invalid, false, `${menu.id}: ${components.join(",")}`);
+      });
+      assert.equal(plate.dishId, menu.id, `${menu.id}: ${components.join(",")}`);
     });
-    assert.equal(plate.dishId, menu.id);
   });
 });
 
-test("the original chicken order is now valid", () => {
-  let plate = data.createPlate();
-  plate = data.appendIngredient(plate, "boiledMeat");
-  plate = data.appendIngredient(plate, "steamedRice");
-  assert.equal(plate.dishId, "chicken-rice");
+test("wrong or extra components are invalid without mutating the previous plate", () => {
+  const cookedOnly = data.appendIngredient(data.createPlate(), "boiledMeat");
+  const wrongComponent = data.appendIngredient(cookedOnly, "stickyRice");
+  assert.equal(wrongComponent.invalid, true);
+  assert.deepEqual(cookedOnly, { kind: "plate", components: ["boiledMeat"], dishId: null, invalid: false });
+
+  const riceOnly = data.appendIngredient(data.createPlate(), "steamedRice");
+  const extraComponent = data.appendIngredient(riceOnly, "steamedRice");
+  assert.equal(extraComponent.invalid, true);
+  assert.deepEqual(riceOnly, { kind: "plate", components: ["steamedRice"], dishId: null, invalid: false });
+  assert.equal(data.appendIngredient(extraComponent, "boiledMeat"), null);
 });

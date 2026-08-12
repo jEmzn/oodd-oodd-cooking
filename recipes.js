@@ -88,13 +88,6 @@
     }
   ];
 
-  const validAssemblyStates = new Set([""]);
-  menus.forEach((menu) => {
-    menu.components.forEach((component, index) => {
-      validAssemblyStates.add(menu.components.slice(0, index + 1).join(","));
-    });
-  });
-
   function sameItems(left, right) {
     return left.length === right.length && left.every((item, index) => item === right[index]);
   }
@@ -115,6 +108,10 @@
     return left.length === right.length && containsItems(left, right);
   }
 
+  function isAssemblySubset(components) {
+    return menus.some((menu) => containsItems(menu.components, components));
+  }
+
   function createPlate() {
     return { kind: "plate", components: [], dishId: null, invalid: false };
   }
@@ -125,14 +122,14 @@
   }
 
   function findMenu(components) {
-    return menus.find((menu) => sameItems(menu.components, components)) || null;
+    return menus.find((menu) => sameUnorderedItems(menu.components, components)) || null;
   }
 
   function normalizePlate(plate) {
     const next = { kind: "plate", components: [...plate.components], dishId: null, invalid: false };
     const menu = findMenu(next.components);
     next.dishId = menu?.id || null;
-    next.invalid = !menu && !validAssemblyStates.has(next.components.join(","));
+    next.invalid = !menu && !isAssemblySubset(next.components);
     return next;
   }
 

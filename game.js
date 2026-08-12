@@ -89,7 +89,7 @@ const maxPlayers = 5;
 const orderLifetime = 60000;
 const servedOrderPoints = 100;
 const expiredOrderPenalty = 50;
-const roundDurationSeconds = 300;
+const roundDurationSeconds = 420;
 const playerSpeed = 270;
 const playerRadius = 32;
 const interactionDistance = playerRadius + 72;
@@ -839,7 +839,7 @@ function chooseRice(player, requestedRice) {
     if (!nextPlate || nextPlate.invalid) {
       player.riceChoice = null;
       renderRiceChoices();
-      return setPlayerMessage(player, "ต้องเติมข้าวหลังอาหารที่ปรุงเสร็จและตามลำดับสูตร");
+      return setPlayerMessage(player, "จานนี้ไม่สามารถรับส่วนผสมนี้ได้");
     }
     player.plate = nextPlate;
   } else {
@@ -900,7 +900,6 @@ function interactPlayer(player) {
   if (name === "rice") {
     if (player.inventory) return setPlayerMessage(player, "มือของคุณไม่ว่าง");
     if (player.plate?.dishId || player.plate?.invalid) return setPlayerMessage(player, "จานนี้ใช้ต่อไม่ได้ นำไปทิ้งก่อน");
-    if (player.plate && player.plate.components.length === 0) return setPlayerMessage(player, "ต้องใส่อาหารที่ปรุงเสร็จก่อนเติมข้าว");
     player.riceChoice = { selected: "steamed" };
     renderRiceChoices();
     sendControllerState(player, { canChooseRice: true, message: "เลือกข้าวสวยหรือข้าวเหนียว" });
@@ -926,7 +925,7 @@ function interactPlayer(player) {
       if (!player.plate) return setPlayerMessage(player, "หยิบจานมารับอาหารที่ปรุงเสร็จ");
       if (player.plate.invalid || player.plate.dishId) return setPlayerMessage(player, "จานนี้รับส่วนผสมเพิ่มไม่ได้");
       const nextPlate = cookingData.appendIngredient(player.plate, station.output);
-      if (!nextPlate) return setPlayerMessage(player, "จานนี้รับส่วนผสมเพิ่มไม่ได้");
+      if (!nextPlate || nextPlate.invalid) return setPlayerMessage(player, "จานนี้ไม่สามารถรับส่วนผสมนี้ได้");
       player.plate = nextPlate;
       cookingStations[name] = null;
       renderHeldItem(player);
@@ -1037,9 +1036,10 @@ function renderOrders() {
     const menu = menus.find((item) => item.id === order.menuId);
     const recipe = document.createElement("div");
     recipe.className = "order-recipe";
-    (menu?.steps || []).forEach((step) => {
+    (menu?.steps || []).forEach((step, stepIndex) => {
       const stepElement = document.createElement("span");
-      stepElement.className = `order-step${step.ingredients.length > 1 ? " compound" : ""}`;
+      stepElement.className = `order-step order-step--${stepIndex % 4}${step.ingredients.length > 1 ? " compound" : ""}`;
+      stepElement.dataset.stepIndex = `${stepIndex}`;
       step.ingredients.forEach((ingredientId) => {
         const image = document.createElement("img");
         image.className = "order-ingredient-icon";

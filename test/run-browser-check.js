@@ -204,6 +204,11 @@ async function main() {
   await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: false });
   await cdp.send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(150);
+  await cdp.evaluate(`(() => {
+    const menu = menus.find((item) => item.id === "braised-pork-rice");
+    orders = [{ id: "order-layout", menuId: menu.id, name: menu.name, createdAt: Date.now(), expiresAt: Date.now() + 60000, customerId: null }];
+    renderOrders();
+  })()`);
   const desktopLayout = await cdp.evaluate(`(() => {
     const stage = document.querySelector('.game-stage');
     const card = document.querySelector('.game-stage > .order-card');
@@ -213,6 +218,11 @@ async function main() {
     const worldRect = world.getBoundingClientRect();
     const stageRect = stage.getBoundingClientRect();
     const cardStyle = getComputedStyle(card);
+    const steps = [...card.querySelectorAll(".order-step")];
+    const stepRects = steps.map((step) => {
+      const rect = step.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+    });
     const normal = {
       columns: getComputedStyle(stage).gridTemplateColumns.split(/\\s+/).length,
       cardOnLeft: cardRect.left < worldRect.left,
@@ -221,7 +231,10 @@ async function main() {
       worldWidthRatio: worldRect.width / stageRect.width,
       cardPadding: parseFloat(cardStyle.paddingTop),
       iconSize: parseFloat(getComputedStyle(icon).width),
-      listMaxHeight: getComputedStyle(document.querySelector('.order-list')).maxHeight
+      listMaxHeight: getComputedStyle(document.querySelector('.order-list')).maxHeight,
+      stepClasses: steps.map((step) => [...step.classList].find((name) => name.startsWith("order-step--"))),
+      stepBorders: steps.map((step) => getComputedStyle(step).borderTopColor),
+      stepsInsideCard: stepRects.every((rect) => rect.left >= cardRect.left && rect.right <= cardRect.right)
     };
     gameScreen.classList.add('fullscreen-fallback');
     const fullscreenStage = getComputedStyle(stage);
@@ -242,7 +255,10 @@ async function main() {
   assert.equal(desktopLayout.normal.worldOnRight, true, "desktop kitchen is in the right column");
   assert.ok(desktopLayout.normal.cardWidthRatio > .2 && desktopLayout.normal.cardWidthRatio < .4, "desktop order column is about 30 percent");
   assert.ok(desktopLayout.normal.worldWidthRatio > .6, "desktop kitchen column is about 70 percent");
-  assert.ok(desktopLayout.normal.cardPadding >= 20 && desktopLayout.normal.iconSize >= 30, "desktop order card content is enlarged");
+  assert.ok(desktopLayout.normal.cardPadding >= 20 && desktopLayout.normal.iconSize >= 36, "desktop order card content is enlarged");
+  assert.deepEqual(desktopLayout.normal.stepClasses, ["order-step--0", "order-step--1", "order-step--2"], "order steps have deterministic color classes");
+  assert.equal(new Set(desktopLayout.normal.stepBorders).size, 3, "order steps use separate pastel borders");
+  assert.equal(desktopLayout.normal.stepsInsideCard, true, "desktop order steps stay inside the order card");
   assert.equal(desktopLayout.normal.listMaxHeight, "none", "desktop order queue is not clipped");
   assert.deepEqual(desktopLayout.fullscreen, { columns: 2, cardPosition: "static", cardOnLeft: true, background: "rgb(251, 248, 243)", shellDisplay: "block", messageParent: "game-screen" }, "fallback fullscreen keeps the two-column layout without flexing the message into the shell");
   await cdp.evaluate("exitGame()");
@@ -325,7 +341,15 @@ async function main() {
     state: "waiting", x: 500, y: 530
   }, "customer walks to the serving station");
   const configuredRoundDuration = await cdp.evaluate("roundDurationSeconds");
+  assert.equal(configuredRoundDuration, 420, "solo uses the 420-second round duration");
   assert.deepEqual(await cdp.evaluate("({ secondsLeft, timer: timerElement.textContent })"), { secondsLeft: configuredRoundDuration, timer: `${configuredRoundDuration}` }, "solo rounds start at the configured duration");
+
+  await cdp.evaluate("startSoloGame(); clearInterval(orderTimerId); clearInterval(orderGenerationId); secondsLeft = 1; timerElement.textContent = '1'");
+  await sleep(1100);
+  assert.deepEqual(await cdp.evaluate("({ secondsLeft, timer: timerElement.textContent, gameRunning })"), { secondsLeft: 0, timer: "0", gameRunning: false }, "solo timer reaches zero and stops the round");
+  await sleep(750);
+  assert.equal(await cdp.evaluate("!resultsScreen.hidden"), true, "solo shows Results after the timer reaches zero");
+  await cdp.evaluate("startSoloGame(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
 
   for (const station of ["pan-1", "pan-2", "pot-1", "pot-2"]) {
     await interact(cdp, "meat");
@@ -390,31 +414,45 @@ async function main() {
   await cdp.evaluate("startSoloGame(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
   await interact(cdp, "plate");
   await interact(cdp, "rice");
+  await cdp.evaluate("chooseRice(players[0], 'steamed')");
   assert.deepEqual(await cdp.evaluate("({ plate: players[0].plate.components, invalid: players[0].plate.invalid, riceChoice: players[0].riceChoice, message: message.textContent })"), {
-    plate: [], invalid: false, riceChoice: null, message: "คุณ: ต้องใส่อาหารที่ปรุงเสร็จก่อนเติมข้าว"
-  }, "an empty plate rejects rice before cooked food");
+    plate: ["steamedRice"], invalid: false, riceChoice: null, message: "คุณ: ข้าวสวยใส่ลงจานแล้ว"
+  }, "an empty plate accepts rice before cooked food");
   await interact(cdp, "meat");
   await interact(cdp, "pot-1");
   await interact(cdp, "pot-1");
   await sleep(2150);
   await interact(cdp, "pot-1");
-  await interact(cdp, "rice");
-  await cdp.evaluate("chooseRice(players[0], 'steamed')");
   assert.deepEqual(await cdp.evaluate("({ components: players[0].plate.components, dishId: players[0].plate.dishId, invalid: players[0].plate.invalid, inventory: players[0].inventory, message: message.textContent })"), {
-    components: ["boiledMeat", "steamedRice"], dishId: "chicken-rice", invalid: false, inventory: null,
-    message: "คุณ: ข้าวสวยใส่ลงจานแล้ว"
-  }, "rice completes a plate after cooked food");
+    components: ["steamedRice", "boiledMeat"], dishId: "chicken-rice", invalid: false, inventory: null,
+    message: "คุณ: ประกอบเมนูสำเร็จแล้ว นำไปเสิร์ฟ"
+  }, "cooked food completes a plate after rice");
+
+  await cdp.evaluate("startSoloGame(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
+  await interact(cdp, "plate");
+  await interact(cdp, "rice");
+  await cdp.evaluate("chooseRice(players[0], 'sticky')");
+  await interact(cdp, "meat");
+  await interact(cdp, "pot-1");
+  await interact(cdp, "pot-1");
+  await sleep(2150);
+  await interact(cdp, "pot-1");
+  const plateBeforeInvalidComponent = await cdp.evaluate("({ components: players[0].plate.components, inventory: players[0].inventory })");
+  assert.deepEqual(await cdp.evaluate("({ components: players[0].plate.components, dishId: players[0].plate.dishId, invalid: players[0].plate.invalid, inventory: players[0].inventory, station: cookingStations['pot-1']?.phase, message: message.textContent })"), {
+    components: plateBeforeInvalidComponent.components, dishId: null, invalid: false, inventory: plateBeforeInvalidComponent.inventory,
+    station: "ready", message: "คุณ: จานนี้ไม่สามารถรับส่วนผสมนี้ได้"
+  }, "an invalid cooked component preserves the existing plate and station output");
 
   await cdp.evaluate("startSoloGame(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
   await interact(cdp, "plate");
   await interact(cdp, "meat");
-  await interact(cdp, "grill");
-  await interact(cdp, "grill");
+  await interact(cdp, "pot-1");
+  await interact(cdp, "pot-1");
   await sleep(2150);
-  await interact(cdp, "grill");
+  await interact(cdp, "pot-1");
   const plateBeforeInvalidRice = await cdp.evaluate("({ components: players[0].plate.components, inventory: players[0].inventory })");
   await interact(cdp, "rice");
-  await cdp.evaluate("chooseRice(players[0], 'steamed')");
+  await cdp.evaluate("chooseRice(players[0], 'sticky')");
   assert.deepEqual(await cdp.evaluate("({ components: players[0].plate.components, dishId: players[0].plate.dishId, invalid: players[0].plate.invalid, inventory: players[0].inventory })"), {
     components: plateBeforeInvalidRice.components, dishId: null, invalid: false, inventory: plateBeforeInvalidRice.inventory
   }, "an invalid rice addition preserves the existing plate and inventory");
@@ -428,10 +466,30 @@ async function main() {
   await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
   await cdp.send("Emulation.setDeviceMetricsOverride", { width: 640, height: 360, deviceScaleFactor: 1, mobile: true, screenOrientation: { type: "landscapePrimary", angle: 90 } });
   await sleep(300);
+  const landscapeOrderLayout = await cdp.evaluate(`(() => {
+    const menu = menus.find((item) => item.id === "shrimp-fried-rice");
+    orders = [{ id: "landscape-order", menuId: menu.id, name: menu.name, createdAt: Date.now(), expiresAt: Date.now() + 60000, customerId: null }];
+    renderOrders();
+    const card = document.querySelector(".game-stage > .order-card");
+    const cardRect = card.getBoundingClientRect();
+    const steps = [...card.querySelectorAll(".order-step")];
+    const stepRects = steps.map((step) => {
+      const rect = step.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+    });
+    return {
+      iconSize: parseFloat(getComputedStyle(card.querySelector(".order-ingredient-icon")).width),
+      stepClasses: steps.map((step) => [...step.classList].find((name) => name.startsWith("order-step--"))),
+      stepsInsideCard: stepRects.every((rect) => rect.left >= cardRect.left && rect.right <= cardRect.right && rect.top >= cardRect.top && rect.bottom <= cardRect.bottom)
+    };
+  })()`);
   assert.notEqual(await cdp.evaluate("getComputedStyle(document.querySelector('#mobile-controls')).display"), "none");
   assert.equal(await cdp.evaluate("getComputedStyle(document.querySelector('#orientation-warning')).display"), "none");
   assert.equal(await cdp.evaluate("getComputedStyle(document.querySelector('.game-stage')).display"), "flex", "landscape touch keeps the compact stage layout");
   assert.equal(await cdp.evaluate("getComputedStyle(document.querySelector('.game-stage > .order-card')).position"), "absolute", "landscape touch keeps the overlaid order card");
+  assert.ok(landscapeOrderLayout.iconSize >= 24, "landscape order ingredient icons remain touch-readable");
+  assert.deepEqual(landscapeOrderLayout.stepClasses, ["order-step--0"], "landscape order keeps deterministic step styling");
+  assert.equal(landscapeOrderLayout.stepsInsideCard, true, "landscape compound order steps stay inside the order card");
   const touchStartX = await cdp.evaluate("players[0].x");
   await cdp.evaluate("document.querySelector('[data-direction=right]').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }))");
   await sleep(250);

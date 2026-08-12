@@ -67,6 +67,7 @@ async function main() {
   await host.evaluate("startLocalButton.click()");
   assert.equal(await host.evaluate("characterGrid.children.length"), 5, "local co-op opens character selection");
   await host.evaluate("characterGrid.querySelector('[data-character-id=grilled-pork]').click(); characterConfirmButton.click(); characterGrid.querySelector('[data-character-id=angel-pork]').click(); characterConfirmButton.click(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
+  assert.deepEqual(await host.evaluate("({ configured: roundDurationSeconds, secondsLeft, timer: timerElement.textContent })"), { configured: 420, secondsLeft: 420, timer: "420" }, "local co-op shares the 420-second round duration in the timer and HUD");
   assert.equal(await host.evaluate("players.length"), 2);
   assert.deepEqual(await host.evaluate("players.map((player) => player.source)"), ["keyboard1", "keyboard2"]);
   assert.deepEqual(await host.evaluate("players.map((player) => player.characterId)"), ["grilled-pork", "angel-pork"]);
