@@ -137,7 +137,7 @@ const characterDefinitions = [
     recoverySeconds: 9,
     skillEffect: "customer-surge",
     role: "เชฟผู้น่ารักสดใส แต่ขี้เกียจ เหนื่อยง่าย",
-    skill: "เรียกลูกค้าเข้าร้าน เพิ่มจำนวนลูกค้าเข้าร้านมากขึ้น แต่จะเหนื่อยง่ายหลังใช้สกิล",
+    skill: "เรียกลูกค้าเข้าร้าน เพิ่มจำนวนลูกค้าเข้าร้านมากขึ้น",
     stats: [["คูลดาวน์สกิล", "15 วินาที"], ["เวลาเล่น", "25 วินาที"], ["พักฟื้น", "9 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
       down: [{ href: "animation/animation_walk/Angel_Pork_animation/Stand%20Still.png", width: 220, height: 80 }, { href: "animation/animation_walk/Angel_Pork_animation/Stand%20Still.png", width: 220, height: 80 }],
@@ -200,7 +200,7 @@ const characterDefinitions = [
     effectDurationSeconds: 10,
     cookingMultiplier: 1,
     role: "เชฟตัวจิ๋วผู้ว่องไว แต่ขี้โวยวาย",
-    skill: "ช่วยให้เพื่อนทำอาหารได้ไวขึ้น แต่ถ้าจุกหลุดจะวิ่งปั่นป่วนทั่วครัว",
+    skill: "ช่วยให้เพื่อนทำอาหารได้ไวขึ้น ",
     stats: [["คูลดาวน์สกิล", "10 วินาที"], ["เวลาเล่น", "30 วินาที"], ["พักฟื้น", "7 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
       down: [{ href: "animation/animation_walk/Baby_Pork_animation/Stand%20Still.png", width: 67, height: 60 }, { href: "animation/animation_walk/Baby_Pork_animation/Stand%20Still.png", width: 67, height: 60 }],
