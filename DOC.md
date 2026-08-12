@@ -318,3 +318,27 @@ Online multiplayer ถูกแทนที่ด้วย local co-op บนจ
 Solo และ local co-op แบบสองคีย์บอร์ดเปิดจาก `index.html` ได้โดยตรง การใช้โทรศัพท์ให้รัน `npm start` ใน `server/`; local relay จะแสดง LAN URL และหน้าเกมสร้าง QR ที่มีรหัส session โทรศัพท์มี D-pad, ปุ่มโต้ตอบ และตัวเลือกข้าวเฉพาะตัว Server ทำหน้าที่ส่ง input เท่านั้น ไม่ประมวลผล gameplay และให้เวลาโทรศัพท์ reconnect 30 วินาทีก่อนถอนช่องผู้เล่น
 
 เพิ่ม dependency `qrcode` ฝั่ง server สำหรับสร้าง QR ภายในเครื่อง และแทนชุดทดสอบออนไลน์เดิมด้วย relay/local co-op checks คำสั่งล่าสุดคือ `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo`, และ `npm run test:browser:local` Validation ผ่านทั้งหมด โดย browser checks ครอบคลุมสูตรทั้ง 6 เมนู, direct-file Solo, responsive touch, ผู้เล่นคีย์บอร์ดพร้อมกัน, roster 5 คน, โทรศัพท์จำลอง, การเลือกข้าว, relay capacity, reconnect และ session cleanup การสแกน QR บนโทรศัพท์จริงหลายรุ่นยังควรตรวจบนเครือข่ายเป้าหมายและยอมรับ firewall prompt ของระบบปฏิบัติการหากมี
+
+## Desktop Two-Column Gameplay Layout
+
+หน้าจอเกมบน desktop ที่กว้างตั้งแต่ 851px ใช้ CSS Grid สองคอลัมน์ โดยคอลัมน์ซ้ายประมาณ 30% สำหรับคิวออเดอร์ และคอลัมน์ขวาประมาณ 70% สำหรับฉากครัว การ์ดออเดอร์ ชื่อเมนู countdown ไอคอนวัตถุดิบ/เครื่องมือ และ HUD ถูกขยายให้อ่านง่ายขึ้น ขณะที่ `viewBox` SVG พิกัดสถานี collision และขนาด gameplay ยังคงเดิม
+
+Native fullscreen และ fallback fullscreen ใช้สัดส่วนสองคอลัมน์เดียวกับ desktop ปกติ ส่วน mobile และ landscape touch ยังคง stage แบบเดิม: การ์ดออเดอร์วางทับมุมซ้ายของฉาก และครัวใช้พื้นที่ที่เหลือภายใน viewport โดยไม่เปลี่ยนการควบคุมหรือ geometry ของเกม
+
+เพิ่ม assertions ใน `test/run-browser-check.js` เพื่อตรวจคอลัมน์ ตำแหน่ง สัดส่วน ขนาด UI และ fallback fullscreen รวมถึงตรวจว่า 640×360 landscape ยังคงใช้ compact touch layout การตรวจ `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo` และ `npm run test:browser:local` ผ่านแล้ว การตรวจภาพบน desktop หลายอัตราส่วนและอุปกรณ์ touch จริงยังควรทำเพิ่มเติม
+
+แก้พื้นหลัง native และ fallback fullscreen ให้ใช้สีครีม `#fbf8f3` เดียวกับหน้าเกม และกำหนด `::backdrop` สำหรับ Fullscreen API เพื่อไม่ให้พื้นที่รอบเกมแสดงเป็นสีดำ
+
+## Fullscreen Interaction Reflow Fix
+
+แก้ closing tag ของ `.game-shell` ใน `index.html` ให้ `#game-message` อยู่นอกกรอบฉากครัวตามโครงสร้างที่ตั้งใจไว้ เดิม desktop fullscreen เปลี่ยน `.game-shell` เป็น flex ทำให้ข้อความสถานะกลายเป็นคอลัมน์ข้างฉาก และเมื่อกดโต้ตอบแล้ว `setMessage()` เปลี่ยนข้อความจึงทำให้ layout reflow และ UI เลื่อน ปัจจุบัน fullscreen ไม่ใช้ flex กับ `.game-shell` และจองพื้นที่ข้อความไว้คงที่สองบรรทัด
+
+เพิ่ม browser regression ที่ตรวจ parent DOM, การจัดวางสองคอลัมน์, ตำแหน่งฉาก/ออเดอร์ก่อนและหลังการกดโต้ตอบ และ scroll position การตรวจ `npm run check`, `npm test` และ Solo browser/responsive check ผ่านแล้ว
+
+## Plate Recipe Assembly Order
+
+ปรับ `recipes.js` ให้สอดคล้องกับลำดับใหม่ใน `FOOD.md`: เมนูข้าวมันไก่ ข้าวหมูแดง ข้าวหมูตุ๋น ข้าวเหนียวหมูปิ้ง และข้าวกะเพราหมูสับไข่ดาว ต้องใส่อาหารที่ปรุงเสร็จก่อน แล้วจึงเติมข้าวเป็นส่วนผสมสุดท้าย ส่วนข้าวผัดกุ้งยังนำข้าว เนื้อ ผัก และไข่ลงกระทะรวมกันแบบไม่บังคับลำดับเดิม
+
+สถานีข้าวจะไม่เปิดตัวเลือกเมื่อถือจานว่าง และ `chooseRice()` จะตรวจผลการประกอบก่อนบันทึกลงจาน หากลำดับข้าวไม่ตรงสูตร จานเดิมและวัตถุดิบในมือจะยังอยู่ครบ พร้อมข้อความแนะนำ ผู้เล่นที่ไม่มีจานยังเลือกข้าวดิบเพื่อใส่กระทะข้าวผัดได้เหมือนเดิม ลำดับ valid ของจานสร้างจาก prefix ของ `menu.components` เพื่อให้ข้อมูลสูตรเป็น source of truth เดียว
+
+เพิ่ม unit และ browser regression สำหรับลำดับ components/steps ของทั้งหกเมนู การปฏิเสธข้าวก่อนอาหารปรุง การเติมข้าวหลัง cooked component การรักษาจานเมื่อเติมข้าวผิดสูตร และการทำงานเดิมของข้าวผัดกุ้ง; validation ล่าสุด `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo` และ `npm run test:browser:local` ผ่านแล้ว

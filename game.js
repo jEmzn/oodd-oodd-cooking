@@ -583,8 +583,17 @@ function startCooking(player, stationId) {
 function chooseRice(player, requestedRice) {
   if (!player.riceChoice) return;
   const ingredientId = requestedRice === "sticky" ? "stickyRice" : "steamedRice";
-  if (player.plate) player.plate = cookingData.appendIngredient(player.plate, ingredientId);
-  else player.inventory = cookingData.createIngredient(ingredientId);
+  if (player.plate) {
+    const nextPlate = cookingData.appendIngredient(player.plate, ingredientId);
+    if (!nextPlate || nextPlate.invalid) {
+      player.riceChoice = null;
+      renderRiceChoices();
+      return setPlayerMessage(player, "ต้องเติมข้าวหลังอาหารที่ปรุงเสร็จและตามลำดับสูตร");
+    }
+    player.plate = nextPlate;
+  } else {
+    player.inventory = cookingData.createIngredient(ingredientId);
+  }
   player.riceChoice = null;
   renderHeldItem(player);
   renderRiceChoices();
@@ -639,6 +648,7 @@ function interactPlayer(player) {
   if (name === "rice") {
     if (player.inventory) return setPlayerMessage(player, "มือของคุณไม่ว่าง");
     if (player.plate?.dishId || player.plate?.invalid) return setPlayerMessage(player, "จานนี้ใช้ต่อไม่ได้ นำไปทิ้งก่อน");
+    if (player.plate && player.plate.components.length === 0) return setPlayerMessage(player, "ต้องใส่อาหารที่ปรุงเสร็จก่อนเติมข้าว");
     player.riceChoice = { selected: "steamed" };
     renderRiceChoices();
     sendControllerState(player, { canChooseRice: true, message: "เลือกข้าวสวยหรือข้าวเหนียว" });
