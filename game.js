@@ -116,7 +116,7 @@ const characterDefinitions = [
     name: "พี่หมูปิ้ง",
     image: "image/charecter/Grilled_Pork.png",
     skillImage: "animation/animation_cooldownskill/Grill_Cooldownskill1.png",
-    recoverySprites: [{ href: "animation/animation_cooldownskill/Grill_Cooldownskill1.png", width: 75, height: 92 }, { href: "animation/animation_cooldownskill/Grill_Cooldownskill2.png", width: 93, height: 92 }],
+    recoverySprites: [{ href: "animation/animation_cooldownskill/Grill_Cooldownskill1.png", width: 70, height: 80 }, { href: "animation/animation_cooldownskill/Grill_Cooldownskill2.png", width: 70, height: 80 }],
     skillCooldownSeconds: 15,
     activeSeconds: 40,
     recoverySeconds: 9,
@@ -127,10 +127,10 @@ const characterDefinitions = [
     skill: "ทำให้ลูกค้าใจเย็นลง เพิ่มเวลารออาหารของทุกเมนูในช่วงที่กดสกิลเท่านั้น",
     stats: [["คูลดาวน์สกิล", "15 วินาที"], ["เวลาเล่น", "40 วินาที"], ["พักฟื้น", "9 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
-      down: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 92 }, { href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height:92 }],
-      up: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 92 }, { href: "animation/animation_walk/Grilled_Pork_animation/Walk%20Forward.png", width: 69, height: 92 }],
-      left: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 92 }, { href: "animation/animation_walk/Grilled_Pork_animation/Walk%20towards%20the%20left%20side.png", width: 66, height: 92 }],
-      right: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 92 }, { href: "animation/animation_walk/Grilled_Pork_animation/Walk%20towards%20the%20right%20side.png", width: 63, height: 92 }]
+      down: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 80 }, { href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height:80 }],
+      up: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 80 }, { href: "animation/animation_walk/Grilled_Pork_animation/Walk%20Forward.png", width: 69, height: 80 }],
+      left: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 80 }, { href: "animation/animation_walk/Grilled_Pork_animation/Walk%20towards%20the%20left%20side.png", width: 66, height: 80 }],
+      right: [{ href: "animation/animation_walk/Grilled_Pork_animation/Stand%20Still.png", width: 68, height: 80 }, { href: "animation/animation_walk/Grilled_Pork_animation/Walk%20towards%20the%20right%20side.png", width: 63, height: 80 }]
     }
   },
   {
@@ -138,13 +138,13 @@ const characterDefinitions = [
     name: "นางฟ้าหมูจิ๋ว",
     image: "image/charecter/Angel_pork.png",
     skillImage: "animation/animation_cooldownskill/Angel_Cooldownskill1.png",
-    recoverySprites: [{ href: "animation/animation_cooldownskill/Angel_Cooldownskill1.png", width: 140, height: 85 }, { href: "animation/animation_cooldownskill/Angel_Cooldownskill2.png", width: 140, height: 106 }],
+    recoverySprites: [{ href: "animation/animation_cooldownskill/Angel_Cooldownskill1.png", width: 100, height: 70 }, { href: "animation/animation_cooldownskill/Angel_Cooldownskill2.png", width: 70, height: 80 }],
     skillCooldownSeconds: 15,
     activeSeconds: 25,
     recoverySeconds: 9,
     skillEffect: "customer-surge",
     role: "เชฟผู้น่ารักสดใส แต่ขี้เกียจ เหนื่อยง่าย",
-    skill: "เรียกลูกค้าเข้าร้าน เพิ่มจำนวนลูกค้าเข้าร้านมากขึ้น แต่จะเหนื่อยง่ายหลังใช้สกิล",
+    skill: "เรียกลูกค้าเข้าร้าน เพิ่มจำนวนลูกค้าเข้าร้านมากขึ้น",
     stats: [["คูลดาวน์สกิล", "15 วินาที"], ["เวลาเล่น", "25 วินาที"], ["พักฟื้น", "9 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
       down: [{ href: "animation/animation_walk/Angel_Pork_animation/Stand%20Still.png", width: 220, height: 80 }, { href: "animation/animation_walk/Angel_Pork_animation/Stand%20Still.png", width: 220, height: 80 }],
@@ -158,7 +158,7 @@ const characterDefinitions = [
     name: "ลุงหมูป่า",
     image: "image/charecter/Boar.png",
     skillImage: "animation/animation_cooldownskill/Boar_Cooldownskill1.png",
-    recoverySprites: [{ href: "animation/animation_cooldownskill/Boar_Cooldownskill1.png", width: 74, height: 95 }, { href: "animation/animation_cooldownskill/Boar_Cooldownskill2.png", width: 89, height: 92 }],
+    recoverySprites: [{ href: "animation/animation_cooldownskill/Boar_Cooldownskill1.png", width: 70, height: 80 }, { href: "animation/animation_cooldownskill/Boar_Cooldownskill2.png", width: 70, height: 80 }],
     skillCooldownSeconds: 15,
     activeSeconds: 50,
     recoverySeconds: 15,
@@ -178,20 +178,20 @@ const characterDefinitions = [
     name: "น้องเร้กหมูตุ๋น",
     image: "image/charecter/Rek_Pork.png",
     skillImage: "animation/animation_cooldownskill/Rek_Cooldownskill1.png",
-    recoverySprites: [{ href: "animation/animation_cooldownskill/Rek_Cooldownskill1.png", width: 98, height: 80 }, { href: "animation/animation_cooldownskill/Rek_Cooldownskill2.png", width: 114, height: 80 }],
+    recoverySprites: [{ href: "animation/animation_cooldownskill/Rek_Cooldownskill1.png", width: 73, height: 80 }, { href: "animation/animation_cooldownskill/Rek_Cooldownskill2.png", width: 70, height: 80 }],
     skillCooldownSeconds: 14,
     activeSeconds: 30,
     recoverySeconds: 12,
     skillEffect: "cooldown-reduction",
-    cooldownReduction: 3,
+    cooldownReduction: 0.5,
     role: "เชฟผู้ใจเย็น แต่ขี้วีน ",
     skill: "ลดเวลาคูลดาวน์สกิลให้เพื่อนร่วมทีม โดยไม่รวมตัวเอง",
     stats: [["คูลดาวน์สกิล", "14 วินาที"], ["เวลาเล่น", "30 วินาที"], ["พักฟื้น", "12 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
-      down: [{ href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 80 }, { href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 80 }],
-      up: [{ href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 80 }, { href: "animation/animation_walk/Rek_Pork_animation/Walk%20Forward.png", width: 71, height: 80 }],
-      left: [{ href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 80 }, { href: "animation/animation_walk/Rek_Pork_animation/Walk%20towards%20the%20left%20side.png", width: 78, height: 80 }],
-      right: [{ href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 80 }, { href: "animation/animation_walk/Rek_Pork_animation/Walk%20towards%20the%20right%20side.png", width: 66, height: 80 }]
+      down: [{ href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 70 }, { href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 70 }],
+      up: [{ href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 70 }, { href: "animation/animation_walk/Rek_Pork_animation/Walk%20Forward.png", width: 71, height: 70 }],
+      left: [{ href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 70 }, { href: "animation/animation_walk/Rek_Pork_animation/Walk%20towards%20the%20left%20side.png", width: 78, height: 70 }],
+      right: [{ href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 70 }, { href: "animation/animation_walk/Rek_Pork_animation/Walk%20towards%20the%20right%20side.png", width: 66, height: 70 }]
     }
   },
   {
@@ -199,7 +199,7 @@ const characterDefinitions = [
     name: "ทารกหมูเด้ง",
     image: "image/charecter/Baby_Pork.png",
     skillImage: "animation/animation_cooldownskill/Baby_Cooldownskill1.png",
-    recoverySprites: [{ href: "animation/animation_cooldownskill/Baby_Cooldownskill1.png", width: 70, height: 85 }, { href: "animation/animation_cooldownskill/Baby_Cooldownskill2.png", width: 140, height: 80 }],
+    recoverySprites: [{ href: "animation/animation_cooldownskill/Baby_Cooldownskill1.png", width: 70, height: 85 }, { href: "animation/animation_cooldownskill/Baby_Cooldownskill2.png", width: 70, height: 80 }],
     skillCooldownSeconds: 10,
     activeSeconds: 30,
     recoverySeconds: 7,
@@ -207,7 +207,7 @@ const characterDefinitions = [
     effectDurationSeconds: 10,
     cookingMultiplier: 1,
     role: "เชฟตัวจิ๋วผู้ว่องไว แต่ขี้โวยวาย",
-    skill: "ช่วยให้เพื่อนทำอาหารได้ไวขึ้น แต่ถ้าจุกหลุดจะวิ่งปั่นป่วนทั่วครัว",
+    skill: "ช่วยให้เพื่อนทำอาหารได้ไวขึ้น ",
     stats: [["คูลดาวน์สกิล", "10 วินาที"], ["เวลาเล่น", "30 วินาที"], ["พักฟื้น", "7 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
       down: [{ href: "animation/animation_walk/Baby_Pork_animation/Stand%20Still.png", width: 67, height: 60 }, { href: "animation/animation_walk/Baby_Pork_animation/Stand%20Still.png", width: 67, height: 60 }],
