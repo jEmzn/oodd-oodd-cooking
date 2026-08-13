@@ -67,6 +67,83 @@ async function main() {
   assert.equal(await cdp.evaluate("document.querySelectorAll('[data-object=ingredients]').length"), 0);
   assert.equal(await cdp.evaluate("document.querySelectorAll('[data-tool=pan]').length"), 2, "two pans are rendered");
   assert.equal(await cdp.evaluate("document.querySelectorAll('[data-tool=pot]').length"), 2, "two pots are rendered");
+  assert.deepEqual(await cdp.evaluate(`(() => {
+    const art = [...document.querySelectorAll('#kitchen-art image')].map((image) => image.getAttribute('href'));
+    const assets = ['เคาเตอร์.png', 'เตา.png', 'กระทะ.png', 'หม้อ.png', 'เขียง.png', 'กอก.png', 'เตาย่าง.png', 'ขยะ.png', 'แคชเชียร์.png', 'กล่องข้าว.png', 'กล่องจาน.png', 'กล่องซอส.png', 'กล่องไข่.png', 'กล่องผัก.png', 'กล่องเนื้อ.png'];
+    const counters = [...document.querySelectorAll('#kitchen-art .counter-art image')].map((image) => ({
+      orientation: image.dataset.counterOrientation,
+      x: Number(image.getAttribute('x')),
+      y: Number(image.getAttribute('y')),
+      width: Number(image.getAttribute('width')),
+      height: Number(image.getAttribute('height'))
+    }));
+    const verticalCounters = counters.filter((counter) => counter.orientation === 'vertical');
+    const horizontalCounters = counters.filter((counter) => counter.orientation === 'horizontal');
+    const visibleCounterRect = ({ x, y, width, height }) => ({
+      left: x + (55 / 640) * width,
+      right: x + (387 / 640) * width,
+      top: y + (43 / 360) * height,
+      bottom: y + (307 / 360) * height
+    });
+    const rowsAreConnected = (row, axis) => row.slice(1).every((counter, index) => {
+      const previous = visibleCounterRect(row[index]);
+      const current = visibleCounterRect(counter);
+      return Math.abs(current[axis === 'x' ? 'left' : 'top'] - previous[axis === 'x' ? 'right' : 'bottom']) <= 8;
+    });
+    const counterBoundsInside = counters.every(({ x, y, width, height }) => x >= 0 && y >= 0 && x + width <= 1000 && y + height <= 620);
+    const stationElements = [...document.querySelectorAll('#station-hitboxes [data-object]')];
+    const expectedStationIds = ['pot-1', 'pan-1', 'pot-2', 'pan-2', 'grill', 'trash', 'rice', 'plate', 'sauce', 'egg', 'vegetable', 'meat', 'serve'];
+    const stationTransformsMatchData = stationElements.every((element) => element.getAttribute('transform') === "translate(" + element.dataset.x + " " + element.dataset.y + ")");
+    const counterCornerGap = (() => {
+      const vertical = visibleCounterRect(verticalCounters.at(-1));
+      const horizontal = visibleCounterRect(horizontalCounters[0]);
+      return Math.abs(horizontal.left - vertical.right) <= 8;
+    })();
+    const counterVisibleRects = counters.map(visibleCounterRect);
+    const countersDoNotOverlap = counterVisibleRects.every((rect, index) => counterVisibleRects.every((other, otherIndex) => {
+      if (index === otherIndex) return true;
+      const overlapWidth = Math.min(rect.right, other.right) - Math.max(rect.left, other.left);
+      const overlapHeight = Math.min(rect.bottom, other.bottom) - Math.max(rect.top, other.top);
+      return overlapWidth <= 0 || overlapHeight <= 0;
+    }));
+    const stationHitboxesComplete = stationElements.length === expectedStationIds.length
+      && expectedStationIds.every((id) => {
+        const station = document.querySelector('#station-hitboxes [data-object="' + id + '"]');
+        return station && station.dataset.x && station.dataset.y && station.querySelector('.station-hitbox');
+      });
+    const ingredientArt = Object.fromEntries([...document.querySelectorAll('[data-ingredient-art]')]
+      .map((image) => [image.dataset.ingredientArt, { x: Number(image.getAttribute('x')), y: Number(image.getAttribute('y')) }]));
+    return {
+      missing: assets.filter((asset) => !art.includes("image/kitchen/" + asset)),
+      counterCount: counters.length,
+      counterOrientations: [verticalCounters.length, horizontalCounters.length],
+      counterBoundsInside,
+      counterRowsAreConnected: rowsAreConnected(verticalCounters, 'y') && rowsAreConnected(horizontalCounters, 'x'),
+      counterCornerGap,
+      countersDoNotOverlap,
+      ingredientArtCount: document.querySelectorAll('[data-ingredient-art]').length,
+      ingredientArt,
+      stationHitboxCount: document.querySelectorAll('.station-hitbox').length,
+      interactiveObjectCount: document.querySelectorAll('#station-hitboxes [data-object]').length,
+      stationHitboxesComplete,
+      stationTransformsMatchData,
+      labelsVisible: [...document.querySelectorAll('#station-hitboxes .object-label')].some((label) => getComputedStyle(label).display !== 'none'),
+      utensilHref: Object.fromEntries([...document.querySelectorAll('[data-station-art]')].map((image) => [image.dataset.stationArt, image.getAttribute('href')]))
+    };
+  })()`), {
+    missing: [], ingredientArtCount: 6, stationHitboxCount: 13, interactiveObjectCount: 13, labelsVisible: false,
+    counterCount: 8, counterOrientations: [4, 4], counterBoundsInside: true, counterRowsAreConnected: true,
+    counterCornerGap: true, countersDoNotOverlap: true,
+    ingredientArt: {
+      rice: { x: 796, y: 82 }, plate: { x: 866, y: 82 }, sauce: { x: 396, y: 342 },
+      egg: { x: 506, y: 342 }, vegetable: { x: 616, y: 342 }, meat: { x: 726, y: 342 }
+    },
+    stationHitboxesComplete: true, stationTransformsMatchData: true,
+    utensilHref: {
+      "pot-1": "image/kitchen/หม้อ.png", "pan-1": "image/kitchen/กระทะ.png",
+      "pot-2": "image/kitchen/หม้อ.png", "pan-2": "image/kitchen/กระทะ.png"
+    }
+  }, "new kitchen artwork and separate station hitboxes are present");
   await cdp.evaluate("playButton.click()");
   assert.deepEqual(await cdp.evaluate("({ screen: !characterScreen.hidden, cards: characterGrid.children.length, modal: !characterDetailModal.hidden })"), {
     screen: true, cards: 5, modal: false
@@ -338,7 +415,7 @@ async function main() {
   assert.equal(afterInteraction.scrollTop, beforeInteraction.scrollTop, "interaction does not scroll the fullscreen page");
   await sleep(700);
   assert.deepEqual(await cdp.evaluate("({ state: customers[0].state, x: Math.round(customers[0].x), y: Math.round(customers[0].y) })"), {
-    state: "waiting", x: 500, y: 530
+    state: "waiting", x: 500, y: 595
   }, "customer walks to the serving station");
   const configuredRoundDuration = await cdp.evaluate("roundDurationSeconds");
   assert.equal(configuredRoundDuration, 420, "solo uses the 420-second round duration");
@@ -355,12 +432,16 @@ async function main() {
     await interact(cdp, "meat");
     await interact(cdp, station);
     await interact(cdp, station);
+    assert.equal(await cdp.evaluate(`document.querySelector('[data-station-art=${JSON.stringify(station)}]').getAttribute('href')`), `image/kitchen/${station.startsWith("pan") ? "กระทะสุก.png" : "หม้อสุก.png"}`, `${station} switches to its cooking artwork independently`);
   }
   assert.deepEqual(await cdp.evaluate("Object.fromEntries(['pan-1', 'pan-2', 'pot-1', 'pot-2'].map((id) => [id, cookingStations[id]?.phase]))"), {
     "pan-1": "cooking", "pan-2": "cooking", "pot-1": "cooking", "pot-2": "cooking"
   }, "duplicate pans and pots cook independently");
   await sleep(2150);
   assert.equal(await cdp.evaluate("Object.values(cookingStations).filter((station) => station?.phase === 'ready').length"), 4, "all duplicate stations become ready independently");
+  assert.deepEqual(await cdp.evaluate("Object.fromEntries([...document.querySelectorAll('[data-station-art]')].map((image) => [image.dataset.stationArt, image.getAttribute('href')]))"), {
+    "pan-1": "image/kitchen/กระทะสุก.png", "pan-2": "image/kitchen/กระทะสุก.png", "pot-1": "image/kitchen/หม้อสุก.png", "pot-2": "image/kitchen/หม้อสุก.png"
+  }, "cooked artwork remains visible while stations are READY");
 
   for (const menu of cookingData.menus) {
     await cdp.evaluate(`(() => {
