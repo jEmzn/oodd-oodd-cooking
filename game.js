@@ -899,13 +899,13 @@ function discardStagedStation(player) {
   if (player.riceChoice) return setPlayerMessage(player, "เลือกข้าวให้เสร็จก่อน");
   const nearest = nearestObject(player);
   if (!nearest.object || nearest.distance >= interactionDistance || !cookingStationTools.has(nearest.object.name)) {
-    return setPlayerMessage(player, "เดินเข้าใกล้สถานีปรุงอาหารก่อน");
+    return setPlayerMessage(player, "เดินเข้าใกล้เตาเพื่อปรุงอาหารก่อน");
   }
   const stationId = nearest.object.name;
   const station = cookingStations[stationId];
   if (!station) return setPlayerMessage(player, `${stationLabels[stationId]} ไม่มีวัตถุดิบให้ทิ้ง`);
   if (station.phase === "cooking") return setPlayerMessage(player, `${stationLabels[stationId]} กำลังทำงานอยู่ จึงทิ้งไม่ได้`);
-  if (station.phase === "ready") return setPlayerMessage(player, `อาหารใน${stationLabels[stationId]}สุกแล้ว จึงทิ้งจากสถานีไม่ได้`);
+  if (station.phase === "ready") return setPlayerMessage(player, `อาหารใน${stationLabels[stationId]}สุกแล้ว จึงทิ้งจากเตาไม่ได้`);
   if (station.phase !== "staging") return setPlayerMessage(player, `${stationLabels[stationId]} ไม่มีวัตถุดิบที่เตรียมไว้`);
   cookingStations[stationId] = null;
   renderStationArt();
@@ -970,7 +970,7 @@ function interactPlayer(player) {
   if (player.recoveryUntil > Date.now()) return setPlayerMessage(player, `กำลังพักฟื้นอีก ${Math.ceil((player.recoveryUntil - Date.now()) / 1000)} วินาที`);
   if (player.riceChoice) return chooseRice(player, player.riceChoice.selected);
   const nearest = nearestObject(player);
-  if (!nearest.object || nearest.distance >= interactionDistance) return setPlayerMessage(player, "เดินเข้าใกล้สถานีก่อน");
+  if (!nearest.object || nearest.distance >= interactionDistance) return setPlayerMessage(player, "เดินเข้าใกล้เตาก่อน");
   const name = nearest.object.name;
   if (name === "trash") {
     if (!player.inventory && !player.plate) return setPlayerMessage(player, "ไม่มีอะไรให้ทิ้ง");
@@ -1028,7 +1028,7 @@ function interactPlayer(player) {
       return setPlayerMessage(player, ready ? `วัตถุดิบใน${stationLabels[name]}พร้อมแล้ว โต้ตอบอีกครั้งเพื่อเริ่มปรุง` : `ต้องเพิ่มวัตถุดิบใน${stationLabels[name]}ให้ครบสูตร`);
     }
     if (!player.inventory) return startCooking(player, name);
-    return setPlayerMessage(player, "ต้องถือวัตถุดิบเพื่อใส่สถานี หรือถือจานเพื่อรับอาหาร");
+    return setPlayerMessage(player, "ต้องถือวัตถุดิบเพื่อใส่ใน หรือถือจานเพื่อรับอาหาร");
   }
   const menu = player.plate?.dishId ? menus.find((item) => item.id === player.plate.dishId) : null;
   const firstOrder = orders[0];
@@ -1302,7 +1302,7 @@ function startRound() {
   resetRoundState();
   showScreen(gameScreen);
   gameRunning = true;
-  setMessage(mode === "solo" ? "เดินด้วย WASD/ลูกศร • E โต้ตอบ • Q ใช้สกิล • R ทิ้ง" : "ช่วยกันทำอาหาร • R/- ล้างวัตถุดิบในสถานี");
+  setMessage(mode === "solo" ? "เดินด้วย WASD/ลูกศร • E โต้ตอบ • Q ใช้สกิล • R ทิ้ง" : "ช่วยกันทำอาหาร • R/- ทิ้ง");
   players.forEach((player) => sendControllerState(player, { phase: "playing", message: "เกมเริ่มแล้ว!" }));
   if (mode === "local") relaySocket?.emit("local-host:phase", { phase: "playing" });
   timerId = window.setInterval(() => {
