@@ -1302,7 +1302,7 @@ function startRound() {
   resetRoundState();
   showScreen(gameScreen);
   gameRunning = true;
-  setMessage(mode === "solo" ? "เดินด้วย WASD/ลูกศร • E โต้ตอบ • Q ใช้สกิล • R ล้างสถานี" : "ช่วยกันทำอาหาร • R/- ล้างวัตถุดิบในสถานี");
+  setMessage(mode === "solo" ? "เดินด้วย WASD/ลูกศร • E โต้ตอบ • Q ใช้สกิล • R ทิ้ง" : "ช่วยกันทำอาหาร • R/- ล้างวัตถุดิบในสถานี");
   players.forEach((player) => sendControllerState(player, { phase: "playing", message: "เกมเริ่มแล้ว!" }));
   if (mode === "local") relaySocket?.emit("local-host:phase", { phase: "playing" });
   timerId = window.setInterval(() => {
