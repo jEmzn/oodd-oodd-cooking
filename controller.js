@@ -12,6 +12,7 @@ const riceController = document.querySelector("#rice-controller");
 const gameControls = document.querySelector("#game-controls");
 const interactButton = document.querySelector("#interact-button");
 const skillButton = document.querySelector("#skill-button");
+const discardButton = document.querySelector("#discard-button");
 const directionButtons = [...document.querySelectorAll("[data-direction]")];
 const actionButtons = [...document.querySelectorAll("[data-action]")];
 const socket = io();

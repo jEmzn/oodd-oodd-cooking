@@ -251,7 +251,10 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
   .direction-down { grid-column: 2; grid-row: 2; }
   .direction-right { grid-column: 3; grid-row: 2; }
   .interact-button { min-width: 88px; min-height: 58px; border-radius: 999px; color: #493a2c; background: #e4a94f; box-shadow: 0 4px 0 #b87c2b; text-transform: uppercase; }
+  .secondary-controls { display: grid; gap: 8px; pointer-events: none; }
+  .secondary-controls .control-button { pointer-events: auto; }
   .skill-control-button { min-width: 76px; min-height: 48px; border-radius: 999px; color: #fffaf2; background: #8d63a8; box-shadow: 0 4px 0 #604477; }
+  .discard-control-button { min-width: 76px; min-height: 42px; border-radius: 999px; color: #fffaf2; background: #9f332d; box-shadow: 0 4px 0 #70231f; }
   .game-shell { touch-action: none; }
 }
 
@@ -289,6 +292,8 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
   .direction-pad { grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(2, 40px); gap: 4px; }
   .control-button { min-width: 40px; min-height: 40px; border-radius: 11px; }
   .interact-button { min-width: 76px; min-height: 48px; }
+  .secondary-controls { gap: 4px; }
+  .discard-control-button { min-height: 36px; }
   .game-sound-toggle { bottom: calc(56px + max(18px, env(safe-area-inset-bottom))); }
 }
 @media (max-width: 650px) { .game-screen { padding-top: 74px; } }

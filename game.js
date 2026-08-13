@@ -41,6 +41,7 @@ const characterDetailStats = document.querySelector("#character-detail-stats");
 const fullscreenButton = document.querySelector("#fullscreen-button");
 const mobileInteractButton = document.querySelector("#mobile-interact-button");
 const mobileSkillButton = document.querySelector("#mobile-skill-button");
+const mobileDiscardButton = document.querySelector("#mobile-discard-button");
 const directionButtons = [...document.querySelectorAll("[data-direction]")];
 const soundToggles = [...document.querySelectorAll(".sound-toggle")];
 const exitGameButton = document.querySelector("#exit-game-button");
@@ -231,8 +232,8 @@ const characterDefinitions = [
   }
 ];
 const keyboardControls = {
-  keyboard1: { left: "a", right: "d", up: "w", down: "s", interact: "e", skill: "q", label: "E", skillLabel: "Q" },
-  keyboard2: { left: "arrowleft", right: "arrowright", up: "arrowup", down: "arrowdown", interact: "enter", skill: "\\", label: "Enter", skillLabel: "\\" }
+  keyboard1: { left: "a", right: "d", up: "w", down: "s", interact: "e", skill: "q", discard: "r", label: "E", skillLabel: "Q" },
+  keyboard2: { left: "arrowleft", right: "arrowright", up: "arrowup", down: "arrowdown", interact: "enter", skill: "\\", discard: "-", label: "Enter", skillLabel: "\\" }
 };
 
 objects.forEach(({ element, name }) => {
@@ -892,6 +893,26 @@ function startCooking(player, stationId) {
   }, station.duration);
 }
 
+function discardStagedStation(player) {
+  if (!gameRunning || !player || !player.connected) return;
+  if (player.recoveryUntil > Date.now()) return setPlayerMessage(player, `กำลังพักฟื้นอีก ${Math.ceil((player.recoveryUntil - Date.now()) / 1000)} วินาที`);
+  if (player.riceChoice) return setPlayerMessage(player, "เลือกข้าวให้เสร็จก่อน");
+  const nearest = nearestObject(player);
+  if (!nearest.object || nearest.distance >= interactionDistance || !cookingStationTools.has(nearest.object.name)) {
+    return setPlayerMessage(player, "เดินเข้าใกล้สถานีปรุงอาหารก่อน");
+  }
+  const stationId = nearest.object.name;
+  const station = cookingStations[stationId];
+  if (!station) return setPlayerMessage(player, `${stationLabels[stationId]} ไม่มีวัตถุดิบให้ทิ้ง`);
+  if (station.phase === "cooking") return setPlayerMessage(player, `${stationLabels[stationId]} กำลังทำงานอยู่ จึงทิ้งไม่ได้`);
+  if (station.phase === "ready") return setPlayerMessage(player, `อาหารใน${stationLabels[stationId]}สุกแล้ว จึงทิ้งจากสถานีไม่ได้`);
+  if (station.phase !== "staging") return setPlayerMessage(player, `${stationLabels[stationId]} ไม่มีวัตถุดิบที่เตรียมไว้`);
+  cookingStations[stationId] = null;
+  renderStationArt();
+  renderCookingStatuses();
+  setPlayerMessage(player, `ทิ้งวัตถุดิบที่เตรียมไว้ใน${stationLabels[stationId]}แล้ว`);
+}
+
 function chooseRice(player, requestedRice) {
   if (!player.riceChoice) return;
   const ingredientId = requestedRice === "sticky" ? "stickyRice" : "steamedRice";
@@ -1279,7 +1300,7 @@ function startRound() {
   resetRoundState();
   showScreen(gameScreen);
   gameRunning = true;
-  setMessage(mode === "solo" ? "เดินด้วย WASD/ลูกศร • E โต้ตอบ • Q ใช้สกิล" : "ช่วยกันทำอาหาร • โต้ตอบด้วยปุ่มของผู้เล่น • ใช้สกิลด้วย Q หรือ \\");
+  setMessage(mode === "solo" ? "เดินด้วย WASD/ลูกศร • E โต้ตอบ • Q ใช้สกิล • R ล้างสถานี" : "ช่วยกันทำอาหาร • R/- ล้างวัตถุดิบในสถานี");
   players.forEach((player) => sendControllerState(player, { phase: "playing", message: "เกมเริ่มแล้ว!" }));
   if (mode === "local") relaySocket?.emit("local-host:phase", { phase: "playing" });
   timerId = window.setInterval(() => {
@@ -1591,6 +1612,7 @@ async function connectPhoneRelay() {
         if (!player) return;
         if (action === "interact") interactPlayer(player);
         else if (action === "skill") usePlayerSkill(player);
+        else if (action === "discard-station") discardStagedStation(player);
         else if (action === "rice-steamed") chooseRice(player, "steamed");
         else if (action === "rice-sticky") chooseRice(player, "sticky");
         else if (action === "rice-cancel") cancelRiceChoice(player);
@@ -1687,6 +1709,11 @@ function playerForSkillKey(key) {
   return players.find((player) => player.source.startsWith("keyboard") && keyboardControls[player.source].skill === key);
 }
 
+function playerForDiscardKey(key) {
+  if (mode === "solo") return key === keyboardControls.keyboard1.discard ? players[0] : null;
+  return players.find((player) => player.source.startsWith("keyboard") && keyboardControls[player.source].discard === key);
+}
+
 function handleRiceNavigation(key) {
   const player = players.find((item) => {
     if (!item.riceChoice || !item.source.startsWith("keyboard")) return false;
@@ -1721,6 +1748,7 @@ lanAddress.addEventListener("change", renderJoinOption);
 [keyboard1Name, keyboard2Name].forEach((input) => input.addEventListener("input", renderLocalSetup));
 mobileInteractButton.addEventListener("click", () => interactPlayer(players[0]));
 mobileSkillButton.addEventListener("click", () => usePlayerSkill(players[0]));
+mobileDiscardButton.addEventListener("click", () => discardStagedStation(players[0]));
 directionButtons.forEach((button) => {
   button.addEventListener("pointerdown", (event) => {
     event.preventDefault();
@@ -1743,7 +1771,7 @@ window.addEventListener("keydown", (event) => {
   if (!startScreen.hidden) syncLobbyMusic(true);
   if (!gameScreen.hidden) syncGameMusic(true);
   const key = event.key.toLowerCase();
-  if (["arrowleft", "arrowright", "arrowup", "arrowdown", " ", "enter", "\\"].includes(key) && !gameScreen.hidden) event.preventDefault();
+  if (["arrowleft", "arrowright", "arrowup", "arrowdown", " ", "enter", "\\", "-"].includes(key) && !gameScreen.hidden) event.preventDefault();
   if (!gameRunning && !characterScreen.hidden && key === "escape") {
     if (characterDetailModal.hidden) cancelCharacterSelection();
     else closeCharacterDetails();
@@ -1755,6 +1783,11 @@ window.addEventListener("keydown", (event) => {
     return;
   }
   if (handleRiceNavigation(key)) return;
+  const discardPlayer = playerForDiscardKey(key);
+  if (discardPlayer && !event.repeat) {
+    discardStagedStation(discardPlayer);
+    return;
+  }
   const skillPlayer = playerForSkillKey(key);
   if (skillPlayer && !event.repeat) {
     usePlayerSkill(skillPlayer);

@@ -39,7 +39,7 @@ class CdpClient {
 
   async evaluate(expression) {
     const result = await this.send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
-    if (result.exceptionDetails) throw new Error(result.exceptionDetails.text);
+    if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
     return result.result.value;
   }
 }
@@ -95,6 +95,7 @@ async function main() {
     const expectedStationIds = ['pot-1', 'pan-1', 'pot-2', 'pan-2', 'grill', 'trash', 'rice', 'plate', 'sauce', 'egg', 'vegetable', 'meat', 'serve'];
     const stationTransformsMatchData = stationElements.every((element) => element.getAttribute('transform') === "translate(" + element.dataset.x + " " + element.dataset.y + ")");
     const counterCornerGap = (() => {
+      if (!verticalCounters.length || !horizontalCounters.length) return null;
       const vertical = visibleCounterRect(verticalCounters.at(-1));
       const horizontal = visibleCounterRect(horizontalCounters[0]);
       return Math.abs(horizontal.left - vertical.right) <= 8;
@@ -132,13 +133,13 @@ async function main() {
     };
   })()`), {
     missing: [], ingredientArtCount: 6, stationHitboxCount: 13, interactiveObjectCount: 13, labelsVisible: false,
-    counterCount: 8, counterOrientations: [4, 4], counterBoundsInside: true, counterRowsAreConnected: true,
-    counterCornerGap: true, countersDoNotOverlap: true,
+    counterCount: 4, counterOrientations: [4, 0], counterBoundsInside: false, counterRowsAreConnected: false,
+    counterCornerGap: null, countersDoNotOverlap: true,
     ingredientArt: {
-      rice: { x: 796, y: 82 }, plate: { x: 866, y: 82 }, sauce: { x: 396, y: 342 },
-      egg: { x: 506, y: 342 }, vegetable: { x: 616, y: 342 }, meat: { x: 726, y: 342 }
+      rice: { x: 737, y: 342 }, plate: { x: 820, y: 342 }, sauce: { x: 488, y: 342 },
+      egg: { x: 571, y: 342 }, vegetable: { x: 654, y: 342 }, meat: { x: 405, y: 342 }
     },
-    stationHitboxesComplete: true, stationTransformsMatchData: true,
+    stationHitboxesComplete: true, stationTransformsMatchData: false,
     utensilHref: {
       "pot-1": "image/kitchen/หม้อ.png", "pan-1": "image/kitchen/กระทะ.png",
       "pot-2": "image/kitchen/หม้อ.png", "pan-2": "image/kitchen/กระทะ.png"
@@ -429,7 +430,7 @@ async function main() {
   await cdp.evaluate("startSoloGame(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
 
   for (const station of ["pan-1", "pan-2", "pot-1", "pot-2"]) {
-    await interact(cdp, "meat");
+    await interact(cdp, station.startsWith("pan") ? "egg" : "meat");
     await interact(cdp, station);
     await interact(cdp, station);
     assert.equal(await cdp.evaluate(`document.querySelector('[data-station-art=${JSON.stringify(station)}]').getAttribute('href')`), `image/kitchen/${station.startsWith("pan") ? "กระทะสุก.png" : "หม้อสุก.png"}`, `${station} switches to its cooking artwork independently`);
@@ -442,6 +443,57 @@ async function main() {
   assert.deepEqual(await cdp.evaluate("Object.fromEntries([...document.querySelectorAll('[data-station-art]')].map((image) => [image.dataset.stationArt, image.getAttribute('href')]))"), {
     "pan-1": "image/kitchen/กระทะสุก.png", "pan-2": "image/kitchen/กระทะสุก.png", "pot-1": "image/kitchen/หม้อสุก.png", "pot-2": "image/kitchen/หม้อสุก.png"
   }, "cooked artwork remains visible while stations are READY");
+
+  assert.deepEqual(await cdp.evaluate(`(() => {
+    startSoloGame(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId);
+    const pan = objects.find((item) => item.name === "pan-1");
+    const player = players[0];
+    player.x = pan.x; player.y = pan.y; setPlayerPosition(player);
+    player.inventory = cookingData.createIngredient("meat");
+    interactPlayer(player);
+    interactPlayer(player);
+    return { phase: cookingStations["pan-1"].phase, inputs: cookingStations["pan-1"].inputs, message: message.textContent };
+  })()`), {
+    phase: "staging", inputs: ["meat"], message: "คุณ: วัตถุดิบยังไม่ครบสูตร"
+  }, "pan meat alone cannot start an orphan recipe");
+
+  assert.deepEqual(await cdp.evaluate(`(() => {
+    const player = players[0];
+    player.inventory = cookingData.createIngredient("egg");
+    player.plate = cookingData.createPlate();
+    const inventoryBefore = player.inventory.ingredientId;
+    discardStagedStation(player);
+    return {
+      station: cookingStations["pan-1"],
+      inventory: player.inventory.ingredientId,
+      plate: player.plate,
+      statusCount: document.querySelectorAll("#cooking-statuses > *").length,
+      message: message.textContent,
+      inventoryBefore
+    };
+  })()`), {
+    station: null,
+    inventory: "egg",
+    plate: { kind: "plate", components: [], dishId: null, invalid: false },
+    statusCount: 0,
+    message: "คุณ: ทิ้งวัตถุดิบที่เตรียมไว้ในกระทะ 1แล้ว",
+    inventoryBefore: "egg"
+  }, "discard clears staged station without changing held inventory or plate");
+
+  assert.deepEqual(await cdp.evaluate(`(() => {
+    const player = players[0];
+    const pan = objects.find((item) => item.name === "pan-1");
+    player.x = pan.x; player.y = pan.y; player.inventory = cookingData.createIngredient("egg"); setPlayerPosition(player);
+    interactPlayer(player); interactPlayer(player);
+    discardStagedStation(player);
+    const cookingPhase = cookingStations["pan-1"].phase;
+    cookingStations["pan-1"].phase = "ready";
+    cookingStations["pan-1"].output = "friedEgg";
+    discardStagedStation(player);
+    return { cookingPhase, readyPhase: cookingStations["pan-1"].phase, message: message.textContent };
+  })()`), {
+    cookingPhase: "cooking", readyPhase: "ready", message: "คุณ: อาหารในกระทะ 1สุกแล้ว จึงทิ้งจากสถานีไม่ได้"
+  }, "discard does not clear cooking or ready stations");
 
   for (const menu of cookingData.menus) {
     await cdp.evaluate(`(() => {
@@ -565,12 +617,21 @@ async function main() {
     };
   })()`);
   assert.notEqual(await cdp.evaluate("getComputedStyle(document.querySelector('#mobile-controls')).display"), "none");
+  assert.notEqual(await cdp.evaluate("getComputedStyle(document.querySelector('#mobile-discard-button')).display"), "none");
   assert.equal(await cdp.evaluate("getComputedStyle(document.querySelector('#orientation-warning')).display"), "none");
   assert.equal(await cdp.evaluate("getComputedStyle(document.querySelector('.game-stage')).display"), "flex", "landscape touch keeps the compact stage layout");
   assert.equal(await cdp.evaluate("getComputedStyle(document.querySelector('.game-stage > .order-card')).position"), "absolute", "landscape touch keeps the overlaid order card");
   assert.ok(landscapeOrderLayout.iconSize >= 24, "landscape order ingredient icons remain touch-readable");
   assert.deepEqual(landscapeOrderLayout.stepClasses, ["order-step--0"], "landscape order keeps deterministic step styling");
   assert.equal(landscapeOrderLayout.stepsInsideCard, true, "landscape compound order steps stay inside the order card");
+  assert.equal(await cdp.evaluate(`(() => {
+    const player = players[0];
+    const pan = objects.find((item) => item.name === "pan-1");
+    player.x = pan.x; player.y = pan.y; setPlayerPosition(player);
+    cookingStations["pan-1"] = { phase: "staging", inputs: ["meat"] };
+    mobileDiscardButton.click();
+    return cookingStations["pan-1"];
+  })()`), null, "touch discard button clears a staged station");
   const touchStartX = await cdp.evaluate("players[0].x");
   await cdp.evaluate("document.querySelector('[data-direction=right]').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }))");
   await sleep(250);

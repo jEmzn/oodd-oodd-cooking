@@ -10,7 +10,7 @@ const app = express();
 const httpServer = http.createServer(app);
 const io = new Server(httpServer);
 const sessions = new Map();
-const allowedActions = new Set(["interact", "skill", "rice-steamed", "rice-sticky", "rice-cancel"]);
+const allowedActions = new Set(["interact", "skill", "discard-station", "rice-steamed", "rice-sticky", "rice-cancel"]);
 const reconnectGraceMs = 30000;
 const maxPlayers = 5;
 

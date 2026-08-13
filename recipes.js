@@ -24,21 +24,19 @@
     boiledSauce: { name: "ซอสต้ม", images: [assets.sauce], tool: "pot" },
     boiledMeatSauce: { name: "เนื้อต้มซอส", images: [assets.meat, assets.sauce], tool: "pot" },
     boiledEgg: { name: "ไข่ต้ม", images: [assets.egg], tool: "pot" },
-    friedMeat: { name: "ผัดเนื้อ", images: [assets.meat], tool: "pan" },
     friedMeatVegetable: { name: "ผัดเนื้อและผัก", images: [assets.meat, assets.vegetable], tool: "pan" },
     friedEgg: { name: "ไข่ดาว", images: [assets.egg], tool: "pan" },
     grilledMeat: { name: "เนื้อย่าง", images: [assets.meat], tool: "grill" },
     friedRice: { name: "ข้าวผัด", images: [assets.steamedRice, assets.meat, assets.vegetable, assets.egg], tool: "pan" }
   };
 
-  const transformations = [
+  const recipeTransformations = [
     { id: "fried-rice", tool: "pan", inputs: ["steamedRice", "meat", "vegetable", "egg"], output: "friedRice" },
     { id: "boiled-meat-sauce", tool: "pot", inputs: ["meat", "sauce"], output: "boiledMeatSauce" },
     { id: "fried-meat-vegetable", tool: "pan", inputs: ["meat", "vegetable"], output: "friedMeatVegetable" },
     { id: "boiled-meat", tool: "pot", inputs: ["meat"], output: "boiledMeat" },
     { id: "boiled-sauce", tool: "pot", inputs: ["sauce"], output: "boiledSauce" },
     { id: "boiled-egg", tool: "pot", inputs: ["egg"], output: "boiledEgg" },
-    { id: "fried-meat", tool: "pan", inputs: ["meat"], output: "friedMeat" },
     { id: "fried-egg", tool: "pan", inputs: ["egg"], output: "friedEgg" },
     { id: "grilled-meat", tool: "grill", inputs: ["meat"], output: "grilledMeat" }
   ];
@@ -107,6 +105,13 @@
   function sameUnorderedItems(left, right) {
     return left.length === right.length && containsItems(left, right);
   }
+
+  function isMenuTransformation(transformation) {
+    return menus.some((menu) => menu.components.includes(transformation.output)
+      && menu.steps.some((step) => step.tool === transformation.tool && sameUnorderedItems(step.ingredients, transformation.inputs)));
+  }
+
+  const transformations = recipeTransformations.filter(isMenuTransformation);
 
   function isAssemblySubset(components) {
     return menus.some((menu) => containsItems(menu.components, components));

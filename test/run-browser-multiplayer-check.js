@@ -35,7 +35,7 @@ class CdpClient {
 
   async evaluate(expression) {
     const result = await this.send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
-    if (result.exceptionDetails) throw new Error(result.exceptionDetails.text);
+    if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
     return result.result.value;
   }
 
@@ -71,6 +71,18 @@ async function main() {
   assert.equal(await host.evaluate("players.length"), 2);
   assert.deepEqual(await host.evaluate("players.map((player) => player.source)"), ["keyboard1", "keyboard2"]);
   assert.deepEqual(await host.evaluate("players.map((player) => player.characterId)"), ["grilled-pork", "angel-pork"]);
+  assert.deepEqual(await host.evaluate("({ first: keyboardControls.keyboard1.discard, second: keyboardControls.keyboard2.discard })"), { first: "r", second: "-" });
+  assert.deepEqual(await host.evaluate(`(() => {
+    const pan1 = objects.find((item) => item.name === "pan-1");
+    const pan2 = objects.find((item) => item.name === "pan-2");
+    players[0].x = pan1.x; players[0].y = pan1.y; setPlayerPosition(players[0]);
+    players[1].x = pan2.x; players[1].y = pan2.y; setPlayerPosition(players[1]);
+    cookingStations["pan-1"] = { phase: "staging", inputs: ["meat"] };
+    cookingStations["pan-2"] = { phase: "staging", inputs: ["vegetable"] };
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "r" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "-" }));
+    return { first: cookingStations["pan-1"], second: cookingStations["pan-2"] };
+  })()`), { first: null, second: null }, "both keyboard discard keys clear their nearest staged station");
   const before = await host.evaluate("players.map((player) => player.x)");
   await host.evaluate(`(() => {
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "d" }));
@@ -160,6 +172,7 @@ async function main() {
   await host.evaluate("startLocalButton.click(); characterGrid.querySelector('[data-character-id=grilled-pork]').click(); characterConfirmButton.click(); characterGrid.querySelector('[data-character-id=angel-pork]').click(); characterConfirmButton.click(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
   assert.deepEqual(await host.evaluate("players.map((player) => player.source)"), ["keyboard1", "phone"]);
   await phone.waitFor("latestState.phase === 'playing' && !gameControls.hidden");
+  assert.equal(await phone.evaluate("discardButton.dataset.action"), "discard-station");
   await host.send("Page.bringToFront");
   const phoneStartX = await host.evaluate("players.find((player) => player.source === 'phone').x");
   await phone.evaluate("document.querySelector('[data-direction=right]').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 2 }))");
@@ -168,6 +181,16 @@ async function main() {
   await phone.evaluate("document.querySelector('[data-direction=right]').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 2 }))");
   await sleep(150);
   assert.ok(await host.evaluate("players.find((player) => player.source === 'phone').x") > phoneStartX, "phone controller moved its player");
+
+  await host.evaluate(`(() => {
+    const phonePlayer = players.find((player) => player.source === "phone");
+    const pan = objects.find((item) => item.name === "pan-1");
+    phonePlayer.x = pan.x; phonePlayer.y = pan.y; setPlayerPosition(phonePlayer);
+    cookingStations["pan-1"] = { phase: "staging", inputs: ["meat"] };
+    renderCookingStatuses();
+  })()`);
+  await phone.evaluate("discardButton.click()");
+  await host.waitFor("cookingStations['pan-1'] === null");
 
   await host.evaluate(`(() => {
     const phonePlayer = players.find((player) => player.source === "phone");
