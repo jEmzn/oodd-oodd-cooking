@@ -201,6 +201,8 @@ Text selection, copying, cutting, and context-menu actions are disabled within t
 
 Solo and local co-op rounds maintain a shared-style queue of up to two customer orders. One order appears when a round starts, and the game attempts to add another order every twelve seconds while the queue has space. Each order has its own 60-second expiry timer; generation pauses at two queued orders. The game UI displays all waiting orders with individual countdowns.
 
+การเปิดออเดอร์ผูกกับการที่ลูกค้าเดินถึงตำแหน่งคิวของตัวเองแล้ว ไม่ใช้ค่าแกน Y แบบตายตัว จึงเปิดออเดอร์ของลูกค้าคนที่สองได้แม้ตำแหน่งคิวเปลี่ยนไป และจำกัดออเดอร์ที่แสดงพร้อมกันไว้ที่สองรายการ เมื่อช่องว่างในคิวเกิดขึ้น ลูกค้าที่รออยู่จะเปิดออเดอร์เมื่อถึงตำแหน่งคิวของตัวเอง
+
 Cooking is free-form: players may prepare any of the six shared recipes without first selecting a displayed order. Serving removes the oldest waiting order matching the completed assembly plate and adds 100 points to the shared score. A completed dish remains on the plate when no matching order is available. The multiplayer `room-state` payload sends an `orders` array with timestamps so every client renders the same queue and individual countdowns.
 
 ## Repository Guidelines Update

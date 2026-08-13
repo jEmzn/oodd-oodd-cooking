@@ -109,6 +109,7 @@ const customerEnterThreshold = 600;
 const customerWalkSpeed = 120;
 const customerArrivalInterval = 12000;
 const maxCustomers = 4;
+const maxOrders = 2;
 const playerColors = ["#ba6849", "#4d8f9d", "#64834f", "#b87c2b", "#8d63a8"];
 const playerFootAnchorY = 30;
 const heldItemRadius = 17;
@@ -328,7 +329,7 @@ function createCustomerElement(customer) {
 }
 
 function revealCustomerOrder(customer) {
-  if (customer.orderVisible) return;
+  if (customer.orderVisible || orders.length >= maxOrders) return;
   const createdAt = Date.now();
   customer.order.createdAt = createdAt;
   const bonus = createdAt < customerOrderBonusUntil ? 10000 : 0;
@@ -418,8 +419,10 @@ function updateCustomers(delta) {
       return;
     }
     const reachedQueuePosition = moveCustomerTowardsTarget(customer, delta);
-    if (!customer.orderVisible && customer.y <= customerEnterThreshold) revealCustomerOrder(customer);
-    if (reachedQueuePosition) customer.state = "waiting";
+    if (reachedQueuePosition) {
+      customer.state = "waiting";
+      revealCustomerOrder(customer);
+    }
     setCustomerPosition(customer);
   });
 }
