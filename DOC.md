@@ -61,7 +61,7 @@ While moving up, left, or right, the matching directional walking image stays ac
 Each character has an independent skill cooldown and an active-play timer. Pressing a skill applies its gameplay effect immediately and does not play a skill animation. When the active-play timer ends, that player enters recovery, movement, interaction, and skill input are locked; the first recovery image from `animation/animation_cooldownskill/` appears for one second, then the second image remains visible until recovery ends. After recovery, the normal walking sprite returns and a new active-play period begins.
 
 - Angel Pork: 15-second skill cooldown, 25-second active period, 9-second recovery; two extra customer-arrival attempts are triggered.
-- Baby Pork: 10-second cooldown, 30-second active period, 7-second recovery; teammates receive the configured cooking-time reduction for 10 seconds.
+- Baby Pork: 10-second cooldown, 30-second active period, 7-second recovery; teammates receive a 50% cooking-time reduction for 10 seconds, changing the standard 2-second cook time to 1 second.
 - Rek Pork: 14-second cooldown, 30-second active period, 12-second recovery; reduces each teammate's remaining skill cooldown by half, excluding itself.
 - Grilled Pork: 15-second cooldown, 40-second active period, 9-second recovery; adds 10 seconds to current orders and to orders revealed during the effect window.
 - Boar: 15-second cooldown, 50-second active period, 15-second recovery; immediately ends teammates' recovery, excluding itself.
@@ -402,3 +402,9 @@ held bubble อยู่เหนือขอบบนของ sprite ด้ว
 เพิ่ม browser regression ตรวจจำนวนและแนวการเรียงเคาน์เตอร์, ขอบเขตภาพ, ความครบถ้วนของ station hitbox, ความตรงกันระหว่าง `data-x`/`data-y` กับ transform และตำแหน่งภาพ rice/plate ส่วน regression การเก็บวัตถุดิบ ทำอาหาร รับอาหาร และเสิร์ฟยังใช้ hitbox จาก `data-x`/`data-y` ที่ย้ายแล้ว
 
 Validation: `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo` และ `npm run test:browser:local` ผ่านแล้ว โดย browser regression ตรวจ desktop, 640×360 landscape, portrait warning, Solo/local co-op และ phone controller flow; การตรวจภาพบนอุปกรณ์จริงยังควรทำเพิ่มเติม
+
+## Baby Pork Cooking Skill Update
+
+ปรับ `cookingMultiplier` ของ Baby Pork เป็น `0.5` เมื่อใช้สกิล เพื่อนร่วมทีมที่เริ่มทำอาหารภายในช่วงผลของสกิลจะใช้เวลาปรุง 1 วินาที แทนเวลาปกติ 2 วินาที โดยผลสกิลยังมีระยะเวลา 10 วินาทีเหมือนเดิม
+
+Validation: `npm run check` และ `npm test` ผ่านแล้ว

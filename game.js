@@ -194,7 +194,7 @@ const characterDefinitions = [
     skillEffect: "cooldown-reduction",
     cooldownReduction: 0.5,
     role: "เชฟผู้ใจเย็น แต่ขี้วีน ",
-    skill: "ลดเวลาคูลดาวน์สกิลให้เพื่อนร่วมทีม โดยไม่รวมตัวเอง",
+    skill: "ลดเวลาคูลดาวน์สกิลให้เพื่อนร่วมทีมโดยไม่รวมตัวเอง ทำให้เพื่อนร่วมทีมมีเวลาทำอาหารมากขึ้น",
     stats: [["คูลดาวน์สกิล", "14 วินาที"], ["เวลาเล่น", "120 วินาที"], ["พักฟื้น", "4 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
       down: [{ href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 70 }, { href: "animation/animation_walk/Rek_Pork_animation/Stand%20Still.png", width: 73, height: 70 }],
@@ -214,9 +214,9 @@ const characterDefinitions = [
     recoverySeconds: 4,
     skillEffect: "cooking-boost",
     effectDurationSeconds: 10,
-    cookingMultiplier: 1,
+    cookingMultiplier: 0.5,
     role: "เชฟตัวจิ๋วผู้ว่องไว แต่ขี้โวยวาย",
-    skill: "ช่วยให้เพื่อนทำอาหารได้ไวขึ้น ",
+    skill: "ช่วยให้เพื่อนทำอาหารได้ไวขึ้น(ลดระยะเวลาการทำอาหารลง)",
     stats: [["คูลดาวน์สกิล", "10 วินาที"], ["เวลาเล่น", "70 วินาที"], ["พักฟื้น", "4 วินาที"], ["การเคลื่อนไหว", "ปกติ"]],
     sprites: {
       down: [{ href: "animation/animation_walk/Baby_Pork_animation/Stand%20Still.png", width: 67, height: 60 }, { href: "animation/animation_walk/Baby_Pork_animation/Stand%20Still.png", width: 67, height: 60 }],
