@@ -349,6 +349,17 @@ Solo และ local co-op แบบสองคีย์บอร์ดเป�
 แก้สกิลของ Rek Pork ให้ลดเวลาคูลดาวน์ที่เหลือของเพื่อนร่วมทีมลงครึ่งหนึ่งตามคำอธิบาย จากเดิมที่ตั้งค่าตัวคูณเป็น `3` ซึ่งทำให้เวลาคูลดาวน์เพิ่มขึ้นสามเท่า ตอนนี้ใช้ตัวคูณ `0.5` และยังไม่กระทบคูลดาวน์ของ Rek Pork เอง
 
 Validation: `npm run check` และ `npm test` ผ่านแล้ว
+
+## Gameplay Character Size and Shadow Update
+
+ปรับขนาดตัวละครในฉากเล่นให้มีความสูงพื้นฐาน 92 world units ซึ่งเท่ากับความสูงของ sprite ลูกค้าอ้างอิง โดยคงสัดส่วนความกว้างต่อความสูงของ sprite เดิมไว้ ส่วน Boar ใช้ความสูง 100 world units เพื่อให้ใหญ่กว่าตัวละครอื่นเล็กน้อย และ Baby Pork ลดจาก 84 ลง 25% เหลือ 63 world units เพื่อให้ดูตัวเล็กลงชัดเจน ตัวละครและ recovery sprite จึงใหญ่ขึ้นโดยไม่ถูกยืดผิดรูป และยังยึดเท้าที่ `playerFootAnchorY` เดิม
+
+เปลี่ยนเงาผู้เล่นจากวงกลมเป็นวงรีที่คำนวณ `rx` และ `ry` ตามความสูง sprite พร้อมวางกึ่งกลางใต้เท้า เพื่อให้สมส่วนกับตัวละครที่ขยายแล้ว สำรองสถานะก่อนปรับขนาดตัวละครทั้งหมดไว้ที่ `backups/oodd-oodd-cooking-before-character-size-customer-scale.tar.gz` สำรองสถานะก่อนเพิ่มขนาด Boar ไว้ที่ `backups/oodd-oodd-cooking-before-boar-size-adjustment.tar.gz` และสำรองสถานะล่าสุดก่อนลดขนาด Baby Pork ไว้ที่ `backups/oodd-oodd-cooking-before-babypork-size-adjustment.tar.gz`
+
+เพิ่ม browser regression ให้ตรวจความสูงพื้นฐาน 92 หน่วย ความสูง Boar 100 หน่วย ความสูง Baby Pork 63 หน่วย ความกว้างที่ปรับตามสัดส่วน และเงาแบบ ellipse ที่ปรับตามตัวละคร
+
+Validation: `npm run check` และ `npm test` ผ่านแล้ว; browser regression ยังต้องรันใน environment ที่มี Chromium remote debugging port `9223`
+
 ## Desktop Two-Column Gameplay Layout
 
 หน้าจอเกมบน desktop ที่กว้างตั้งแต่ 851px ใช้ CSS Grid สองคอลัมน์ โดยคอลัมน์ซ้ายประมาณ 30% สำหรับคิวออเดอร์ และคอลัมน์ขวาประมาณ 70% สำหรับฉากครัว การ์ดออเดอร์ ชื่อเมนู countdown ไอคอนวัตถุดิบ/เครื่องมือ และ HUD ถูกขยายให้อ่านง่ายขึ้น ขณะที่ `viewBox` SVG พิกัดสถานี collision และขนาด gameplay ยังคงเดิม

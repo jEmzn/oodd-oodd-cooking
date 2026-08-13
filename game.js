@@ -111,6 +111,10 @@ const customerArrivalInterval = 12000;
 const maxCustomers = 4;
 const maxOrders = 2;
 const playerColors = ["#ba6849", "#4d8f9d", "#64834f", "#b87c2b", "#8d63a8"];
+const gameplayCharacterHeight = 92;
+const boarGameplayCharacterHeight = 100;
+const babyPorkPreviousGameplayCharacterHeight = 84;
+const babyPorkGameplayCharacterHeight = Math.round(babyPorkPreviousGameplayCharacterHeight * 0.75);
 const playerFootAnchorY = 30;
 const heldItemRadius = 17;
 const playerOverlayGap = 6;
@@ -448,15 +452,44 @@ function getCharacterStats(character) {
   ];
 }
 
+function getGameplayCharacterHeight(player) {
+  if (player.character?.id === "boar") return boarGameplayCharacterHeight;
+  if (player.character?.id === "baby-pork") return babyPorkGameplayCharacterHeight;
+  return gameplayCharacterHeight;
+}
+
 function getPlayerSprite(player, direction = player.direction, frameIndex = 0) {
   const sprites = player.character?.sprites?.[direction] || characterDefinitions[0].sprites[direction];
-  return sprites[frameIndex % sprites.length];
+  const sourceSprite = sprites[frameIndex % sprites.length];
+  const scale = getGameplayCharacterHeight(player) / sourceSprite.height;
+  return {
+    ...sourceSprite,
+    width: Math.round(sourceSprite.width * scale),
+    height: getGameplayCharacterHeight(player)
+  };
 }
 
 function getRecoverySprite(player) {
-  const frames = player.character?.recoverySprites || [getPlayerSprite(player, "down")];
+  const frames = player.character?.recoverySprites;
+  if (!frames) return getPlayerSprite(player, "down");
   const recoveryFrame = Date.now() - player.recoveryStartedAt < 1000 ? 0 : 1;
-  return frames[Math.min(recoveryFrame, frames.length - 1)];
+  const sourceSprite = frames[Math.min(recoveryFrame, frames.length - 1)];
+  const scale = getGameplayCharacterHeight(player) / sourceSprite.height;
+  return {
+    ...sourceSprite,
+    width: Math.round(sourceSprite.width * scale),
+    height: getGameplayCharacterHeight(player)
+  };
+}
+
+function updatePlayerShadow(player) {
+  if (!player.elements?.shadow || !player.elements?.sprite) return;
+  const spriteHeight = Number(player.elements.sprite.getAttribute("height")) || getGameplayCharacterHeight(player);
+  const shadowHeight = Math.min(8, Math.max(5, spriteHeight * 0.065));
+  const shadowWidth = Math.min(24, Math.max(17, spriteHeight * 0.22));
+  player.elements.shadow.setAttribute("cy", `${playerFootAnchorY + shadowHeight / 2}`);
+  player.elements.shadow.setAttribute("rx", `${shadowWidth}`);
+  player.elements.shadow.setAttribute("ry", `${shadowHeight}`);
 }
 
 function getPlayerOverlayPosition(player) {
@@ -493,7 +526,7 @@ function createPlayerElement(player) {
   const heldCircle = svgElement("circle", { class: "held-item-circle", r: 17 });
   const heldImages = svgElement("g");
   held.append(heldCircle, heldImages);
-  const shadow = svgElement("circle", { class: "player-shadow", cy: 27, r: 15 });
+  const shadow = svgElement("ellipse", { class: "player-shadow", cx: 0, cy: 33, rx: 20, ry: 6 });
   const initialSprite = getPlayerSprite(player, "down");
   const sprite = svgElement("image", { class: "player-sprite", href: initialSprite.href, x: -initialSprite.width / 2, y: playerFootAnchorY - initialSprite.height, width: initialSprite.width, height: initialSprite.height, preserveAspectRatio: "xMidYMid meet" });
   const label = svgElement("text", { class: "local-player-label", y: 52, fill: player.color });
@@ -509,7 +542,8 @@ function createPlayerElement(player) {
   statusBadge.append(statusText);
   group.append(shadow, sprite, label, held, badge, statusBadge);
   playerLayer.append(group);
-  player.elements = { group, held, heldImages, sprite, label, badge, statusBadge, statusText };
+  player.elements = { group, held, heldImages, sprite, shadow, label, badge, statusBadge, statusText };
+  updatePlayerShadow(player);
   updatePlayerOverlayPosition(player);
   renderHeldItem(player);
 }
@@ -570,6 +604,7 @@ function updatePlayerSprite(player, dx = 0, dy = 0, moving = false, timestamp = 
       player.elements.sprite.setAttribute("height", `${recoverySprite.height}`);
       player.lastSpriteKey = spriteKey;
     }
+    updatePlayerShadow(player);
     updatePlayerOverlayPosition(player);
     return;
   }
@@ -589,6 +624,7 @@ function updatePlayerSprite(player, dx = 0, dy = 0, moving = false, timestamp = 
     player.elements.sprite.setAttribute("height", `${sprite.height}`);
     player.lastSpriteKey = spriteKey;
   }
+  updatePlayerShadow(player);
   updatePlayerOverlayPosition(player);
 }
 
