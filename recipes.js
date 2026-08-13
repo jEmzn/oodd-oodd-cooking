@@ -9,6 +9,7 @@
     vegetable: "image/food/ผัก.png",
     egg: "image/food/ไข่.png",
     steamedRice: "image/food/ข้าวสวย.png",
+    steamedRice1: "image/food/ข้าวสวยเเก้.png",
     stickyRice: "image/food/ข้าวเหนียว.png",
     sauce: "image/food/sauce.svg"
   };
@@ -82,6 +83,7 @@
       name: "ข้าวผัดกุ้ง",
       components: ["friedRice"],
       image: "image/food/ข้าวผัดกุ้ง.png",
+      ingredientImages: { steamedRice: assets.steamedRice1 },
       steps: [{ tool: "pan", ingredients: ["steamedRice", "meat", "vegetable", "egg"] }]
     }
   ];

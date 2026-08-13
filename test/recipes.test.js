@@ -104,6 +104,9 @@ test("only current menu recipes can start cooking", () => {
 });
 
 test("fried rice consumes all four components in one pan operation", () => {
+  const menu = data.menus.find((item) => item.id === "shrimp-fried-rice");
+  assert.equal(menu.ingredientImages.steamedRice, data.assets.steamedRice1);
+  assert.deepEqual(menu.steps[0].ingredients, ["steamedRice", "meat", "vegetable", "egg"]);
   const transformation = data.findExactTransformation("pan", ["egg", "vegetable", "meat", "steamedRice"]);
   assert.equal(transformation.id, "fried-rice");
   const plate = data.appendIngredient(data.createPlate(), transformation.output);

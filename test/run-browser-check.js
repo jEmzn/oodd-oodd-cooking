@@ -157,6 +157,9 @@ async function main() {
   assert.deepEqual(await cdp.evaluate("({ game: !gameScreen.hidden, character: players[0].characterId })"), {
     game: true, character: "grilled-pork"
   }, "confirming a character starts solo with that character");
+  assert.deepEqual(await cdp.evaluate("({ targetHeight: gameplayCharacterHeight, sourceHeight: players[0].character.sprites.down[0].height, renderedHeight: getPlayerSprite(players[0], 'down').height, renderedWidth: getPlayerSprite(players[0], 'down').width, boarHeight: getPlayerSprite({ character: characterDefinitions.find((character) => character.id === 'boar') }, 'down').height, babyPorkHeight: getPlayerSprite({ character: characterDefinitions.find((character) => character.id === 'baby-pork') }, 'down').height, shadowTag: players[0].elements.shadow.tagName, shadowRx: Number(players[0].elements.shadow.getAttribute('rx')), shadowRy: Number(players[0].elements.shadow.getAttribute('ry')) })"), {
+    targetHeight: 92, sourceHeight: 80, renderedHeight: 92, renderedWidth: 78, boarHeight: 100, babyPorkHeight: 63, shadowTag: "ellipse", shadowRx: 20.24, shadowRy: 5.98
+  }, "gameplay character size matches the customer reference, keeps Boar slightly larger, makes Baby Pork smaller, and uses proportional shadows");
   assert.deepEqual(await cdp.evaluate(`(() => {
     const player = players[0];
     const sprite = player.elements.sprite;
@@ -261,7 +264,11 @@ async function main() {
       edgeOverlaysInside: edgeChecks.every((overlay) => overlay.overlayTop >= 0),
       edgeGapReduced: edgeChecks.some((overlay) => overlay.heldGap < playerOverlayGap),
       edgePositionsStable: testPlayers.every((player) => player.edgePosition.x === player.x && player.edgePosition.y === player.y),
-      spriteBeforeHeld: testPlayers.every((player) => [...player.elements.group.children].indexOf(player.elements.sprite) < [...player.elements.group.children].indexOf(player.elements.held))
+      spriteBeforeHeld: testPlayers.every((player) => [...player.elements.group.children].indexOf(player.elements.sprite) < [...player.elements.group.children].indexOf(player.elements.held)),
+      boarHeight: Number(testPlayers.find((player) => player.characterId === "boar").elements.sprite.getAttribute("height")),
+      boarShadowRy: Number(testPlayers.find((player) => player.characterId === "boar").elements.shadow.getAttribute("ry")),
+      babyPorkHeight: Number(testPlayers.find((player) => player.characterId === "baby-pork").elements.sprite.getAttribute("height")),
+      babyPorkShadowRy: Number(testPlayers.find((player) => player.characterId === "baby-pork").elements.shadow.getAttribute("ry"))
     };
     clearPlayers();
     return result;
@@ -277,8 +284,12 @@ async function main() {
     edgeOverlaysInside: true,
     edgeGapReduced: true,
     edgePositionsStable: true,
-    spriteBeforeHeld: true
-  }, "held item, action, and recovery overlays follow every sprite height");
+    spriteBeforeHeld: true,
+    boarHeight: 100,
+    boarShadowRy: 6.5,
+    babyPorkHeight: 63,
+    babyPorkShadowRy: 5
+  }, "held item, action, recovery overlays, and character-specific shadows follow every sprite height");
   await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: false });
   await cdp.send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(150);

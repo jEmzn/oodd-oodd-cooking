@@ -1127,7 +1127,9 @@ function renderOrders() {
       step.ingredients.forEach((ingredientId) => {
         const image = document.createElement("img");
         image.className = "order-ingredient-icon";
-        image.src = cookingData.ingredients[ingredientId]?.images[0] || cookingData.assets.plate;
+        image.src = menu?.ingredientImages?.[ingredientId]
+          || cookingData.ingredients[ingredientId]?.images[0]
+          || cookingData.assets.plate;
         image.alt = cookingData.ingredients[ingredientId]?.name || "วัตถุดิบ";
         stepElement.append(image);
       });
