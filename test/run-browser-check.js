@@ -445,12 +445,8 @@ async function main() {
     renderOrders();
     player.activeUntil = Date.now() + 150;
     mathChallengeSets = [
-      { triggerSecond: 60, status: "pending", questions: [
-        { expression: "2 + 3", answer: 5 }, { expression: "9 − 4", answer: 5 }
-      ] },
-      { triggerSecond: 240, status: "pending", questions: [
-        { expression: "3 × 4", answer: 12 }, { expression: "24 ÷ 6", answer: 4 }
-      ] }
+      { triggerSecond: 60, status: "pending", questions: [{ expression: "2 + 3", answer: 5 }] },
+      { triggerSecond: 240, status: "pending", questions: [{ expression: "9 − 4", answer: 5 }] }
     ];
     secondsLeft = 100;
     timerElement.textContent = "100";
@@ -473,7 +469,7 @@ async function main() {
     };
   })()`);
   assert.deepEqual(mathChallengeStart, {
-    active: true, popupVisible: true, progress: "ข้อ 1/2", expression: "2 + 3 = ?", beforeX: 400,
+    active: true, popupVisible: true, progress: "ข้อ 1/1", expression: "2 + 3 = ?", beforeX: 400,
     inventory: null, cooldown: 0, stationPhase: "cooking", secondsLeft: 100
   }, "scheduled math challenge opens on the host and rejects movement, interaction, skill, and discard input");
   assert.deepEqual(await cdp.evaluate(`(() => {
@@ -502,20 +498,16 @@ async function main() {
     return { index: mathChallengeQuestionIndex, value: mathChallengeAnswer.value, feedback: mathChallengeFeedback.textContent };
   })()`), { index: 0, value: "", feedback: "ยังไม่ถูก ลองตอบข้อนี้อีกครั้ง" }, "wrong answers clear the input and keep the same question without a penalty");
   await cdp.evaluate("mathChallengeAnswer.value = '5'; mathChallengeForm.querySelector('[type=submit]').click()");
-  assert.deepEqual(await cdp.evaluate("({ active: mathChallengeActive, progress: mathChallengeProgress.textContent, expression: mathChallengeExpression.textContent })"), {
-    active: true, progress: "ข้อ 2/2", expression: "9 − 4 = ?"
-  }, "a correct first answer advances to question two");
+  assert.deepEqual(await cdp.evaluate("({ active: mathChallengeActive, progress: mathChallengeProgress.textContent, expression: mathChallengeExpression.textContent, statuses: mathChallengeSets.map((set) => set.status) })"), {
+    active: true, progress: "ข้อ 1/1", expression: "9 − 4 = ?", statuses: ["completed", "active"]
+  }, "a due second challenge opens immediately after the first single-question set");
   await cdp.evaluate("mathChallengeAnswer.value = '5'; mathChallengeAnswer.focus()");
   await cdp.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
   await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
   await sleep(50);
-  assert.deepEqual(await cdp.evaluate("({ active: mathChallengeActive, popupVisible: !mathChallengeElement.hidden, expression: mathChallengeExpression.textContent, statuses: mathChallengeSets.map((set) => set.status) })"), {
-    active: true, popupVisible: true, expression: "3 × 4 = ?", statuses: ["completed", "active"]
-  }, "a second challenge that became due opens immediately after the first set");
-  await cdp.evaluate(`mathChallengeAnswer.value = "12"; mathChallengeForm.querySelector('[type=submit]').click(); mathChallengeAnswer.value = "4"; mathChallengeForm.querySelector('[type=submit]').click()`);
   assert.deepEqual(await cdp.evaluate("({ active: mathChallengeActive, hidden: mathChallengeElement.hidden, statuses: mathChallengeSets.map((set) => set.status) })"), {
     active: false, hidden: true, statuses: ["completed", "completed"]
-  }, "the popup closes only after both questions in both due sets are answered");
+  }, "each challenge closes after its single correct answer");
   const resumedX = await cdp.evaluate("players[0].recoveryUntil = 0; players[0].x");
   await cdp.evaluate("window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }))");
   await sleep(250);
@@ -524,7 +516,7 @@ async function main() {
 
   await cdp.evaluate(`(() => {
     startSoloGame(); clearInterval(orderTimerId); clearInterval(orderGenerationId);
-    mathChallengeSets = [{ triggerSecond: 0, status: "pending", questions: [{ expression: "1 + 1", answer: 2 }, { expression: "2 + 2", answer: 4 }] }];
+    mathChallengeSets = [{ triggerSecond: 0, status: "pending", questions: [{ expression: "1 + 1", answer: 2 }] }];
     startMathChallenge(mathChallengeSets[0]);
     secondsLeft = 1; timerElement.textContent = "1";
   })()`);
@@ -732,7 +724,7 @@ async function main() {
   assert.deepEqual(landscapeOrderLayout.stepClasses, ["order-step--0"], "landscape order keeps deterministic step styling");
   assert.equal(landscapeOrderLayout.stepsInsideCard, true, "landscape compound order steps stay inside the order card");
   assert.deepEqual(await cdp.evaluate(`(() => {
-    mathChallengeSets = [{ triggerSecond: 0, status: "pending", questions: [{ expression: "6 × 7", answer: 42 }, { expression: "48 ÷ 6", answer: 8 }] }];
+    mathChallengeSets = [{ triggerSecond: 0, status: "pending", questions: [{ expression: "6 + 7", answer: 13 }] }];
     startMathChallenge(mathChallengeSets[0]);
     const card = mathChallengeForm.getBoundingClientRect();
     const result = {

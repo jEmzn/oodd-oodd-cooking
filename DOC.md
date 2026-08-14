@@ -1,6 +1,6 @@
 # Oodd Oodd Cooking - Current Project Summary
 
-Updated: 2026-08-13
+Updated: 2026-08-14
 
 ## Overview
 
@@ -40,14 +40,13 @@ Every round lasts 420 seconds. When the timer reaches zero, gameplay stops, time
 
 ## Timed Math Challenges
 
-Each Solo or local co-op round generates two math sets. The first appears at a random elapsed time from 60–180 seconds and the second from 240–360 seconds. Each set contains two questions shown one at a time on the host browser. Across the round, the four questions use addition, subtraction, multiplication, and division exactly once in a shuffled order.
+Each Solo or local co-op round generates two single-question math sets. The first appears at a random elapsed time from 1–180 seconds and the second from 181–360 seconds. Across the round, one question uses addition and the other uses subtraction, with their order shuffled. No new challenge is scheduled during the final minute (seconds 361–420).
 
-- Addition and subtraction results stay within 0–100, and subtraction never produces a negative answer.
-- Multiplication uses factors 1–12. Division uses a divisor and quotient from 1–12, always divides evenly, and never uses zero as a divisor.
+- Operands and answers stay within 0–100. Addition never exceeds 100, and subtraction never produces a negative answer.
 - The host submits an integer answer with the button or `Enter`. A wrong answer clears the field and repeats the same question without changing score or time.
 - While the popup is active, movement, interaction, skills, staged-station discard, and rice actions are rejected for every keyboard, touch, and phone player. Held directions and open rice choices are cleared.
 - The game loop is not paused: round time, customer movement, order expiry, cooking completion, skill cooldown, active periods, and recovery continue normally.
-- If the later set becomes due while another set is open, it starts immediately after the current two questions are completed. If the round ends first, all remaining challenge state is discarded and Results takes priority.
+- If the later set becomes due while another set is open, it starts immediately after the current question is answered correctly. If the round ends first, all remaining challenge state is discarded and Results takes priority.
 - The popup lives inside the game screen so it remains available in native/fallback fullscreen and responsive layouts. It has no close, skip, or Escape behavior.
 
 Phone controllers receive `mathChallengeActive` in `local-controller:state`. They release held movement, hide gameplay/rice controls, and show that the host is answering; phones never receive the equation or submit answers. The relay remains a gameplay-unaware input/state forwarder and has no math-specific session protocol.
@@ -180,6 +179,12 @@ Validation status for this documentation update:
 Completed on 2026-08-13. The earlier ingredient-stock/refill proposal was replaced with two scheduled challenge sets per round, without adding ingredient inventory, rewards, penalties, or server-owned gameplay. `math-challenges.js` supplies the independently tested schedule and question generation. `game.js` owns the active/pending/completed challenge state and locks only player commands, while `controller.js` renders the host-answering state from the new boolean payload.
 
 Validation passed: `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo`, and `npm run test:browser:local`. Real-device LAN/fullscreen visual checking remains recommended.
+
+## Two Single-Question Math Challenges
+
+Completed on 2026-08-14. Each round now schedules exactly two one-question challenges: one during elapsed seconds 1–180 and one during 181–360, leaving seconds 361–420 without a new challenge. The two questions use addition and subtraction exactly once in randomized order; multiplication and division are no longer exposed by `MathChallenges.operators` or accepted by `createQuestion()`. The existing browser-authoritative popup, player/phone input lock, continuously running round time, wrong-answer retry, and immediate opening of an overdue second set remain unchanged.
+
+Validation passed: `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo`, and `npm run test:browser:local`. Real-device LAN and fullscreen visual checking remain recommended.
 
 ## Station Recipe Safety and Discard Update
 

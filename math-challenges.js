@@ -3,8 +3,8 @@
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.MathChallenges = api;
 }(typeof globalThis !== "undefined" ? globalThis : this, () => {
-  const operators = ["add", "subtract", "multiply", "divide"];
-  const symbols = { add: "+", subtract: "−", multiply: "×", divide: "÷" };
+  const operators = ["add", "subtract"];
+  const symbols = { add: "+", subtract: "−" };
 
   function randomIndex(length, random) {
     const value = Number(random());
@@ -37,14 +37,6 @@
       left = randomInteger(0, 100, random);
       right = randomInteger(0, left, random);
       answer = left - right;
-    } else if (operator === "multiply") {
-      left = randomInteger(1, 12, random);
-      right = randomInteger(1, 12, random);
-      answer = left * right;
-    } else if (operator === "divide") {
-      right = randomInteger(1, 12, random);
-      answer = randomInteger(1, 12, random);
-      left = right * answer;
     } else {
       throw new TypeError(`Unknown math operator: ${operator}`);
     }
@@ -60,17 +52,17 @@
 
   function createSchedule(random = Math.random) {
     return [
-      randomInteger(60, 180, random),
-      randomInteger(240, 360, random)
+      randomInteger(1, 180, random),
+      randomInteger(181, 360, random)
     ];
   }
 
   function createRound(random = Math.random) {
     const schedule = createSchedule(random);
-    const questions = shuffledOperators(random).map((operator) => createQuestion(operator, random));
+    const roundOperators = shuffledOperators(random);
     return schedule.map((triggerSecond, index) => ({
       triggerSecond,
-      questions: questions.slice(index * 2, index * 2 + 2)
+      questions: [createQuestion(roundOperators[index], random)]
     }));
   }
 

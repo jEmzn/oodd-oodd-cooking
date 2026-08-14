@@ -7,15 +7,15 @@ function sequenceRandom(values) {
   return () => values[index++ % values.length];
 }
 
-test("a round contains two timed sets, two questions each, and every operator", () => {
-  const sets = mathChallenges.createRound(sequenceRandom([0, 0.999, 0.1, 0.7, 0.3, 0.8, 0.2, 0.6]));
+test("a round contains two single-question sets with addition and subtraction", () => {
+  const sets = mathChallenges.createRound(sequenceRandom([0, 0.999, 0.1, 0.7, 0.3, 0.8, 0.2]));
   assert.equal(sets.length, 2);
-  assert.deepEqual(sets.map((set) => set.questions.length), [2, 2]);
+  assert.deepEqual(sets.map((set) => set.questions.length), [1, 1]);
   assert.deepEqual(sets.flatMap((set) => set.questions).map((question) => question.operator).sort(), [...mathChallenges.operators].sort());
 });
 
 test("challenge trigger times stay inside their round windows", () => {
-  assert.deepEqual(mathChallenges.createSchedule(() => 0), [60, 240]);
+  assert.deepEqual(mathChallenges.createSchedule(() => 0), [1, 181]);
   assert.deepEqual(mathChallenges.createSchedule(() => 0.999999), [180, 360]);
 });
 
@@ -32,20 +32,10 @@ test("addition and subtraction stay between zero and one hundred", () => {
   }
 });
 
-test("multiplication and division use the one-to-twelve tables", () => {
-  for (let seed = 0; seed < 12; seed += 1) {
-    const random = () => seed / 12;
-    const multiplication = mathChallenges.createQuestion("multiply", random);
-    assert.ok(multiplication.left >= 1 && multiplication.left <= 12);
-    assert.ok(multiplication.right >= 1 && multiplication.right <= 12);
-    assert.equal(multiplication.left * multiplication.right, multiplication.answer);
-
-    const division = mathChallenges.createQuestion("divide", random);
-    assert.ok(division.right >= 1 && division.right <= 12);
-    assert.ok(division.answer >= 1 && division.answer <= 12);
-    assert.equal(division.left % division.right, 0);
-    assert.equal(division.left / division.right, division.answer);
-  }
+test("multiplication and division are not exposed or accepted", () => {
+  assert.deepEqual(mathChallenges.operators, ["add", "subtract"]);
+  assert.throws(() => mathChallenges.createQuestion("multiply"), TypeError);
+  assert.throws(() => mathChallenges.createQuestion("divide"), TypeError);
 });
 
 test("an injected random function produces deterministic rounds", () => {
