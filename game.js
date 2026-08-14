@@ -2156,7 +2156,7 @@ window.addEventListener("keydown", (event) => {
     return;
   }
   keys.add(key);
-});
+}});
 window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
 window.addEventListener("blur", releaseAllInputs);
 window.addEventListener("copy", blockGamePageCopy);
