@@ -48,7 +48,10 @@
           <a id="controller-url" target="_blank" rel="noreferrer"></a>
           <p>รหัสห้อง <strong id="local-session-code"></strong></p>
         </div>
-        <h3 class="local-roster-title">ผู้เล่น <span id="local-player-count">2/5</span></h3>
+        <div class="local-roster-heading">
+          <h3 class="local-roster-title">ผู้เล่น <span id="local-player-count">2/5</span></h3>
+          <button class="button button-secondary manage-players-button" type="button">จัดการผู้เล่น</button>
+        </div>
         <div id="local-player-list" class="player-list" aria-live="polite"></div>
         <p id="setup-message" class="form-message" aria-live="polite"></p>
         <div class="lobby-actions">
@@ -73,6 +76,7 @@
         </div>
         <div id="character-roster" class="character-roster" aria-live="polite"></div>
         <div class="character-actions">
+          <button class="button button-secondary manage-players-button" type="button" hidden>จัดการผู้เล่น</button>
           <button id="character-back-button" class="button button-secondary" type="button">ย้อนกลับ</button>
         </div>
       </section>
@@ -114,7 +118,7 @@
       <button class="sound-toggle game-sound-toggle" type="button" aria-pressed="false" aria-label="ปิดเพลง">🎵 เพลง</button>
       <header class="hud">
         <div>
-          <p class="eyebrow">กะทำอาหาร</p>
+          
           <h2>Oodd Oodd Cooking</h2>
         </div>
         <div class="hud-actions">
@@ -123,13 +127,14 @@
             <div><span>คะแนน</span><strong id="score">0</strong></div>
           </div>
           <button id="fullscreen-button" class="button button-secondary fullscreen-button" type="button" aria-label="เข้าโหมดเต็มจอ">เต็มจอ</button>
+          <button class="button button-secondary fullscreen-button manage-players-button" type="button" hidden>ผู้เล่น</button>
           <button id="exit-game-button" class="button button-secondary fullscreen-button exit-game-button" type="button">ออกจากเกม</button>
         </div>
       </header>
 
       <section class="game-shell" aria-label="เกมทำอาหารมุมมองด้านบน">
         <div class="game-stage">
-          <svg id="game-world" viewBox="0 0 1000 620" role="img" aria-label="ครัวมุมมองด้านบนพร้อมสถานีวัตถุดิบ ทำอาหาร เสิร์ฟ และสถานีอำนวยความสะดวก">
+          <svg id="game-world" viewBox="0 0 1000 620" role="img" aria-label="ครัวมุมมองด้านบนพร้อมวัตถุดิบ ทำอาหาร เสิร์ฟ และอำนวยความสะดวก">
           <defs>
             <pattern id="floor-pattern" width="44" height="44" patternUnits="userSpaceOnUse">
               <rect width="44" height="44" fill="#f7f1e8" />
@@ -210,7 +215,7 @@
             <button id="mobile-interact-button" class="control-button interact-button" type="button">โต้ตอบ</button>
             <div class="secondary-controls">
               <button id="mobile-skill-button" class="control-button skill-control-button" type="button">สกิล</button>
-              <button id="mobile-discard-button" class="control-button discard-control-button" type="button" aria-label="ทิ้งวัตถุดิบในสถานี">ทิ้ง</button>
+              <button id="mobile-discard-button" class="control-button discard-control-button" type="button" aria-label="ทิ้งวัตถุดิบในเตา">ทิ้ง</button>
             </div>
           </div>
           <section id="rice-choices" class="rice-choices" aria-live="polite"></section>
@@ -238,11 +243,22 @@
       <p class="results-score">คะแนนรวม <strong id="results-score">0</strong></p>
         <div id="results-list" class="player-list"></div>
         <div class="results-actions">
+          <button class="button button-secondary manage-players-button" type="button" hidden>จัดการผู้เล่น</button>
           <button id="play-again-button" class="button" type="button">เล่นอีกครั้ง</button>
           <button id="results-button" class="button button-secondary" type="button">กลับหน้าเริ่มต้น</button>
         </div>
       </section>
     </main>
+
+    <div id="player-manager" class="player-manager" hidden role="dialog" aria-modal="true" aria-labelledby="player-manager-title">
+      <section class="player-manager-card">
+        <button id="player-manager-close" class="modal-close" type="button" aria-label="ปิดหน้าจัดการผู้เล่น">×</button>
+        <p class="eyebrow">LOCAL CO-OP</p>
+        <h2 id="player-manager-title">จัดการผู้เล่น</h2>
+        <p class="setup-copy">นำผู้เล่นมือถือออกได้ทันที ผู้เล่นที่หลุดจะเก็บช่องไว้ 30 วินาที</p>
+        <div id="player-manager-list" class="player-manager-list" aria-live="polite"></div>
+      </section>
+    </div>
 
     <script src="recipes.js"></script>
     <script src="math-challenges.js"></script>

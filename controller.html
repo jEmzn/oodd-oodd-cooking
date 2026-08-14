@@ -23,11 +23,18 @@
         <header>
           <span id="player-color" class="player-color"></span>
           <div><strong id="player-name"></strong><small id="phase-label">กำลังรอเจ้าบ้านเริ่มเกม</small></div>
+          <button id="leave-button" class="leave-button" type="button">ออกจากห้อง</button>
         </header>
         <p id="controller-message" class="status" aria-live="polite">เชื่อมต่อแล้ว มองจอคอมเพื่อเล่น</p>
         <div id="math-waiting" class="math-waiting" role="status" hidden>
           <strong>กำลังตอบโจทย์คณิต</strong>
           <span>เจ้าของห้องกำลังแก้โจทย์บนหน้าจอหลัก กรุณารอสักครู่</span>
+        <div id="leave-confirmation" class="leave-confirmation" hidden>
+          <strong>ต้องการออกจากห้องนี้หรือไม่?</strong>
+          <div>
+            <button id="cancel-leave-button" type="button">อยู่ต่อ</button>
+            <button id="confirm-leave-button" type="button">ยืนยันออก</button>
+          </div>
         </div>
         <div id="rice-controller" class="rice-controller" hidden>
           <strong>เลือกข้าว</strong>
@@ -47,7 +54,7 @@
           <button id="interact-button" class="interact-button" type="button">โต้ตอบ</button>
           <div class="secondary-controls">
             <button id="skill-button" class="skill-button" type="button" data-action="skill">สกิล</button>
-            <button id="discard-button" class="discard-button" type="button" data-action="discard-station" aria-label="ทิ้งวัตถุดิบในสถานี">ทิ้ง</button>
+            <button id="discard-button" class="discard-button" type="button" data-action="discard-station" aria-label="ทิ้งวัตถุดิบในเตา">ทิ้ง</button>
           </div>
         </div>
       </section>

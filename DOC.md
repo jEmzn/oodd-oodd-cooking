@@ -34,7 +34,7 @@ There is no client build step and no external client dependency.
 
 The start screen offers `เล่นคนเดียว` and `เล่นหลายคนเครื่องเดียว`. Both modes open the five-character selection screen. Selecting a character opens a details modal with portrait, skill artwork, description, cooldown, active time, recovery time, and movement information. Confirmed characters cannot be duplicated within a local-co-op team.
 
-Local co-op setup allows either keyboard slot to be disabled. Phone capacity is reduced automatically as keyboard slots are enabled, with a maximum of five total players. At least two connected players are required to start local co-op. `Play Again` starts a new Solo character selection or returns local co-op to its lobby. `Return to Start`/`ออกจากเกม` clears the current round and local phone session.
+Local co-op setup allows either keyboard slot to be disabled. Phone capacity is reduced automatically as keyboard slots are enabled, with a maximum of five total players. At least two connected players are required to enter character selection; this minimum is not enforced after a round starts. The Host can open `จัดการผู้เล่น` from the lobby, character selection, gameplay, or results to inspect connected/reconnecting phone slots and remove one with an in-page confirmation. `Play Again` starts a new Solo character selection or returns local co-op to its lobby. `Return to Start`/`ออกจากเกม` clears the current round and local phone session.
 
 Every round lasts 420 seconds. When the timer reaches zero, gameplay stops, timers and audio are cleaned up, controllers receive the results phase, and the results screen appears after a short transition. Exiting during a round performs the same cleanup immediately and returns to the start screen.
 
@@ -70,6 +70,7 @@ Phone controllers receive `mathChallengeActive` in `local-controller:state`. The
 ### Phone controller
 
 Open the QR/controller URL on a phone, enter the room code and a player name, then use the d-pad, `โต้ตอบ`, `สกิล`, and `ทิ้ง` controls. The phone also receives the rice choices, lobby/playing/results phase, math-lock state, skill cooldown/recovery status, messages, and the shared team score. The main-game touch controls expose the same discard action.
+Open the QR/controller URL on a phone, enter the room code and a player name, then use the d-pad, `โต้ตอบ`, `สกิล`, and `ทิ้ง` controls. The phone also receives the rice choices, lobby/selecting/playing/results phase, skill cooldown/recovery status, messages, and the shared team score. `ออกจากห้อง` releases movement, clears the local reconnect token, and returns to Join after an in-page confirmation; it also works while offline. The main-game touch controls expose the same discard action.
 
 ## Cooking Gameplay
 
@@ -136,7 +137,7 @@ npm start
 
 The default port is `3000`; set `PORT=3210` when using the included relay/browser checks. The server listens on `0.0.0.0`, prints loopback and detected LAN URLs, serves the frontend, and exposes `GET /health` with `{ "status": "ok", "mode": "local-controller-relay" }`.
 
-The host creates a five-character room code and QR join options for detected private IPv4 addresses. Sessions, controller names, connection state, and reconnect tokens are in memory only. Controller input is accepted only during the `playing` phase. A disconnect immediately sends zero movement input; the controller slot can reconnect with its token for 30 seconds, after which it is removed. Closing the host session notifies all connected phones. The relay is intended for a trusted local network, not public deployment, and it never receives gameplay state or recipes.
+The host creates a five-character room code and QR join options for detected private IPv4 addresses. Sessions, controller names, connection state, reconnect deadlines, and reconnect tokens are in memory only. Session phases are `lobby`, `selecting`, `playing`, and `results`; new phones can join only in `lobby`, while a matching token can reconnect in every phase. Controller input is accepted only during `playing`. A disconnect immediately sends zero movement input and reserves its capacity slot for 30 seconds. `local-host:kick` lets only the room Host remove a connected or reconnecting phone, while `local-controller:leave` removes the controller's own slot. Both paths invalidate the old slot/token and publish the roster immediately. Closing the host session notifies all connected phones. The relay is intended for a trusted local network, not public deployment, and it never receives gameplay state or recipes.
 
 ## Audio and Presentation
 
@@ -296,3 +297,13 @@ Validation: `npm run check` และ `npm test` ผ่านแล้ว พร
 เปลี่ยนสี่เหลี่ยมสีขาวและสีเทาในหน้าต่างเลือกข้าวของผู้เล่นฝั่งจอหลักเป็นภาพ `image/food/ข้าวสวยเเก้.png` และ `image/food/ข้าวเหนียวเเก้.png` ตามลำดับ ภาพใช้กรอบแสดงผลขนาด 58×46 พิกเซล, รักษาสัดส่วนด้วย `background-size: contain` และคงชื่อกับพฤติกรรมของปุ่มเลือกข้าวเดิมไว้
 
 Validation: `npm run check`, `npm test` และ `git diff --check` ผ่านแล้ว พร้อมยืนยันว่าไฟล์รูปข้าวทั้งสอง path มีอยู่จริง
+
+## Phone Room Membership Management
+
+เพิ่ม phase `selecting` เพื่อ lock สมาชิกเดิมระหว่างเลือกตัวละคร โดยผู้เล่นใหม่เข้าไม่ได้แต่ slot ที่หลุดยัง reconnect ด้วย token เดิมได้ การเลือกตัวละครที่ยืนยันแล้วคงอยู่เมื่อโทรศัพท์หลุด และถ้ายืนยันครบระหว่างมีสมาชิก reconnecting ระบบจะรอแล้วเริ่มรอบอัตโนมัติเมื่อสมาชิกกลับมาหรือถูกนำออกจนทีมพร้อม หากทีมเหลือน้อยกว่า 2 คนก่อนเริ่ม ระบบยกเลิก pending start และกลับ Lobby
+
+Host มีหน้าต่าง `จัดการผู้เล่น` ใน Lobby, หน้าเลือกตัวละคร, ระหว่างเล่น และ Results รวมถึงภายใน fullscreen แสดงสถานะ connected/reconnecting และ countdown 30 วินาที พร้อม confirmation แบบไม่บล็อก game loop ระหว่างเปิดหน้าต่างจะล้างและล็อกเฉพาะ keyboard/touch input ฝั่ง Host ส่วนเวลา ออเดอร์ และ controller อื่นยังทำงาน เมื่อ phone slot ถูกลบกลางรอบ avatar, movement, rice choice, inventory และ plate ถูกถอนทันที เกมยังเล่นต่อได้แม้เหลือคนเดียว และ Results เก็บชื่อ สี กับจำนวนออเดอร์ที่เสิร์ฟไว้พร้อมป้าย `ออกจากห้องแล้ว`
+
+มือถือมีปุ่ม `ออกจากห้อง` ทุก phase พร้อม confirmation หาก online จะส่ง `local-controller:leave`; หาก offline จะหยุด auto-rejoin และล้าง token ในเครื่องทันที การถูก Host นำออกได้รับ `local-controller:closed` พร้อม `reason: kicked` และกลับหน้า Join ส่วนการปิดห้องใช้ `reason: host-closed` Relay ยังคง browser-authoritative, ไม่รับ gameplay state และไม่เปลี่ยน heartbeat ของ Socket.IO
+
+Validation: `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:local` และ `git diff --check` ผ่านแล้ว Relay test ครอบคลุม kick ทั้ง connected/disconnected, leave, authorization, zero input, reserved capacity, selecting reconnect และ token เก่า Local browser test ครอบคลุม reconnect countdown, pending auto-start, fullscreen manager/input lock, การถอนผู้เล่นกลางรอบและเก็บสถิติ Results, รวมถึง controller leave/token cleanup ส่วน `npm run test:browser:solo` หยุดที่ kitchen fixture เดิม เพราะ worktree มี `transform="translateผ(200 420)"` และขาด asset `กล่องข้าว.png`; งานนี้รักษาการแก้ไข `translateผ(...)` เดิมไว้ตามข้อกำหนดและไม่ได้แก้ส่วนดังกล่าว การตรวจ UI บนโทรศัพท์จริงและ LAN จริงยังควรทำเพิ่มเติม

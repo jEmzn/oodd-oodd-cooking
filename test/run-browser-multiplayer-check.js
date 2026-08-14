@@ -17,7 +17,7 @@ class CdpClient {
       if (message.id) {
         const callback = this.pending.get(message.id);
         this.pending.delete(message.id);
-        if (message.error) callback?.reject(new Error(message.error.message));
+        if (message.error) callback?.reject(new Error(`${message.error.message} (${callback.method}${callback.expression ? `: ${callback.expression}` : ""})`));
         else callback?.resolve(message.result);
       } else if (message.method === "Runtime.exceptionThrown") {
         this.exceptions.push(message.params.exceptionDetails.exception?.description || message.params.exceptionDetails.text);
@@ -28,7 +28,12 @@ class CdpClient {
   async send(method, params = {}) {
     await this.opened;
     const id = this.nextId++;
-    const response = new Promise((resolve, reject) => this.pending.set(id, { resolve, reject }));
+    const response = new Promise((resolve, reject) => this.pending.set(id, {
+      resolve,
+      reject,
+      method,
+      expression: params.expression?.slice(0, 180)
+    }));
     this.ws.send(JSON.stringify({ id, method, params }));
     return response;
   }
@@ -169,9 +174,26 @@ async function main() {
     phone.waitFor("!controlsView.hidden")
   ]);
   assert.equal(await host.evaluate("localPlayerCount.textContent"), "2/5");
-  await host.evaluate("startLocalButton.click(); characterGrid.querySelector('[data-character-id=grilled-pork]').click(); characterConfirmButton.click(); characterGrid.querySelector('[data-character-id=angel-pork]').click(); characterConfirmButton.click(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
+  await host.evaluate("startLocalButton.click(); characterGrid.querySelector('[data-character-id=grilled-pork]').click(); characterConfirmButton.click()")
+  await phone.evaluate("socket.disconnect(); true");
+  await host.waitFor("phoneControllers.length === 1 && phoneControllers[0].connected === false && phoneControllers[0].reconnectDeadline > Date.now()");
+  await host.evaluate("managePlayersButtons.find((button) => !button.hidden).click()");
+  assert.deepEqual(await host.evaluate("({ parent: playerManager.parentElement.id, status: playerManagerList.textContent.includes('รอเชื่อมต่อกลับ'), countdown: /\\d+ วินาที/.test(playerManagerList.textContent) })"), {
+    parent: "character-screen", status: true, countdown: true
+  }, "character selection manager shows reconnect status and countdown inside the active screen");
+  await host.evaluate("playerManagerClose.click(); characterGrid.querySelector('[data-character-id=angel-pork]').click(); characterConfirmButton.click()");
+  assert.deepEqual(await host.evaluate("({ pendingLocalStart, characterVisible: !characterScreen.hidden, phase: characterProgress.textContent })"), {
+    pendingLocalStart: true,
+    characterVisible: true,
+    phase: "เลือกครบแล้ว — กำลังรอผู้เล่นเชื่อมต่อกลับ"
+  }, "completed selection waits for disconnected locked members");
+  await phone.evaluate("socket.connect(); true");
+  await Promise.all([
+    host.waitFor("gameRunning && players.length === 2"),
+    phone.waitFor("latestState.phase === 'playing' && !gameControls.hidden")
+  ]);
+  await host.evaluate("clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
   assert.deepEqual(await host.evaluate("players.map((player) => player.source)"), ["keyboard1", "phone"]);
-  await phone.waitFor("latestState.phase === 'playing' && !gameControls.hidden");
   assert.equal(await phone.evaluate("discardButton.dataset.action"), "discard-station");
   await host.send("Page.bringToFront");
   const phoneStartX = await host.evaluate("players.find((player) => player.source === 'phone').x");
@@ -226,11 +248,44 @@ async function main() {
   ]);
   await phone.evaluate("document.querySelector('[data-action=rice-sticky]').click()");
   await host.waitFor("players.find((player) => player.source === 'phone').inventory?.ingredientId === 'stickyRice'");
-  await host.evaluate("setScore(100); finishRound()");
-  await phone.waitFor("latestState.phase === 'results' && latestState.message === 'ทีมได้ 100 คะแนน'");
-  assert.equal(await phone.evaluate("latestState.message"), "ทีมได้ 100 คะแนน", "controller results message uses team points");
+  await host.evaluate(`(() => {
+    const phonePlayer = players.find((player) => player.source === "phone");
+    phonePlayer.stats.ordersServed = 2;
+    phonePlayer.inventory = { ingredientId: "meat" };
+    phonePlayer.plate = { dishId: "chicken-rice" };
+    phonePlayer.riceChoice = { selected: "steamed" };
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "d" }));
+    fullscreenFallback = true;
+    gameScreen.classList.add("fullscreen-fallback");
+    managePlayersButtons.find((button) => !button.hidden).click();
+  })()`);
+  assert.deepEqual(await host.evaluate("({ parent: playerManager.parentElement.id, keyLocked: !keys.has('d'), visible: !playerManager.hidden })"), {
+    parent: "game-screen", keyLocked: true, visible: true
+  }, "game manager lives inside fullscreen and clears host input without pausing the round");
+  await host.evaluate("window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w' }))");
+  assert.equal(await host.evaluate("keys.size"), 0, "host keyboard stays locked while player manager is open");
+  await host.evaluate("playerManagerList.querySelector('.manager-kick').click(); playerManagerList.querySelector('.manager-kick').click()");
+  await Promise.all([
+    host.waitFor("players.every((player) => player.source !== 'phone') && departedPlayerStats.length === 1"),
+    phone.waitFor("!joinView.hidden && joinMessage.textContent.includes('นำคุณออก')")
+  ]);
+  assert.deepEqual(await host.evaluate("({ running: gameRunning, players: players.length, stats: departedPlayerStats[0].ordersServed, managerCount: phoneControllers.length })"), {
+    running: true, players: 1, stats: 2, managerCount: 0
+  }, "kicking mid-round removes player state immediately, preserves stats, and continues below two players");
+  await host.evaluate("closePlayerManager(); setScore(100); finishRound()");
+  await host.waitFor("!resultsScreen.hidden");
+  assert.equal(await host.evaluate("resultsList.textContent.includes('ออกจากห้องแล้ว') && resultsList.textContent.includes('เสิร์ฟแล้ว 2 ออเดอร์')"), true, "results retain departed player stats with a status label");
+  await host.evaluate("managePlayersButtons.find((button) => !button.hidden).click()");
+  assert.equal(await host.evaluate("playerManagerList.textContent.includes('ไม่มีผู้เล่นมือถือ')"), true, "results manager no longer contains the removed slot");
+  await host.evaluate("closePlayerManager(); playAgainButton.click()");
+  await phone.evaluate("controllerNameInput.value = 'มือถือใหม่'; joinButton.click()");
+  await Promise.all([host.waitFor("phoneControllers.length === 1"), phone.waitFor("!controlsView.hidden")]);
+  await phone.evaluate("leaveButton.click()");
+  assert.equal(await phone.evaluate("!leaveConfirmation.hidden"), true, "controller leave uses an in-page confirmation");
+  await phone.evaluate("confirmLeaveButton.click()");
+  await Promise.all([host.waitFor("phoneControllers.length === 0"), phone.waitFor("!joinView.hidden")]);
+  assert.equal(await phone.evaluate("localStorage.getItem(tokenKey())"), null, "controller leave clears its reconnect token and returns to Join");
   await host.evaluate("exitGameButton.click()");
-  await phone.waitFor("!joinView.hidden");
   assert.deepEqual(host.exceptions, []);
   assert.deepEqual(phone.exceptions, []);
   console.log("browser local co-op check passed", { sessionCode, keyboardPlayers: 2, phoneController: true });

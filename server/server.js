@@ -59,7 +59,12 @@ function sessionForController(socket) {
 }
 
 function publicRoster(session) {
-  return [...session.controllers.values()].map(({ id, name, connected }) => ({ id, name, connected }));
+  return [...session.controllers.values()].map(({ id, name, connected, reconnectDeadline }) => ({
+    id,
+    name,
+    connected,
+    reconnectDeadline: reconnectDeadline || null
+  }));
 }
 
 function emitRoster(session) {
@@ -73,8 +78,18 @@ function sendZeroInput(session, controller) {
   });
 }
 
-function removeController(session, controller) {
+function removeController(session, controller, { notify = false, reason = "left", message = "ออกจากห้องแล้ว" } = {}) {
   clearTimeout(controller.disconnectTimer);
+  sendZeroInput(session, controller);
+  if (notify && controller.socketId) {
+    io.to(controller.socketId).emit("local-controller:closed", { reason, message });
+  }
+  const controllerSocket = controller.socketId ? io.sockets.sockets.get(controller.socketId) : null;
+  if (controllerSocket) {
+    controllerSocket.data.role = null;
+    controllerSocket.data.sessionCode = null;
+    controllerSocket.data.playerId = null;
+  }
   session.controllers.delete(controller.id);
   emitRoster(session);
 }
@@ -83,6 +98,7 @@ function markControllerDisconnected(session, controller) {
   if (!controller.connected) return;
   controller.connected = false;
   controller.socketId = null;
+  controller.reconnectDeadline = Date.now() + reconnectGraceMs;
   sendZeroInput(session, controller);
   emitRoster(session);
   clearTimeout(controller.disconnectTimer);
@@ -96,7 +112,7 @@ function markControllerDisconnected(session, controller) {
 function closeSession(session, reason = "เจ้าบ้านปิดห้องแล้ว") {
   session.controllers.forEach((controller) => {
     clearTimeout(controller.disconnectTimer);
-    if (controller.socketId) io.to(controller.socketId).emit("local-controller:closed", { message: reason });
+    if (controller.socketId) io.to(controller.socketId).emit("local-controller:closed", { reason: "host-closed", message: reason });
   });
   sessions.delete(session.code);
   const hostSocket = io.sockets.sockets.get(session.hostSocketId);
@@ -129,7 +145,7 @@ io.on("connection", (socket) => {
 
   socket.on("local-host:phase", ({ phase } = {}) => {
     const session = sessionForHost(socket);
-    if (!session || !["lobby", "playing", "results"].includes(phase)) return;
+    if (!session || !["lobby", "selecting", "playing", "results"].includes(phase)) return;
     session.phase = phase;
     session.controllers.forEach((controller) => {
       if (controller.socketId) io.to(controller.socketId).emit("local-controller:state", { phase });
@@ -141,6 +157,19 @@ io.on("connection", (socket) => {
     const controller = session?.controllers.get(playerId);
     if (!controller?.socketId || !state || typeof state !== "object") return;
     io.to(controller.socketId).emit("local-controller:state", state);
+  });
+
+  socket.on("local-host:kick", ({ playerId } = {}, reply) => {
+    const session = sessionForHost(socket);
+    if (!session) return reply?.({ error: "เฉพาะเจ้าบ้านของห้องเท่านั้นที่นำผู้เล่นออกได้" });
+    const controller = session.controllers.get(String(playerId || ""));
+    if (!controller) return reply?.({ error: "ไม่พบผู้เล่นนี้ในห้อง" });
+    removeController(session, controller, {
+      notify: true,
+      reason: "kicked",
+      message: "เจ้าบ้านนำคุณออกจากห้องแล้ว"
+    });
+    reply?.({ ok: true });
   });
 
   socket.on("local-host:close", () => {
@@ -161,6 +190,7 @@ io.on("connection", (socket) => {
       reconnecting.disconnectTimer = null;
       reconnecting.socketId = socket.id;
       reconnecting.connected = true;
+      reconnecting.reconnectDeadline = null;
       reconnecting.name = cleanName;
       socket.data.role = "controller";
       socket.data.sessionCode = code;
@@ -170,16 +200,22 @@ io.on("connection", (socket) => {
     }
 
     if (session.phase !== "lobby") return reply?.({ error: "เกมเริ่มแล้ว รับเฉพาะผู้เล่นที่กำลังเชื่อมต่อกลับ" });
-    const activeControllers = [...session.controllers.values()].filter((item) => item.connected).length;
-    if (activeControllers >= session.maxControllers || session.controllers.size >= maxPlayers) return reply?.({ error: "ช่องผู้เล่นเต็มแล้ว" });
+    if (session.controllers.size >= session.maxControllers || session.controllers.size >= maxPlayers) return reply?.({ error: "ช่องผู้เล่นเต็มแล้ว" });
     const id = `phone-${crypto.randomUUID()}`;
-    const controller = { id, name: cleanName, socketId: socket.id, connected: true, reconnectToken: crypto.randomBytes(18).toString("base64url"), disconnectTimer: null };
+    const controller = { id, name: cleanName, socketId: socket.id, connected: true, reconnectToken: crypto.randomBytes(18).toString("base64url"), reconnectDeadline: null, disconnectTimer: null };
     session.controllers.set(id, controller);
     socket.data.role = "controller";
     socket.data.sessionCode = code;
     socket.data.playerId = id;
     emitRoster(session);
     reply?.({ ok: true, playerId: id, reconnectToken: controller.reconnectToken, phase: session.phase });
+  });
+
+  socket.on("local-controller:leave", (payload, reply) => {
+    const context = sessionForController(socket);
+    if (!context) return reply?.({ error: "ไม่พบสมาชิกของคุณในห้อง" });
+    removeController(context.session, context.controller);
+    reply?.({ ok: true });
   });
 
   socket.on("local-controller:input", (input = {}) => {
