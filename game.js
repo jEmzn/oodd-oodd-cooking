@@ -60,17 +60,10 @@ const scoreElement = document.querySelector("#score");
 const orderCard = document.querySelector("#order-card");
 const orderList = document.querySelector("#order-list");
 const message = document.querySelector("#game-message");
-const mathChallengeElement = document.querySelector("#math-challenge");
-const mathChallengeForm = document.querySelector("#math-challenge-form");
-const mathChallengeProgress = document.querySelector("#math-challenge-progress");
-const mathChallengeExpression = document.querySelector("#math-challenge-expression");
-const mathChallengeAnswer = document.querySelector("#math-challenge-answer");
-const mathChallengeFeedback = document.querySelector("#math-challenge-feedback");
 const walkingSound = new Audio("Sound/walking-for-cartoon.mp3");
 const lobbyMusic = new Audio("Sound/background-music-lobby.mp3");
 const gameMusic = new Audio("Sound/background-music-map2.mp3");
 const cookingData = window.CookingData;
-const mathChallengeData = window.MathChallenges;
 const objects = [...document.querySelectorAll(".object")].map((element) => ({
   element,
   name: element.dataset.object,
@@ -286,10 +279,6 @@ let playerManagerOpen = false;
 let managerKickTarget = null;
 let managerCountdownId;
 let customerOrderBonusUntil = 0;
-let mathChallengeActive = false;
-let mathChallengeSets = [];
-let activeMathChallengeSet = null;
-let mathChallengeQuestionIndex = 0;
 
 function createEmptyCookingStations() {
   return Object.fromEntries([...cookingStationTools.keys()].map((stationId) => [stationId, null]));
@@ -683,8 +672,7 @@ function sendControllerState(player, extra = {}) {
       phase: gameRunning ? "playing" : resultsScreen.hidden ? "lobby" : "results",
       name: player.name,
       color: player.color,
-      mathChallengeActive,
-      canChooseRice: !mathChallengeActive && Boolean(player.riceChoice),
+      canChooseRice: Boolean(player.riceChoice),
       canUseSkill: ability.canUseSkill,
       recovering: ability.recovering,
       recoveryRemaining: ability.recoveryRemaining,
@@ -701,7 +689,7 @@ function getAbilityState(player, now = Date.now()) {
   const skillCooldownRemaining = Math.max(0, Math.ceil((player.skillCooldownUntil - now) / 1000));
   const recovering = player.recoveryUntil > now;
   return {
-    canUseSkill: gameRunning && !mathChallengeActive && player.connected && !player.riceChoice && !recovering && skillCooldownRemaining === 0,
+    canUseSkill: gameRunning && player.connected && !player.riceChoice && !recovering && skillCooldownRemaining === 0,
     recovering,
     recoveryRemaining,
     skillCooldownRemaining,
@@ -772,7 +760,7 @@ function updatePlayerAbilityState(player, now = Date.now()) {
 }
 
 function usePlayerSkill(player) {
-  if (!gameRunning || mathChallengeActive || !player || !player.connected) return;
+  if (!gameRunning || !player || !player.connected) return;
   const now = Date.now();
   const state = getAbilityState(player, now);
   if (state.recovering) return setPlayerMessage(player, `กำลังพักฟื้นอีก ${state.recoveryRemaining} วินาที`);
@@ -915,7 +903,7 @@ function startCooking(player, stationId) {
 }
 
 function discardStagedStation(player) {
-  if (!gameRunning || mathChallengeActive || !player || !player.connected) return;
+  if (!gameRunning || !player || !player.connected) return;
   if (player.recoveryUntil > Date.now()) return setPlayerMessage(player, `กำลังพักฟื้นอีก ${Math.ceil((player.recoveryUntil - Date.now()) / 1000)} วินาที`);
   if (player.riceChoice) return setPlayerMessage(player, "เลือกข้าวให้เสร็จก่อน");
   const nearest = nearestObject(player);
@@ -935,7 +923,7 @@ function discardStagedStation(player) {
 }
 
 function chooseRice(player, requestedRice) {
-  if (mathChallengeActive || !player.riceChoice) return;
+  if (!player.riceChoice) return;
   const ingredientId = requestedRice === "sticky" ? "stickyRice" : "steamedRice";
   if (player.plate) {
     const nextPlate = cookingData.appendIngredient(player.plate, ingredientId);
@@ -955,7 +943,7 @@ function chooseRice(player, requestedRice) {
 }
 
 function cancelRiceChoice(player) {
-  if (mathChallengeActive || !player.riceChoice) return;
+  if (!player.riceChoice) return;
   player.riceChoice = null;
   renderRiceChoices();
   sendControllerState(player, { canChooseRice: false, message: "ยกเลิกการเลือกข้าวแล้ว" });
@@ -987,7 +975,7 @@ function renderRiceChoices() {
 }
 
 function interactPlayer(player) {
-  if (!gameRunning || mathChallengeActive || !player || !player.connected) return;
+  if (!gameRunning || !player || !player.connected) return;
   if (player.recoveryUntil > Date.now()) return setPlayerMessage(player, `กำลังพักฟื้นอีก ${Math.ceil((player.recoveryUntil - Date.now()) / 1000)} วินาที`);
   if (player.riceChoice) return chooseRice(player, player.riceChoice.selected);
   const nearest = nearestObject(player);
@@ -1074,7 +1062,7 @@ function interactPlayer(player) {
 }
 
 function inputForPlayer(player) {
-  if (mathChallengeActive || !player.connected || player.riceChoice || player.recoveryUntil > Date.now()) return { left: false, right: false, up: false, down: false };
+  if (!player.connected || player.riceChoice || player.recoveryUntil > Date.now()) return { left: false, right: false, up: false, down: false };
   if (player.source === "phone") return player.input;
   if (mode === "solo") {
     return {
@@ -1192,89 +1180,7 @@ function expireOrders() {
   }
 }
 
-function resetMathChallengeState() {
-  mathChallengeActive = false;
-  mathChallengeSets = [];
-  activeMathChallengeSet = null;
-  mathChallengeQuestionIndex = 0;
-  mathChallengeElement.hidden = true;
-  mathChallengeAnswer.value = "";
-  mathChallengeFeedback.textContent = "";
-}
-
-function renderMathChallengeQuestion() {
-  const question = activeMathChallengeSet?.questions[mathChallengeQuestionIndex];
-  if (!question) return;
-  mathChallengeProgress.textContent = `ข้อ ${mathChallengeQuestionIndex + 1}/${activeMathChallengeSet.questions.length}`;
-  mathChallengeExpression.textContent = `${question.expression} = ?`;
-  mathChallengeAnswer.value = "";
-  mathChallengeFeedback.textContent = "";
-  window.requestAnimationFrame(() => mathChallengeAnswer.focus());
-}
-
-function notifyMathChallengeState(active) {
-  players.forEach((player) => sendControllerState(player, {
-    mathChallengeActive: active,
-    canChooseRice: false,
-    canUseSkill: active ? false : getAbilityState(player).canUseSkill,
-    message: active ? "เจ้าของห้องกำลังแก้โจทย์คณิต" : "ตอบโจทย์ครบแล้ว เล่นต่อได้!"
-  }));
-}
-
-function startMathChallenge(challengeSet) {
-  if (!gameRunning || mathChallengeActive || !challengeSet || challengeSet.status !== "pending") return;
-  challengeSet.status = "active";
-  activeMathChallengeSet = challengeSet;
-  mathChallengeQuestionIndex = 0;
-  mathChallengeActive = true;
-  releaseAllInputs();
-  players.forEach((player) => {
-    player.input = { left: false, right: false, up: false, down: false };
-    player.riceChoice = null;
-  });
-  renderRiceChoices();
-  mathChallengeElement.hidden = false;
-  notifyMathChallengeState(true);
-  renderMathChallengeQuestion();
-}
-
-function checkMathChallengeSchedule() {
-  if (!gameRunning || mathChallengeActive) return;
-  const elapsedSeconds = roundDurationSeconds - secondsLeft;
-  const dueSet = mathChallengeSets.find((set) => set.status === "pending" && set.triggerSecond <= elapsedSeconds);
-  if (dueSet) startMathChallenge(dueSet);
-}
-
-function submitMathChallengeAnswer() {
-  if (!mathChallengeActive || !activeMathChallengeSet) return;
-  const question = activeMathChallengeSet.questions[mathChallengeQuestionIndex];
-  const answer = Number(mathChallengeAnswer.value);
-  if (mathChallengeAnswer.value.trim() === "" || !Number.isInteger(answer) || answer !== question.answer) {
-    mathChallengeAnswer.value = "";
-    mathChallengeFeedback.textContent = "ยังไม่ถูก ลองตอบข้อนี้อีกครั้ง";
-    mathChallengeAnswer.focus();
-    return;
-  }
-  mathChallengeQuestionIndex += 1;
-  if (mathChallengeQuestionIndex < activeMathChallengeSet.questions.length) {
-    renderMathChallengeQuestion();
-    return;
-  }
-  activeMathChallengeSet.status = "completed";
-  activeMathChallengeSet = null;
-  mathChallengeQuestionIndex = 0;
-  mathChallengeActive = false;
-  mathChallengeElement.hidden = true;
-  mathChallengeAnswer.value = "";
-  mathChallengeFeedback.textContent = "";
-  notifyMathChallengeState(false);
-  setMessage("ตอบโจทย์ครบแล้ว ทุกคนเล่นต่อได้!");
-  checkMathChallengeSchedule();
-}
-
 function resetRoundState() {
-  resetMathChallengeState();
-  mathChallengeSets = mathChallengeData.createRound().map((set) => ({ ...set, status: "pending" }));
   setScore(0);
   secondsLeft = roundDurationSeconds;
   orders = [];
@@ -1421,7 +1327,6 @@ function startRound() {
     timerElement.textContent = `${secondsLeft}`;
     timerElement.classList.toggle("warning", secondsLeft <= 10);
     if (secondsLeft <= 0) finishRound();
-    else checkMathChallengeSchedule();
   }, 1000);
   orderTimerId = window.setInterval(() => {
     expireOrders();
@@ -1491,7 +1396,6 @@ function confirmCharacterSelection() {
 
 function stopRoundActivity() {
   gameRunning = false;
-  resetMathChallengeState();
   keys.clear();
   directionButtons.forEach((button) => button.classList.remove("pressed"));
   cancelAnimationFrame(animationId);
@@ -1930,7 +1834,7 @@ async function connectPhoneRelay() {
       relaySocket.on("local-host:roster", applyPhoneRoster);
       relaySocket.on("local-host:input", ({ playerId, input }) => {
         const player = players.find((item) => item.id === playerId && item.source === "phone");
-        if (player && !mathChallengeActive) player.input = input;
+        if (player) player.input = input;
       });
       relaySocket.on("local-host:action", ({ playerId, action }) => {
         const player = players.find((item) => item.id === playerId && item.source === "phone");
@@ -2077,32 +1981,16 @@ fullscreenButton.addEventListener("click", toggleFullscreen);
 lanAddress.addEventListener("change", renderJoinOption);
 [keyboard1Enabled, keyboard2Enabled].forEach((input) => input.addEventListener("change", renderLocalSetup));
 [keyboard1Name, keyboard2Name].forEach((input) => input.addEventListener("input", renderLocalSetup));
-mobileInteractButton.addEventListener("click", () => interactPlayer(players[0]));
-mobileSkillButton.addEventListener("click", () => usePlayerSkill(players[0]));
-mobileDiscardButton.addEventListener("click", () => discardStagedStation(players[0]));
-mathChallengeForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  submitMathChallengeAnswer();
-});
-mathChallengeAnswer.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter") return;
-  event.preventDefault();
-  submitMathChallengeAnswer();
-});
-directionButtons.forEach((button) => {
-  button.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    if (mathChallengeActive) return;
 managePlayersButtons.forEach((button) => button.addEventListener("click", openPlayerManager));
 playerManagerClose.addEventListener("click", closePlayerManager);
 playerManager.addEventListener("click", (event) => { if (event.target === playerManager) closePlayerManager(); });
-// mobileInteractButton.addEventListener("click", () => { if (!playerManagerOpen) interactPlayer(players[0]); });
-// mobileSkillButton.addEventListener("click", () => { if (!playerManagerOpen) usePlayerSkill(players[0]); });
-// mobileDiscardButton.addEventListener("click", () => { if (!playerManagerOpen) discardStagedStation(players[0]); });
-// directionButtons.forEach((button) => {
-//   button.addEventListener("pointerdown", (event) => {
-//     event.preventDefault();
-//     if (playerManagerOpen) return;
+mobileInteractButton.addEventListener("click", () => { if (!playerManagerOpen) interactPlayer(players[0]); });
+mobileSkillButton.addEventListener("click", () => { if (!playerManagerOpen) usePlayerSkill(players[0]); });
+mobileDiscardButton.addEventListener("click", () => { if (!playerManagerOpen) discardStagedStation(players[0]); });
+directionButtons.forEach((button) => {
+  button.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    if (playerManagerOpen) return;
     keys.add(`touch-${button.dataset.direction}`);
     button.classList.add("pressed");
     try { button.setPointerCapture?.(event.pointerId); } catch (error) { /* Synthetic or cancelled pointers have no active capture. */ }
@@ -2122,8 +2010,6 @@ window.addEventListener("keydown", (event) => {
   if (!startScreen.hidden) syncLobbyMusic(true);
   if (!gameScreen.hidden) syncGameMusic(true);
   const key = event.key.toLowerCase();
-  if (mathChallengeActive) {
-    if (key === "escape") event.preventDefault();
   if (playerManagerOpen) {
     if (key === "escape") closePlayerManager();
     return;
@@ -2156,7 +2042,7 @@ window.addEventListener("keydown", (event) => {
     return;
   }
   keys.add(key);
-}});
+});
 window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
 window.addEventListener("blur", releaseAllInputs);
 window.addEventListener("copy", blockGamePageCopy);
