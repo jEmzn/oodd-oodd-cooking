@@ -48,7 +48,10 @@
           <a id="controller-url" target="_blank" rel="noreferrer"></a>
           <p>รหัสห้อง <strong id="local-session-code"></strong></p>
         </div>
-        <h3 class="local-roster-title">ผู้เล่น <span id="local-player-count">2/5</span></h3>
+        <div class="local-roster-heading">
+          <h3 class="local-roster-title">ผู้เล่น <span id="local-player-count">2/5</span></h3>
+          <button class="button button-secondary manage-players-button" type="button">จัดการผู้เล่น</button>
+        </div>
         <div id="local-player-list" class="player-list" aria-live="polite"></div>
         <p id="setup-message" class="form-message" aria-live="polite"></p>
         <div class="lobby-actions">
@@ -73,6 +76,7 @@
         </div>
         <div id="character-roster" class="character-roster" aria-live="polite"></div>
         <div class="character-actions">
+          <button class="button button-secondary manage-players-button" type="button" hidden>จัดการผู้เล่น</button>
           <button id="character-back-button" class="button button-secondary" type="button">ย้อนกลับ</button>
         </div>
       </section>
@@ -123,6 +127,7 @@
             <div><span>คะแนน</span><strong id="score">0</strong></div>
           </div>
           <button id="fullscreen-button" class="button button-secondary fullscreen-button" type="button" aria-label="เข้าโหมดเต็มจอ">เต็มจอ</button>
+          <button class="button button-secondary fullscreen-button manage-players-button" type="button" hidden>ผู้เล่น</button>
           <button id="exit-game-button" class="button button-secondary fullscreen-button exit-game-button" type="button">ออกจากเกม</button>
         </div>
       </header>
@@ -183,7 +188,7 @@
             <g class="object station" data-object="pot-2" data-tool="pot" data-x="678" data-y="155" aria-label="หม้อ 2" tabindex="0" transform="translate(678 155)"><title>หม้อ 2</title><rect class="station-hitbox" x="-52" y="-52" width="104" height="104" /></g>
             <g class="object station" data-object="pan-2" data-tool="pan" data-x="785" data-y="155" aria-label="กระทะ 2" tabindex="0" transform="translate(785 155)"><title>กระทะ 2</title><rect class="station-hitbox" x="-52" y="-52" width="104" height="104" /></g>
             <g class="object station" data-object="grill" data-tool="grill" data-x="880" data-y="160" aria-label="เตาย่าง" tabindex="0" transform="translate(880 160)"><title>เตาย่าง</title><rect class="station-hitbox" x="-55" y="-55" width="85" height="110" /></g>
-            <g class="object station" data-object="trash" data-x="200" data-y="420" aria-label="ถังขยะ" tabindex="0" transform="translat(200 420)"><title>ถังขยะ</title><rect class="station-hitbox" x="-52" y="-52" width="104" height="104" /></g>
+            <g class="object station" data-object="trash" data-x="200" data-y="420" aria-label="ถังขยะ" tabindex="0" transform="translateผ(200 420)"><title>ถังขยะ</title><rect class="station-hitbox" x="-52" y="-52" width="104" height="104" /></g>
             <g class="object station" data-object="meat" data-x="474" data-y="415" aria-label="เนื้อ" tabindex="0" transform="translate(474 415)"><title>เนื้อ</title><rect class="station-hitbox" x="-52" y="-52" width=75" height="104" /></g>
             <g class="object station" data-object="sauce" data-x="557" data-y="415" aria-label="ซอส" tabindex="0" transform="translate(557 415)"><title>ซอส</title><rect class="station-hitbox" x="-52" y="-52" width="75" height="104" /></g>
             <g class="object station" data-object="egg" data-x="640" data-y="415" aria-label="ไข่" tabindex="0" transform="translate(640 415)"><title>ไข่</title><rect class="station-hitbox" x="-52" y="-52" width="75" height="104" /></g>
@@ -226,11 +231,22 @@
       <p class="results-score">คะแนนรวม <strong id="results-score">0</strong></p>
         <div id="results-list" class="player-list"></div>
         <div class="results-actions">
+          <button class="button button-secondary manage-players-button" type="button" hidden>จัดการผู้เล่น</button>
           <button id="play-again-button" class="button" type="button">เล่นอีกครั้ง</button>
           <button id="results-button" class="button button-secondary" type="button">กลับหน้าเริ่มต้น</button>
         </div>
       </section>
     </main>
+
+    <div id="player-manager" class="player-manager" hidden role="dialog" aria-modal="true" aria-labelledby="player-manager-title">
+      <section class="player-manager-card">
+        <button id="player-manager-close" class="modal-close" type="button" aria-label="ปิดหน้าจัดการผู้เล่น">×</button>
+        <p class="eyebrow">LOCAL CO-OP</p>
+        <h2 id="player-manager-title">จัดการผู้เล่น</h2>
+        <p class="setup-copy">นำผู้เล่นมือถือออกได้ทันที ผู้เล่นที่หลุดจะเก็บช่องไว้ 30 วินาที</p>
+        <div id="player-manager-list" class="player-manager-list" aria-live="polite"></div>
+      </section>
+    </div>
 
     <script src="recipes.js"></script>
     <script src="game.js"></script>

@@ -92,9 +92,27 @@ async function main() {
   assert.equal((await rosterReady).every((item) => item.connected), true);
   assert.match((await emitAck(overflow, "local-controller:join", { sessionCode: created.sessionCode, name: "เกิน" })).error, /เต็ม/);
 
+  host.emit("local-host:phase", { phase: "selecting" });
+  assert.match((await emitAck(overflow, "local-controller:join", { sessionCode: created.sessionCode, name: "เข้าช่วงเลือก" })).error, /เกมเริ่มแล้ว|เต็ม/);
+
+  const disconnectedRoster = host.waitFor("local-host:roster", (roster) => roster.some((item) => item.id === joinedA.playerId && !item.connected && item.reconnectDeadline > Date.now()));
+  controllerA.close();
+  const reservedRoster = await disconnectedRoster;
+  assert.equal(typeof reservedRoster.find((item) => item.id === joinedA.playerId).reconnectDeadline, "number");
+  assert.match((await emitAck(overflow, "local-controller:join", { sessionCode: created.sessionCode, name: "ช่องที่สงวน" })).error, /เกมเริ่มแล้ว|เต็ม/);
+  const replacementA = await newClient();
+  const reconnectedRoster = host.waitFor("local-host:roster", (roster) => roster.some((item) => item.id === joinedA.playerId && item.connected && item.reconnectDeadline === null));
+  const rejoined = await emitAck(replacementA, "local-controller:join", {
+    sessionCode: created.sessionCode,
+    name: "โทรศัพท์ A",
+    reconnectToken: joinedA.reconnectToken
+  });
+  assert.equal(rejoined.playerId, joinedA.playerId);
+  await reconnectedRoster;
+
   host.emit("local-host:phase", { phase: "playing" });
   const inputPromise = host.waitFor("local-host:input", ({ playerId, input }) => playerId === joinedA.playerId && input.right);
-  controllerA.emit("local-controller:input", { right: true });
+  replacementA.emit("local-controller:input", { right: true });
   assert.deepEqual((await inputPromise).input, { left: false, right: true, up: false, down: false });
   const actionPromise = host.waitFor("local-host:action", ({ playerId, action }) => playerId === joinedB.playerId && action === "interact");
   controllerB.emit("local-controller:action", { action: "interact" });
@@ -106,29 +124,44 @@ async function main() {
   controllerC.emit("local-controller:action", { action: "discard-station" });
   assert.equal((await discardPromise).action, "discard-station");
 
-  const statePromise = controllerA.waitFor("local-controller:state", (state) => state.canChooseRice === true);
+  const statePromise = replacementA.waitFor("local-controller:state", (state) => state.canChooseRice === true);
   host.emit("local-host:controller-state", { playerId: joinedA.playerId, state: { canChooseRice: true, message: "เลือกข้าว" } });
   assert.equal((await statePromise).message, "เลือกข้าว");
   assert.match((await emitAck(overflow, "local-controller:join", { sessionCode: created.sessionCode, name: "สาย" })).error, /เกมเริ่มแล้ว|เต็ม/);
+  assert.match((await emitAck(controllerC, "local-host:kick", { playerId: joinedB.playerId })).error, /เจ้าบ้าน/);
+  assert.match((await emitAck(host, "local-host:kick", { playerId: "missing-player" })).error, /ไม่พบผู้เล่น/);
 
-  const disconnectedRoster = host.waitFor("local-host:roster", (roster) => roster.some((item) => item.id === joinedA.playerId && !item.connected));
-  controllerA.close();
-  await disconnectedRoster;
-  const replacementA = await newClient();
-  const reconnectedRoster = host.waitFor("local-host:roster", (roster) => roster.some((item) => item.id === joinedA.playerId && item.connected));
-  const rejoined = await emitAck(replacementA, "local-controller:join", {
-    sessionCode: created.sessionCode,
-    name: "โทรศัพท์ A",
-    reconnectToken: joinedA.reconnectToken
-  });
-  assert.equal(rejoined.playerId, joinedA.playerId);
-  await reconnectedRoster;
+  const kickedClosed = controllerB.waitFor("local-controller:closed", ({ reason }) => reason === "kicked");
+  const kickedZero = host.waitFor("local-host:input", ({ playerId, input }) => playerId === joinedB.playerId && Object.values(input).every((value) => value === false));
+  const kickedRoster = host.waitFor("local-host:roster", (roster) => !roster.some((item) => item.id === joinedB.playerId));
+  assert.equal((await emitAck(host, "local-host:kick", { playerId: joinedB.playerId })).ok, true);
+  assert.equal((await kickedClosed).reason, "kicked");
+  await kickedZero;
+  await kickedRoster;
 
-  const closedPromise = controllerB.waitFor("local-controller:closed", ({ message }) => Boolean(message));
+  const leftRoster = host.waitFor("local-host:roster", (roster) => !roster.some((item) => item.id === joinedC.playerId));
+  assert.equal((await emitAck(controllerC, "local-controller:leave", {})).ok, true);
+  await leftRoster;
+  host.emit("local-host:phase", { phase: "selecting" });
+  assert.match((await emitAck(overflow, "local-controller:join", { sessionCode: created.sessionCode, name: "token เก่า", reconnectToken: joinedC.reconnectToken })).error, /เกมเริ่มแล้ว/);
+
+  const disconnectedAgain = host.waitFor("local-host:roster", (roster) => roster.some((item) => item.id === joinedA.playerId && !item.connected));
+  replacementA.close();
+  await disconnectedAgain;
+  const kickedDisconnectedRoster = host.waitFor("local-host:roster", (roster) => !roster.some((item) => item.id === joinedA.playerId));
+  assert.equal((await emitAck(host, "local-host:kick", { playerId: joinedA.playerId })).ok, true);
+  await kickedDisconnectedRoster;
+  assert.match((await emitAck(overflow, "local-controller:join", { sessionCode: created.sessionCode, name: "คืนไม่ได้", reconnectToken: joinedA.reconnectToken })).error, /เกมเริ่มแล้ว/);
+
+  host.emit("local-host:phase", { phase: "lobby" });
+  const joinedAgain = await emitAck(overflow, "local-controller:join", { sessionCode: created.sessionCode, name: "ผู้เล่นใหม่", reconnectToken: joinedC.reconnectToken });
+  assert.equal(joinedAgain.ok, true);
+  assert.notEqual(joinedAgain.playerId, joinedC.playerId);
+  const closedPromise = overflow.waitFor("local-controller:closed", ({ reason }) => reason === "host-closed");
   host.emit("local-host:close");
-  await closedPromise;
-  [host, replacementA, controllerB, controllerC, overflow].forEach((client) => client.close());
-  console.log("local controller relay check passed", { sessionCode: created.sessionCode, controllers: 3, reconnect: true });
+  assert.equal((await closedPromise).reason, "host-closed");
+  [host, controllerB, controllerC, overflow].forEach((client) => client.close());
+  console.log("local controller relay check passed", { sessionCode: created.sessionCode, controllers: 3, reconnect: true, kick: true, leave: true });
 }
 
 main().catch((error) => { console.error(error); process.exit(1); });

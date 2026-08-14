@@ -47,6 +47,10 @@ const soundToggles = [...document.querySelectorAll(".sound-toggle")];
 const exitGameButton = document.querySelector("#exit-game-button");
 const resultsList = document.querySelector("#results-list");
 const resultsScore = document.querySelector("#results-score");
+const managePlayersButtons = [...document.querySelectorAll(".manage-players-button")];
+const playerManager = document.querySelector("#player-manager");
+const playerManagerClose = document.querySelector("#player-manager-close");
+const playerManagerList = document.querySelector("#player-manager-list");
 const playerLayer = document.querySelector("#players");
 const customerLayer = document.querySelector("#customers");
 const cookingStatuses = document.querySelector("#cooking-statuses");
@@ -269,6 +273,11 @@ let characterSelectionMode = "solo";
 let characterSelectionConfigs = [];
 let characterSelectionIndex = 0;
 let pendingCharacterId = null;
+let pendingLocalStart = false;
+let departedPlayerStats = [];
+let playerManagerOpen = false;
+let managerKickTarget = null;
+let managerCountdownId;
 let customerOrderBonusUntil = 0;
 
 function createEmptyCookingStations() {
@@ -1204,7 +1213,9 @@ function renderCharacterSelection() {
     : "ผู้เล่นแต่ละคนเลือกเชฟของตัวเอง ตัวละครในทีมจะไม่ซ้ำกัน";
   characterProgress.textContent = isSolo
     ? `กำลังเลือกให้ ${currentConfig.name}`
-    : `ผู้เล่น ${characterSelectionIndex + 1}/${characterSelectionConfigs.length}: ${currentConfig.name}`;
+    : pendingLocalStart
+      ? "เลือกครบแล้ว — กำลังรอผู้เล่นเชื่อมต่อกลับ"
+      : `ผู้เล่น ${characterSelectionIndex + 1}/${characterSelectionConfigs.length}: ${currentConfig.name}`;
   characterRosterHint.textContent = `เลือกแล้ว ${selectedCount}/${characterSelectionConfigs.length} คน`;
   characterGrid.replaceChildren();
   characterDefinitions.forEach((character) => {
@@ -1246,7 +1257,8 @@ function renderCharacterSelection() {
     const copy = document.createElement("span");
     copy.textContent = config.name;
     const selected = document.createElement("small");
-    selected.textContent = character?.name || "รอเลือก";
+    const connectionLabel = config.source === "phone" && config.connected === false ? " • รอเชื่อมต่อกลับ" : "";
+    selected.textContent = `${character?.name || "รอเลือก"}${connectionLabel}`;
     copy.append(selected);
     item.append(image, copy);
     characterRoster.append(item);
@@ -1292,15 +1304,20 @@ function startCharacterSelection(selectionMode) {
   characterSelectionMode = selectionMode;
   characterSelectionConfigs = configs.map((config) => ({ ...config, characterId: null }));
   characterSelectionIndex = 0;
+  pendingLocalStart = false;
   closeCharacterDetails();
+  if (selectionMode === "local") relaySocket?.emit("local-host:phase", { phase: "selecting" });
   showScreen(characterScreen);
+  updateManagerButtons();
   renderCharacterSelection();
 }
 
 function startRound() {
+  closePlayerManager();
   stopRoundActivity();
   resetRoundState();
   showScreen(gameScreen);
+  updateManagerButtons();
   gameRunning = true;
   setMessage(mode === "solo" ? "เดินด้วย WASD/ลูกศร • E โต้ตอบ • Q ใช้สกิล • R ทิ้ง" : "ช่วยกันทำอาหาร • R/- ทิ้ง");
   players.forEach((player) => sendControllerState(player, { phase: "playing", message: "เกมเริ่มแล้ว!" }));
@@ -1322,6 +1339,7 @@ function startRound() {
 
 function startSoloGame(characterId = characterDefinitions[0].id) {
   mode = "solo";
+  departedPlayerStats = [];
   clearPlayers();
   players.push(createPlayer({ id: "solo", name: "คุณ", source: "keyboard1", characterId }, 0));
   startRound();
@@ -1344,6 +1362,7 @@ function startLocalGame(selectedConfigs = null) {
     return;
   }
   mode = "local";
+  departedPlayerStats = [];
   clearPlayers();
   players = configs.map((config, index) => createPlayer({ ...config, characterId: config.characterId || characterDefinitions[index % characterDefinitions.length].id }, index));
   startRound();
@@ -1360,9 +1379,19 @@ function confirmCharacterSelection() {
     return;
   }
   const selectedConfigs = characterSelectionConfigs.map((config) => ({ ...config }));
+  if (characterSelectionMode === "solo") {
+    characterSelectionConfigs = [];
+    startSoloGame(selectedConfigs[0].characterId);
+    return;
+  }
+  if (selectedConfigs.some((config) => config.source === "phone" && config.connected === false)) {
+    pendingLocalStart = true;
+    renderCharacterSelection();
+    return;
+  }
+  pendingLocalStart = false;
   characterSelectionConfigs = [];
-  if (characterSelectionMode === "solo") startSoloGame(selectedConfigs[0].characterId);
-  else startLocalGame(selectedConfigs);
+  startLocalGame(selectedConfigs);
 }
 
 function stopRoundActivity() {
@@ -1399,9 +1428,18 @@ function finishRound() {
 
 function showResults() {
   showScreen(resultsScreen);
+  updateManagerButtons();
   resultsScore.textContent = `${score}`;
   resultsList.replaceChildren();
-  players.forEach((player) => {
+  [
+    ...players.map((player) => ({
+      name: player.name,
+      color: player.color,
+      ordersServed: player.stats.ordersServed,
+      departed: false
+    })),
+    ...departedPlayerStats
+  ].forEach((player) => {
     const row = document.createElement("div");
     row.className = "player-row";
     const name = document.createElement("span");
@@ -1410,8 +1448,14 @@ function showResults() {
     dot.className = "player-dot";
     dot.style.background = player.color;
     name.append(dot, document.createTextNode(player.name));
+    if (player.departed) {
+      const departed = document.createElement("small");
+      departed.className = "departed-label";
+      departed.textContent = "ออกจากห้องแล้ว";
+      name.append(departed);
+    }
     const stats = document.createElement("strong");
-    stats.textContent = `เสิร์ฟแล้ว ${player.stats.ordersServed} ออเดอร์`;
+    stats.textContent = `เสิร์ฟแล้ว ${player.ordersServed} ออเดอร์`;
     row.append(name, stats);
     resultsList.append(row);
   });
@@ -1495,6 +1539,7 @@ async function toggleFullscreen() {
 
 function showScreen(screen) {
   [startScreen, multiplayerScreen, characterScreen, gameScreen, resultsScreen].forEach((item) => { item.hidden = item !== screen; });
+  if (playerManagerOpen && mode === "local") screen.append(playerManager);
   if (screen !== gameScreen) clearFullscreenPresentation();
   if (screen !== gameScreen) riceChoices.replaceChildren();
   syncLobbyMusic(screen === startScreen || screen === multiplayerScreen || screen === characterScreen);
@@ -1508,7 +1553,7 @@ function renderLocalSetup() {
   localPlayerCount.textContent = `${total}/${maxPlayers}`;
   startLocalButton.disabled = total < 2 || total > maxPlayers;
   localPlayerList.replaceChildren();
-  [...keyboardPlayers, ...connectedPhones.map((item) => ({ ...item, source: "phone" }))].forEach((item, index) => {
+  [...keyboardPlayers, ...phoneControllers.map((item) => ({ ...item, source: "phone" }))].forEach((item, index) => {
     const row = document.createElement("div");
     row.className = "player-row";
     const name = document.createElement("span");
@@ -1519,7 +1564,17 @@ function renderLocalSetup() {
     name.append(dot, document.createTextNode(item.name));
     const source = document.createElement("strong");
     source.className = "player-source";
-    source.textContent = item.source === "phone" ? "โทรศัพท์" : item.source === "keyboard2" ? "ลูกศร + Enter" : "WASD + E";
+    if (item.source === "phone" && !item.connected && item.reconnectDeadline) {
+      source.dataset.reconnectDeadline = `${item.reconnectDeadline}`;
+    }
+    const reconnectRemaining = item.reconnectDeadline
+      ? Math.max(0, Math.ceil((item.reconnectDeadline - Date.now()) / 1000))
+      : null;
+    source.textContent = item.source === "phone"
+      ? item.connected
+        ? "โทรศัพท์ • เชื่อมต่อแล้ว"
+        : reconnectRemaining === null ? "โทรศัพท์ • รอเชื่อมต่อกลับ" : `โทรศัพท์ • รอเชื่อมต่อกลับ ${reconnectRemaining} วินาที`
+      : item.source === "keyboard2" ? "ลูกศร + Enter" : "WASD + E";
     row.append(name, source);
     localPlayerList.append(row);
   });
@@ -1530,20 +1585,31 @@ function renderLocalSetup() {
     localPlayerList.append(empty);
   }
   if (total > maxPlayers) setupMessage.textContent = "มีผู้เล่นเกิน 5 คน โปรดปิดช่องคีย์บอร์ดหรือตัดการเชื่อมต่อโทรศัพท์";
-  connectedPhones.forEach((controller, phoneIndex) => {
-    relaySocket?.emit("local-host:controller-state", {
-      playerId: controller.id,
-      state: { phase: "lobby", name: controller.name, color: playerColors[keyboardPlayers.length + phoneIndex] }
+  if (!multiplayerScreen.hidden) {
+    connectedPhones.forEach((controller) => {
+      const phoneIndex = phoneControllers.findIndex((item) => item.id === controller.id);
+      relaySocket?.emit("local-host:controller-state", {
+        playerId: controller.id,
+        state: { phase: "lobby", name: controller.name, color: playerColors[keyboardPlayers.length + phoneIndex] }
+      });
     });
+    relaySocket?.emit("local-host:capacity", { maxControllers: Math.max(0, maxPlayers - keyboardPlayers.length) });
+  }
+}
+
+function updateLobbyReconnectCountdowns() {
+  localPlayerList.querySelectorAll("[data-reconnect-deadline]").forEach((element) => {
+    const remaining = Math.max(0, Math.ceil((Number(element.dataset.reconnectDeadline) - Date.now()) / 1000));
+    element.textContent = `โทรศัพท์ • รอเชื่อมต่อกลับ ${remaining} วินาที`;
   });
-  relaySocket?.emit("local-host:capacity", { maxControllers: Math.max(0, maxPlayers - keyboardPlayers.length) });
 }
 
 function setupLocalGame() {
   mode = "local";
   setupMessage.textContent = "เลือกผู้เล่นอย่างน้อย 2 คนแล้วเริ่มเกมได้ทันที";
-  renderLocalSetup();
   showScreen(multiplayerScreen);
+  updateManagerButtons();
+  renderLocalSetup();
 }
 
 function loadRelayClient() {
@@ -1564,15 +1630,174 @@ function socketAck(event, payload) {
   return new Promise((resolve) => relaySocket.emit(event, payload, resolve));
 }
 
+function activeScreen() {
+  return [multiplayerScreen, characterScreen, gameScreen, resultsScreen].find((screen) => !screen.hidden) || document.body;
+}
+
+function updateManagerButtons() {
+  managePlayersButtons.forEach((button) => {
+    button.hidden = mode !== "local";
+  });
+}
+
+function renderPlayerManager() {
+  if (!playerManagerOpen) return;
+  playerManagerList.replaceChildren();
+  if (!phoneControllers.length) {
+    const empty = document.createElement("p");
+    empty.className = "manager-empty";
+    empty.textContent = "ไม่มีผู้เล่นมือถือในห้อง";
+    playerManagerList.append(empty);
+    return;
+  }
+  phoneControllers.forEach((controller) => {
+    const row = document.createElement("div");
+    row.className = "manager-player";
+    const copy = document.createElement("div");
+    copy.className = "manager-player-copy";
+    const name = document.createElement("strong");
+    name.textContent = controller.name;
+    const status = document.createElement("span");
+    status.className = `manager-player-status${controller.connected ? "" : " reconnecting"}`;
+    const remaining = controller.reconnectDeadline
+      ? Math.max(0, Math.ceil((controller.reconnectDeadline - Date.now()) / 1000))
+      : null;
+    status.textContent = controller.connected
+      ? "เชื่อมต่อแล้ว"
+      : remaining === null ? "รอเชื่อมต่อกลับ" : `รอเชื่อมต่อกลับ • ${remaining} วินาที`;
+    copy.append(name, status);
+    const actions = document.createElement("div");
+    actions.className = "manager-player-actions";
+    if (managerKickTarget === controller.id) {
+      const cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.className = "manager-cancel";
+      cancel.textContent = "ยกเลิก";
+      cancel.addEventListener("click", () => {
+        managerKickTarget = null;
+        renderPlayerManager();
+      });
+      const confirm = document.createElement("button");
+      confirm.type = "button";
+      confirm.className = "manager-kick";
+      confirm.textContent = "ยืนยัน";
+      confirm.addEventListener("click", async () => {
+        confirm.disabled = true;
+        const result = relaySocket && localSession
+          ? await socketAck("local-host:kick", { playerId: controller.id })
+          : { error: "ไม่ได้เชื่อมต่อ local server" };
+        managerKickTarget = null;
+        if (result?.error) setupMessage.textContent = result.error;
+        renderPlayerManager();
+      });
+      actions.append(cancel, confirm);
+      const warning = document.createElement("p");
+      warning.className = "manager-confirm-copy";
+      warning.textContent = `นำ ${controller.name} ออกจากห้องทันที?`;
+      row.append(copy, actions, warning);
+    } else {
+      const kick = document.createElement("button");
+      kick.type = "button";
+      kick.className = "manager-kick";
+      kick.textContent = "นำออก";
+      kick.addEventListener("click", () => {
+        managerKickTarget = controller.id;
+        renderPlayerManager();
+      });
+      actions.append(kick);
+      row.append(copy, actions);
+    }
+    playerManagerList.append(row);
+  });
+}
+
+function openPlayerManager() {
+  if (mode !== "local") return;
+  releaseAllInputs();
+  playerManagerOpen = true;
+  managerKickTarget = null;
+  activeScreen().append(playerManager);
+  playerManager.hidden = false;
+  renderPlayerManager();
+  clearInterval(managerCountdownId);
+  managerCountdownId = window.setInterval(renderPlayerManager, 1000);
+  playerManagerClose.focus();
+}
+
+function closePlayerManager() {
+  playerManagerOpen = false;
+  managerKickTarget = null;
+  playerManager.hidden = true;
+  clearInterval(managerCountdownId);
+  managerCountdownId = undefined;
+}
+
+function removeRoundPlayer(player) {
+  player.input = { left: false, right: false, up: false, down: false };
+  player.riceChoice = null;
+  player.inventory = null;
+  player.plate = null;
+  departedPlayerStats.push({
+    id: player.id,
+    name: player.name,
+    color: player.color,
+    ordersServed: player.stats.ordersServed,
+    departed: true
+  });
+  player.elements.group.remove();
+  players = players.filter((item) => item !== player);
+}
+
+function syncCharacterSelectionRoster(roster) {
+  if (characterSelectionMode !== "local" || characterScreen.hidden || !characterSelectionConfigs.length) return;
+  const rosterById = new Map(roster.map((item) => [item.id, item]));
+  const currentId = characterSelectionConfigs[characterSelectionIndex]?.id;
+  const currentWasRemoved = characterSelectionConfigs.some((config) => config.id === currentId && config.source === "phone" && !rosterById.has(config.id));
+  characterSelectionConfigs = characterSelectionConfigs.filter((config) => config.source !== "phone" || rosterById.has(config.id));
+  characterSelectionConfigs.forEach((config) => {
+    if (config.source !== "phone") return;
+    const controller = rosterById.get(config.id);
+    config.connected = controller.connected;
+    config.name = controller.name;
+  });
+  if (characterSelectionConfigs.length < 2) {
+    closePlayerManager();
+    pendingLocalStart = false;
+    characterSelectionConfigs = [];
+    relaySocket?.emit("local-host:phase", { phase: "lobby" });
+    setupMessage.textContent = "ทีมเหลือน้อยกว่า 2 คน จึงกลับมาที่ Lobby";
+    showScreen(multiplayerScreen);
+    renderLocalSetup();
+    return;
+  }
+  const preservedIndex = characterSelectionConfigs.findIndex((config) => config.id === currentId);
+  characterSelectionIndex = preservedIndex >= 0
+    ? preservedIndex
+    : Math.max(0, characterSelectionConfigs.findIndex((config) => !config.characterId));
+  if (characterSelectionIndex < 0) characterSelectionIndex = characterSelectionConfigs.length - 1;
+  const ready = characterSelectionConfigs.every((config) => config.characterId)
+    && characterSelectionConfigs.every((config) => config.source !== "phone" || config.connected);
+  if (pendingLocalStart && ready) {
+    const selectedConfigs = characterSelectionConfigs.map((config) => ({ ...config }));
+    pendingLocalStart = false;
+    characterSelectionConfigs = [];
+    startLocalGame(selectedConfigs);
+    return;
+  }
+  if (pendingLocalStart && !characterSelectionConfigs.every((config) => config.characterId)) pendingLocalStart = false;
+  if (currentWasRemoved) closeCharacterDetails();
+  renderCharacterSelection();
+}
+
 function applyPhoneRoster(roster) {
   phoneControllers = roster;
-  if (gameRunning && mode === "local") {
+  syncCharacterSelectionRoster(roster);
+  if (mode === "local" && (gameRunning || !gameScreen.hidden || !resultsScreen.hidden)) {
     const rosterById = new Map(roster.map((item) => [item.id, item]));
     players.filter((player) => player.source === "phone").forEach((player) => {
       const controller = rosterById.get(player.id);
       if (!controller) {
-        player.elements.group.remove();
-        players = players.filter((item) => item !== player);
+        removeRoundPlayer(player);
       } else {
         player.connected = controller.connected;
         player.input = controller.connected ? player.input : { left: false, right: false, up: false, down: false };
@@ -1580,8 +1805,10 @@ function applyPhoneRoster(roster) {
       }
     });
     renderRiceChoices();
+    if (!resultsScreen.hidden) showResults();
   }
-  renderLocalSetup();
+  if (!multiplayerScreen.hidden) renderLocalSetup();
+  renderPlayerManager();
 }
 
 function renderJoinOption() {
@@ -1648,6 +1875,7 @@ async function connectPhoneRelay() {
 }
 
 function closeLocalSession() {
+  closePlayerManager();
   if (relaySocket && localSession) relaySocket.emit("local-host:close");
   localSession = null;
   phoneControllers = [];
@@ -1660,6 +1888,8 @@ function exitGame() {
   if (mode === "local") closeLocalSession();
   closeCharacterDetails();
   characterSelectionConfigs = [];
+  pendingLocalStart = false;
+  departedPlayerStats = [];
   clearCustomers();
   orders = [];
   renderOrders();
@@ -1673,19 +1903,22 @@ function replayGame() {
     return;
   }
   stopRoundActivity();
+  closePlayerManager();
   clearPlayers();
   relaySocket?.emit("local-host:phase", { phase: "lobby" });
   setupMessage.textContent = "ทีมเดิมพร้อมแล้ว ปรับผู้เล่นหรือเริ่มรอบใหม่ได้เลย";
-  renderLocalSetup();
   showScreen(multiplayerScreen);
+  renderLocalSetup();
 }
 
 function cancelCharacterSelection() {
   closeCharacterDetails();
   characterSelectionConfigs = [];
+  pendingLocalStart = false;
   if (characterSelectionMode === "local") {
-    renderLocalSetup();
+    relaySocket?.emit("local-host:phase", { phase: "lobby" });
     showScreen(multiplayerScreen);
+    renderLocalSetup();
   } else {
     showScreen(startScreen);
   }
@@ -1748,12 +1981,16 @@ fullscreenButton.addEventListener("click", toggleFullscreen);
 lanAddress.addEventListener("change", renderJoinOption);
 [keyboard1Enabled, keyboard2Enabled].forEach((input) => input.addEventListener("change", renderLocalSetup));
 [keyboard1Name, keyboard2Name].forEach((input) => input.addEventListener("input", renderLocalSetup));
-mobileInteractButton.addEventListener("click", () => interactPlayer(players[0]));
-mobileSkillButton.addEventListener("click", () => usePlayerSkill(players[0]));
-mobileDiscardButton.addEventListener("click", () => discardStagedStation(players[0]));
+managePlayersButtons.forEach((button) => button.addEventListener("click", openPlayerManager));
+playerManagerClose.addEventListener("click", closePlayerManager);
+playerManager.addEventListener("click", (event) => { if (event.target === playerManager) closePlayerManager(); });
+mobileInteractButton.addEventListener("click", () => { if (!playerManagerOpen) interactPlayer(players[0]); });
+mobileSkillButton.addEventListener("click", () => { if (!playerManagerOpen) usePlayerSkill(players[0]); });
+mobileDiscardButton.addEventListener("click", () => { if (!playerManagerOpen) discardStagedStation(players[0]); });
 directionButtons.forEach((button) => {
   button.addEventListener("pointerdown", (event) => {
     event.preventDefault();
+    if (playerManagerOpen) return;
     keys.add(`touch-${button.dataset.direction}`);
     button.classList.add("pressed");
     try { button.setPointerCapture?.(event.pointerId); } catch (error) { /* Synthetic or cancelled pointers have no active capture. */ }
@@ -1773,6 +2010,10 @@ window.addEventListener("keydown", (event) => {
   if (!startScreen.hidden) syncLobbyMusic(true);
   if (!gameScreen.hidden) syncGameMusic(true);
   const key = event.key.toLowerCase();
+  if (playerManagerOpen) {
+    if (key === "escape") closePlayerManager();
+    return;
+  }
   if (["arrowleft", "arrowright", "arrowup", "arrowdown", " ", "enter", "\\", "-"].includes(key) && !gameScreen.hidden) event.preventDefault();
   if (!gameRunning && !characterScreen.hidden && key === "escape") {
     if (characterDetailModal.hidden) cancelCharacterSelection();
@@ -1809,6 +2050,7 @@ window.addEventListener("cut", blockGamePageCopy);
 window.addEventListener("contextmenu", blockGamePageCopy);
 document.addEventListener("fullscreenchange", updateFullscreenButton);
 document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
+window.setInterval(updateLobbyReconnectCountdowns, 1000);
 
 renderLocalSetup();
 renderOrders();
