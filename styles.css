@@ -184,6 +184,17 @@ h2 { font-size: clamp(1.65rem, 4vw, 2.6rem); }
 .game-stage { position: relative; }
 #game-world { display: block; width: 100%; height: auto; }
 .mobile-controls { display: none; }
+.math-challenge { position: fixed; z-index: 60; inset: 0; display: grid; place-items: center; padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); background: rgb(73 58 44 / .72); backdrop-filter: blur(5px); }
+.math-challenge[hidden] { display: none; }
+.math-challenge-card { width: min(100%, 480px); max-height: 100%; overflow-y: auto; padding: clamp(24px, 5vw, 40px); border: 3px solid #e4a94f; border-radius: 26px; color: #493a2c; background: #fffdf9; box-shadow: 0 24px 60px rgb(38 17 7 / .35); text-align: center; }
+.math-challenge-card h3 { margin: 0; font-family: Georgia, serif; font-size: clamp(1.65rem, 5vw, 2.4rem); }
+.math-challenge-expression { margin: 24px 0 18px; color: #ba6849; font-family: Georgia, serif; font-size: clamp(2.5rem, 10vw, 4.5rem); font-weight: 800; line-height: 1; }
+.math-challenge-card label { display: block; margin-bottom: 7px; color: #7e6b59; font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.math-challenge-card input { display: block; width: min(100%, 260px); margin: 0 auto 18px; padding: 13px 14px; border: 2px solid #d7c7b2; border-radius: 12px; color: #493a2c; background: #fbf8f3; font: inherit; font-size: 1.35rem; font-weight: 800; text-align: center; outline: none; }
+.math-challenge-card input:focus { border-color: #ba6849; box-shadow: 0 0 0 3px rgb(228 169 79 / .28); }
+.math-challenge-card .button { min-width: 180px; }
+.math-challenge-feedback { min-height: 24px; margin: 18px 0 6px; color: #9f332d; font-weight: 800; }
+.math-challenge-card small { display: block; color: #7e6b59; line-height: 1.45; }
 .rice-chooser { position: absolute; z-index: 20; inset: 0; display: grid; place-items: center; padding: 18px; background: rgb(73 58 44 / .48); }
 .rice-chooser-card { width: min(100%, 360px); padding: 24px; border: 2px solid #eadfce; border-radius: 20px; background: #fffdf9; box-shadow: 0 18px 45px rgb(73 58 44 / .28); text-align: center; }
 .rice-chooser-card h3 { margin: 0 0 18px; font-family: Georgia, serif; font-size: 1.6rem; }

@@ -69,7 +69,7 @@ async function main() {
   assert.equal(await cdp.evaluate("document.querySelectorAll('[data-tool=pot]').length"), 2, "two pots are rendered");
   assert.deepEqual(await cdp.evaluate(`(() => {
     const art = [...document.querySelectorAll('#kitchen-art image')].map((image) => image.getAttribute('href'));
-    const assets = ['เคาเตอร์.png', 'เตา.png', 'กระทะ.png', 'หม้อ.png', 'เขียง.png', 'กอก.png', 'เตาย่าง.png', 'ขยะ.png', 'แคชเชียร์.png', 'กล่องข้าว.png', 'กล่องจาน.png', 'กล่องซอส.png', 'กล่องไข่.png', 'กล่องผัก.png', 'กล่องเนื้อ.png'];
+    const assets = ['เคาเตอร์.png', 'เตา.png', 'กระทะ.png', 'หม้อ.png', 'เขียง.png', 'กอก.png', 'เตาย่าง.png', 'ขยะ.png', 'แคชเชียร์.png', 'กล่องข้าวเหนียว-ข้าวสวย.png', 'กล่องจาน.png', 'กล่องซอส.png', 'กล่องไข่.png', 'กล่องผัก.png', 'กล่องเนื้อ.png'];
     const counters = [...document.querySelectorAll('#kitchen-art .counter-art image')].map((image) => ({
       orientation: image.dataset.counterOrientation,
       x: Number(image.getAttribute('x')),
@@ -139,7 +139,7 @@ async function main() {
       rice: { x: 737, y: 342 }, plate: { x: 820, y: 342 }, sauce: { x: 488, y: 342 },
       egg: { x: 571, y: 342 }, vegetable: { x: 654, y: 342 }, meat: { x: 405, y: 342 }
     },
-    stationHitboxesComplete: true, stationTransformsMatchData: false,
+    stationHitboxesComplete: true, stationTransformsMatchData: true,
     utensilHref: {
       "pot-1": "image/kitchen/หม้อ.png", "pan-1": "image/kitchen/กระทะ.png",
       "pot-2": "image/kitchen/หม้อ.png", "pan-2": "image/kitchen/กระทะ.png"
@@ -433,9 +433,97 @@ async function main() {
   assert.equal(configuredRoundDuration, 420, "solo uses the 420-second round duration");
   assert.deepEqual(await cdp.evaluate("({ secondsLeft, timer: timerElement.textContent })"), { secondsLeft: configuredRoundDuration, timer: `${configuredRoundDuration}` }, "solo rounds start at the configured duration");
 
-  await cdp.evaluate("startSoloGame(); clearInterval(orderTimerId); clearInterval(orderGenerationId); secondsLeft = 1; timerElement.textContent = '1'");
+  const mathChallengeStart = await cdp.evaluate(`(() => {
+    startSoloGame();
+    clearInterval(orderGenerationId);
+    const player = players[0];
+    const pan = objects.find((item) => item.name === "pan-1");
+    player.x = pan.x; player.y = pan.y; setPlayerPosition(player);
+    cookingStations["pan-1"] = { phase: "staging", inputs: ["egg"] };
+    startCooking(player, "pan-1");
+    orders = [{ id: "math-expiry", menuId: menus[0].id, name: menus[0].name, createdAt: Date.now(), expiresAt: Date.now() + 250, customerId: null }];
+    renderOrders();
+    player.activeUntil = Date.now() + 150;
+    mathChallengeSets = [
+      { triggerSecond: 60, status: "pending", questions: [{ expression: "2 + 3", answer: 5 }] },
+      { triggerSecond: 240, status: "pending", questions: [{ expression: "9 − 4", answer: 5 }] }
+    ];
+    secondsLeft = 100;
+    timerElement.textContent = "100";
+    checkMathChallengeSchedule();
+    const beforeX = player.x;
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "d" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "e" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "q" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "r" }));
+    return {
+      active: mathChallengeActive,
+      popupVisible: !mathChallengeElement.hidden,
+      progress: mathChallengeProgress.textContent,
+      expression: mathChallengeExpression.textContent,
+      beforeX,
+      inventory: player.inventory,
+      cooldown: player.skillCooldownUntil,
+      stationPhase: cookingStations["pan-1"].phase,
+      secondsLeft
+    };
+  })()`);
+  assert.deepEqual(mathChallengeStart, {
+    active: true, popupVisible: true, progress: "ข้อ 1/1", expression: "2 + 3 = ?", beforeX: 400,
+    inventory: null, cooldown: 0, stationPhase: "cooking", secondsLeft: 100
+  }, "scheduled math challenge opens on the host and rejects movement, interaction, skill, and discard input");
+  assert.deepEqual(await cdp.evaluate(`(() => {
+    gameScreen.classList.add("fullscreen-fallback");
+    const overlay = mathChallengeElement.getBoundingClientRect();
+    const card = mathChallengeForm.getBoundingClientRect();
+    const result = {
+      display: getComputedStyle(mathChallengeElement).display,
+      cardInside: card.left >= overlay.left && card.right <= overlay.right && card.top >= overlay.top && card.bottom <= overlay.bottom
+    };
+    gameScreen.classList.remove("fullscreen-fallback");
+    return result;
+  })()`), { display: "grid", cardInside: true }, "math popup remains usable in fullscreen presentation");
+  await sleep(2200);
+  assert.deepEqual(await cdp.evaluate(`({
+    stayedStill: players[0].x === ${mathChallengeStart.beforeX},
+    timerAdvanced: secondsLeft < 100,
+    orderExpired: orders.length === 0,
+    cookingPhase: cookingStations["pan-1"].phase,
+    recovering: players[0].recoveryUntil > Date.now()
+  })`), { stayedStill: true, timerAdvanced: true, orderExpired: true, cookingPhase: "ready", recovering: true }, "round time, order expiry, cooking, and recovery continue while controls are locked");
+
+  assert.deepEqual(await cdp.evaluate(`(() => {
+    mathChallengeAnswer.value = "99";
+    mathChallengeForm.querySelector('[type=submit]').click();
+    return { index: mathChallengeQuestionIndex, value: mathChallengeAnswer.value, feedback: mathChallengeFeedback.textContent };
+  })()`), { index: 0, value: "", feedback: "ยังไม่ถูก ลองตอบข้อนี้อีกครั้ง" }, "wrong answers clear the input and keep the same question without a penalty");
+  await cdp.evaluate("mathChallengeAnswer.value = '5'; mathChallengeForm.querySelector('[type=submit]').click()");
+  assert.deepEqual(await cdp.evaluate("({ active: mathChallengeActive, progress: mathChallengeProgress.textContent, expression: mathChallengeExpression.textContent, statuses: mathChallengeSets.map((set) => set.status) })"), {
+    active: true, progress: "ข้อ 1/1", expression: "9 − 4 = ?", statuses: ["completed", "active"]
+  }, "a due second challenge opens immediately after the first single-question set");
+  await cdp.evaluate("mathChallengeAnswer.value = '5'; mathChallengeAnswer.focus()");
+  await cdp.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+  await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+  await sleep(50);
+  assert.deepEqual(await cdp.evaluate("({ active: mathChallengeActive, hidden: mathChallengeElement.hidden, statuses: mathChallengeSets.map((set) => set.status) })"), {
+    active: false, hidden: true, statuses: ["completed", "completed"]
+  }, "each challenge closes after its single correct answer");
+  const resumedX = await cdp.evaluate("players[0].recoveryUntil = 0; players[0].x");
+  await cdp.evaluate("window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }))");
+  await sleep(250);
+  await cdp.evaluate("window.dispatchEvent(new KeyboardEvent('keyup', { key: 'd' }))");
+  assert.ok(await cdp.evaluate("players[0].x") > resumedX, "solo controls resume after the challenge");
+
+  await cdp.evaluate(`(() => {
+    startSoloGame(); clearInterval(orderTimerId); clearInterval(orderGenerationId);
+    mathChallengeSets = [{ triggerSecond: 0, status: "pending", questions: [{ expression: "1 + 1", answer: 2 }] }];
+    startMathChallenge(mathChallengeSets[0]);
+    secondsLeft = 1; timerElement.textContent = "1";
+  })()`);
   await sleep(1100);
-  assert.deepEqual(await cdp.evaluate("({ secondsLeft, timer: timerElement.textContent, gameRunning })"), { secondsLeft: 0, timer: "0", gameRunning: false }, "solo timer reaches zero and stops the round");
+  assert.deepEqual(await cdp.evaluate("({ secondsLeft, timer: timerElement.textContent, gameRunning, mathChallengeActive, mathHidden: mathChallengeElement.hidden })"), {
+    secondsLeft: 0, timer: "0", gameRunning: false, mathChallengeActive: false, mathHidden: true
+  }, "solo timer reaching zero closes an active challenge and stops the round immediately");
   await sleep(750);
   assert.equal(await cdp.evaluate("!resultsScreen.hidden"), true, "solo shows Results after the timer reaches zero");
   await cdp.evaluate("startSoloGame(); clearInterval(timerId); clearInterval(orderTimerId); clearInterval(orderGenerationId)");
@@ -635,6 +723,18 @@ async function main() {
   assert.ok(landscapeOrderLayout.iconSize >= 24, "landscape order ingredient icons remain touch-readable");
   assert.deepEqual(landscapeOrderLayout.stepClasses, ["order-step--0"], "landscape order keeps deterministic step styling");
   assert.equal(landscapeOrderLayout.stepsInsideCard, true, "landscape compound order steps stay inside the order card");
+  assert.deepEqual(await cdp.evaluate(`(() => {
+    mathChallengeSets = [{ triggerSecond: 0, status: "pending", questions: [{ expression: "6 + 7", answer: 13 }] }];
+    startMathChallenge(mathChallengeSets[0]);
+    const card = mathChallengeForm.getBoundingClientRect();
+    const result = {
+      visible: !mathChallengeElement.hidden,
+      insideViewport: card.left >= 0 && card.right <= innerWidth && card.top >= 0 && card.bottom <= innerHeight,
+      inputTouchSize: mathChallengeAnswer.getBoundingClientRect().height >= 44
+    };
+    resetMathChallengeState();
+    return result;
+  })()`), { visible: true, insideViewport: true, inputTouchSize: true }, "math popup fits the narrow landscape viewport");
   assert.equal(await cdp.evaluate(`(() => {
     const player = players[0];
     const pan = objects.find((item) => item.name === "pan-1");
@@ -656,6 +756,8 @@ async function main() {
 
   const exitCleanup = await cdp.evaluate(`(() => {
     startSoloGame();
+    mathChallengeSets = [{ triggerSecond: 0, status: "pending", questions: [{ expression: "1 + 1", answer: 2 }, { expression: "2 + 2", answer: 4 }] }];
+    startMathChallenge(mathChallengeSets[0]);
     const expectedOrderGenerationId = orderGenerationId;
     const clearedIntervals = [];
     const originalClearInterval = window.clearInterval;
@@ -668,11 +770,13 @@ async function main() {
     return {
       clearedOrderGeneration: clearedIntervals.includes(expectedOrderGenerationId),
       gameRunning,
+      mathChallengeActive,
+      mathHidden: mathChallengeElement.hidden,
       orderGenerationId,
       startVisible: !startScreen.hidden
     };
   })()`);
-  assert.deepEqual(exitCleanup, { clearedOrderGeneration: true, gameRunning: false, startVisible: true }, "exiting solo clears order generation and returns to start");
+  assert.deepEqual(exitCleanup, { clearedOrderGeneration: true, gameRunning: false, mathChallengeActive: false, mathHidden: true, startVisible: true }, "exiting solo clears the challenge and order generation before returning to start");
 
   await cdp.evaluate("startSoloGame(); finishRound(); exitGameButton.click()");
   await sleep(800);

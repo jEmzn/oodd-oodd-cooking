@@ -8,6 +8,7 @@ const playerName = document.querySelector("#player-name");
 const playerColor = document.querySelector("#player-color");
 const phaseLabel = document.querySelector("#phase-label");
 const controllerMessage = document.querySelector("#controller-message");
+const mathWaiting = document.querySelector("#math-waiting");
 const riceController = document.querySelector("#rice-controller");
 const gameControls = document.querySelector("#game-controls");
 const interactButton = document.querySelector("#interact-button");
@@ -24,7 +25,7 @@ const input = { left: false, right: false, up: false, down: false };
 const querySession = new URLSearchParams(location.search).get("session") || "";
 let currentSession = querySession.toUpperCase();
 let joined = false;
-let latestState = { phase: "lobby", canChooseRice: false };
+let latestState = { phase: "lobby", canChooseRice: false, mathChallengeActive: false };
 
 sessionCodeInput.value = currentSession;
 controllerNameInput.value = localStorage.getItem("oodd-controller-name") || "";
@@ -55,21 +56,28 @@ function resetToJoin(message, { clearToken = true } = {}) {
 }
 
 function renderState(state = {}) {
+  const wasMathChallengeActive = latestState.mathChallengeActive;
   latestState = { ...latestState, ...state };
   if (latestState.name) playerName.textContent = latestState.name;
   if (latestState.color) playerColor.style.background = latestState.color;
   if (latestState.message) controllerMessage.textContent = latestState.message;
-  const labels = { lobby: "กำลังรอเจ้าบ้านเริ่มเกม", selecting: "เจ้าบ้านกำลังเลือกตัวละคร", playing: "กำลังทำอาหาร", results: "จบรอบแล้ว" };
-  phaseLabel.textContent = labels[latestState.phase] || labels.lobby;
-  riceController.hidden = !latestState.canChooseRice;
-  gameControls.hidden = latestState.phase !== "playing" || latestState.canChooseRice;
-  skillButton.disabled = latestState.phase !== "playing" || latestState.recovering || latestState.canUseSkill === false;
+  const labels = { lobby: "กำลังรอเจ้าบ้านเริ่มเกม", playing: "กำลังทำอาหาร", results: "จบรอบแล้ว" };
+  phaseLabel.textContent = latestState.mathChallengeActive ? "เจ้าของห้องกำลังแก้โจทย์" : labels[latestState.phase] || labels.lobby;
+  mathWaiting.hidden = !latestState.mathChallengeActive;
+  riceController.hidden = latestState.mathChallengeActive || !latestState.canChooseRice;
+  gameControls.hidden = latestState.mathChallengeActive || latestState.phase !== "playing" || latestState.canChooseRice;
+  skillButton.disabled = latestState.mathChallengeActive || latestState.phase !== "playing" || latestState.recovering || latestState.canUseSkill === false;
+//   const labels = { lobby: "กำลังรอเจ้าบ้านเริ่มเกม", selecting: "เจ้าบ้านกำลังเลือกตัวละคร", playing: "กำลังทำอาหาร", results: "จบรอบแล้ว" };
+//   phaseLabel.textContent = labels[latestState.phase] || labels.lobby;
+//   riceController.hidden = !latestState.canChooseRice;
+//   gameControls.hidden = latestState.phase !== "playing" || latestState.canChooseRice;
+//   skillButton.disabled = latestState.phase !== "playing" || latestState.recovering || latestState.canUseSkill === false;
   skillButton.textContent = latestState.recovering
     ? `พักฟื้น ${latestState.recoveryRemaining || 0}`
     : latestState.skillCooldownRemaining > 0
       ? `สกิล ${latestState.skillCooldownRemaining}`
       : "สกิล";
-  if (latestState.phase !== "playing") releaseDirections();
+  if (latestState.phase !== "playing" || (!wasMathChallengeActive && latestState.mathChallengeActive)) releaseDirections();
 }
 
 function joinSession() {
@@ -127,6 +135,7 @@ directionButtons.forEach((button) => {
   const direction = button.dataset.direction;
   button.addEventListener("pointerdown", (event) => {
     event.preventDefault();
+    if (latestState.mathChallengeActive) return;
     input[direction] = true;
     button.classList.add("pressed");
     try { button.setPointerCapture?.(event.pointerId); } catch (error) { /* Synthetic or cancelled pointers have no active capture. */ }
@@ -145,9 +154,15 @@ directionButtons.forEach((button) => {
 
 joinButton.addEventListener("click", joinSession);
 controllerNameInput.addEventListener("keydown", (event) => { if (event.key === "Enter") joinSession(); });
-interactButton.addEventListener("click", () => socket.emit("local-controller:action", { action: "interact" }));
-actionButtons.forEach((button) => button.addEventListener("click", () => socket.emit("local-controller:action", { action: button.dataset.action })));
-leaveButton.addEventListener("click", () => {
+interactButton.addEventListener("click", () => {
+  if (!latestState.mathChallengeActive) socket.emit("local-controller:action", { action: "interact" });
+});
+actionButtons.forEach((button) => button.addEventListener("click", () => {
+  if (!latestState.mathChallengeActive) socket.emit("local-controller:action", { action: button.dataset.action });
+}));
+socket.on("local-controller:state", renderState);
+socket.on("local-controller:closed", ({ message }) => {
+  joined = false;
   releaseDirections();
   leaveConfirmation.hidden = false;
 });

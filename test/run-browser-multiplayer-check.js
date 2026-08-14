@@ -204,6 +204,28 @@ async function main() {
   await sleep(150);
   assert.ok(await host.evaluate("players.find((player) => player.source === 'phone').x") > phoneStartX, "phone controller moved its player");
 
+  const lockedPositions = await host.evaluate(`(() => {
+    mathChallengeSets = [{ triggerSecond: 0, status: "pending", questions: [
+      { expression: "7 + 5", answer: 12 }
+    ] }];
+    startMathChallenge(mathChallengeSets[0]);
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "d" }));
+    return players.map((player) => player.x);
+  })()`);
+  await phone.waitFor("latestState.mathChallengeActive === true && !mathWaiting.hidden && gameControls.hidden");
+  assert.deepEqual(await phone.evaluate("({ active: latestState.mathChallengeActive, waiting: !mathWaiting.hidden, controlsHidden: gameControls.hidden, riceHidden: riceController.hidden, phase: phaseLabel.textContent })"), {
+    active: true, waiting: true, controlsHidden: true, riceHidden: true, phase: "เจ้าของห้องกำลังแก้โจทย์"
+  }, "phone receives the math lock state, shows a waiting message, and hides every control");
+  await phone.evaluate("document.querySelector('[data-direction=right]').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 3 })); interactButton.click(); skillButton.click(); discardButton.click()");
+  await sleep(300);
+  assert.deepEqual(await host.evaluate("players.map((player) => player.x)"), lockedPositions, "keyboard and phone players cannot move during a math challenge");
+  assert.equal(await host.evaluate("players.find((player) => player.source === 'phone').input.right"), false, "held phone directions are released and new directions are rejected");
+  await host.evaluate(`mathChallengeAnswer.value = "12"; mathChallengeForm.querySelector('[type=submit]').click()`);
+  await phone.waitFor("latestState.mathChallengeActive === false && !gameControls.hidden");
+  assert.deepEqual(await phone.evaluate("({ active: latestState.mathChallengeActive, waitingHidden: mathWaiting.hidden, controlsVisible: !gameControls.hidden })"), {
+    active: false, waitingHidden: true, controlsVisible: true
+  }, "phone controls return after the host answers the single question");
+
   await host.evaluate(`(() => {
     const phonePlayer = players.find((player) => player.source === "phone");
     const pan = objects.find((item) => item.name === "pan-1");
