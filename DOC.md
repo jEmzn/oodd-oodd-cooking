@@ -1,6 +1,6 @@
 # Oodd Oodd Cooking - Current Project Summary
 
-Updated: 2026-08-13
+Updated: 2026-08-15
 
 ## Overview
 
@@ -15,6 +15,7 @@ Solo and keyboard-only local co-op work without the server by opening `index.htm
 - `game.js` contains the browser-authoritative game loop, player input, movement, character skills and recovery, inventory/plates, customers/orders, cooking stations, scoring, audio, fullscreen behavior, and replay/exit flows.
 - `recipes.js` is shared recipe data and transformation logic. It works in the browser and as a CommonJS module for tests.
 - `controller.html`, `controller.css`, and `controller.js` implement the phone join screen, d-pad, interaction, skill, and rice-selection controls.
+- `Story.md` contains the formatted source copy for the story modal on the start screen.
 - `server/server.js` serves the repository root, exposes `/health`, creates LAN join QR data, and relays controller input/actions through Socket.IO.
 - `server/package.json` defines the Node.js scripts and Express, Socket.IO, and QR-code dependencies.
 - `image/kitchen/` contains kitchen furniture, station, ingredient, and cooked-station artwork.
@@ -31,7 +32,7 @@ There is no client build step and no external client dependency.
 
 ## User Flow and Modes
 
-The start screen offers `เล่นคนเดียว` and `เล่นหลายคนเครื่องเดียว`. Both modes open the five-character selection screen. Selecting a character opens a details modal with portrait, skill artwork, description, cooldown, active time, recovery time, and movement information. Confirmed characters cannot be duplicated within a local-co-op team.
+The start screen offers `เล่นคนเดียว`, `เล่นหลายคนเครื่องเดียว`, and `อ่านเนื้อเรื่อง`. The story button opens an accessible in-page modal headed `OOD OOD COOKING STORY`, with the opening incident, damage, and debt from `Story.md` kept together in one continuous paragraph and the restaurant mission highlighted separately. The modal closes from either close button, its backdrop, or `Escape`, and then returns focus to the story button. Both play modes open the five-character selection screen. Selecting a character opens a details modal with portrait, skill artwork, description, cooldown, active time, recovery time, and movement information. Confirmed characters cannot be duplicated within a local-co-op team.
 
 Local co-op setup allows either keyboard slot to be disabled. Phone capacity is reduced automatically as keyboard slots are enabled, with a maximum of five total players. At least two connected players are required to enter character selection; this minimum is not enforced after a round starts. The Host can open `จัดการผู้เล่น` from the lobby, character selection, gameplay, or results to inspect connected/reconnecting phone slots and remove one with an in-page confirmation. `Play Again` starts a new Solo character selection or returns local co-op to its lobby. `Return to Start`/`ออกจากเกม` clears the current round and local phone session.
 
@@ -280,3 +281,9 @@ Host มีหน้าต่าง `จัดการผู้เล่น` �
 มือถือมีปุ่ม `ออกจากห้อง` ทุก phase พร้อม confirmation หาก online จะส่ง `local-controller:leave`; หาก offline จะหยุด auto-rejoin และล้าง token ในเครื่องทันที การถูก Host นำออกได้รับ `local-controller:closed` พร้อม `reason: kicked` และกลับหน้า Join ส่วนการปิดห้องใช้ `reason: host-closed` Relay ยังคง browser-authoritative, ไม่รับ gameplay state และไม่เปลี่ยน heartbeat ของ Socket.IO
 
 Validation: `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:local` และ `git diff --check` ผ่านแล้ว Relay test ครอบคลุม kick ทั้ง connected/disconnected, leave, authorization, zero input, reserved capacity, selecting reconnect และ token เก่า Local browser test ครอบคลุม reconnect countdown, pending auto-start, fullscreen manager/input lock, การถอนผู้เล่นกลางรอบและเก็บสถิติ Results, รวมถึง controller leave/token cleanup ส่วน `npm run test:browser:solo` หยุดที่ kitchen fixture เดิม เพราะ worktree มี `transform="translateผ(200 420)"` และขาด asset `กล่องข้าว.png`; งานนี้รักษาการแก้ไข `translateผ(...)` เดิมไว้ตามข้อกำหนดและไม่ได้แก้ส่วนดังกล่าว การตรวจ UI บนโทรศัพท์จริงและ LAN จริงยังควรทำเพิ่มเติม
+
+## Start-Screen Story Modal
+
+Completed on 2026-08-15. Added an `อ่านเนื้อเรื่อง` button beside the Solo and local co-op choices on the start screen. It opens an in-page modal headed `OOD OOD COOKING STORY`; the celebration, accident, and debt text from `Story.md` stays together in one continuous paragraph, while the restaurant mission remains highlighted separately. The modal follows the existing warm visual theme, scrolls within short viewports, and supports its close icon, `กลับหน้า Lobby`, backdrop click, and `Escape`. Closing returns keyboard focus to the story button.
+
+Added a Solo browser regression for the modal title, two story paragraphs, initial close-button focus, Escape dismissal, and focus restoration. `npm run check`, `npm test` (9/9 recipe tests), and `git diff --check` passed. The new story assertions also passed in `npm run test:browser:solo`; the wider suite then stopped at the pre-existing kitchen fixture mismatch because `image/kitchen/กล่องข้าว.png` is absent and the current station transform does not match that fixture. Visual inspection through the Browser skill was unavailable in this environment, so checking the final artwork on a real desktop and narrow screen remains recommended.

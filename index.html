@@ -12,10 +12,24 @@
         <div class="mode-actions">
           <button id="play-button" class="button" type="button">เล่นคนเดียว</button>
           <button id="multiplayer-button" class="button button-secondary" type="button">เล่นหลายคนเครื่องเดียว</button>
+          <button id="story-button" class="button story-button" type="button">อ่านเนื้อเรื่อง</button>
         </div>
       </div>
       <button id="sound-toggle" class="sound-toggle" type="button" aria-pressed="false" aria-label="ปิดเพลง">🎵 เพลง</button>
     </main>
+
+    <div id="story-modal" class="story-modal" hidden role="dialog" aria-modal="true" aria-labelledby="story-title" aria-describedby="story-content">
+      <article class="story-modal-card">
+        <button id="story-modal-close" class="modal-close" type="button" aria-label="ปิดเนื้อเรื่อง">×</button>
+        <p class="eyebrow">จุดเริ่มต้นของภารกิจปลดหนี้</p>
+        <h2 id="story-title">OOOD OOOD COOKING STORY</h2>
+        <div id="story-content" class="story-content">
+          <p>ปาร์ตี้ฉลองเรียนจบอนุบาลของทารกหมูเด้งเกิดความโกลาหล เมื่อลุงหมูป่าทำแอปเปิ้ลยักษ์หลุดมือแอปเปิ้ลยักษ์กลิ้งไปชน “รูปปั้นหมูทองคำเสรีภาพ” หน้าธนาคารจนพังยับ แถมยังทำให้หัวดับเพลิงระเบิด จนธนาคารเปียกโชกไปทั้งหลังผู้จัดการธนาคารจึงยื่นใบแจ้งหนี้ก้อนโตให้แก๊งลูกหมู พร้อมกำหนดเส้นตายให้หาเงินมาชดใช้ความเสียหาย</p>
+          <p class="story-mission">แก๊งลูกหมูทั้ง 5 ตัวจึงปิ๊งไอเดียสุดเจ๋ง รวมพลังเปิดร้าน “Oood Oood Cooking” รังสรรค์เมนูแสนอร่อย เพื่อหาเงินปลดหนี้ให้ทันเวลา!</p>
+        </div>
+        <button id="story-modal-done" class="button" type="button">กลับหน้า Lobby</button>
+      </article>
+    </div>
 
     <main id="multiplayer-screen" class="screen setup-screen" hidden>
       <section class="setup-panel local-setup-panel">
