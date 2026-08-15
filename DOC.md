@@ -1,6 +1,6 @@
 # Oodd Oodd Cooking - Current Project Summary
 
-Updated: 2026-08-13
+Updated: 2026-08-15
 
 ## Overview
 
@@ -11,10 +11,11 @@ Solo and keyboard-only local co-op work without the server by opening `index.htm
 ## Repository Layout
 
 - `index.html` contains the start screen, local co-op setup, character selection, game/results screens, and the inline SVG kitchen.
-- `styles.css` contains the warm visual theme, screen layouts, HUD, order cards, station status UI, touch controls, fullscreen styles, and responsive/mobile rules.
-- `game.js` contains the browser-authoritative game loop, player input, movement, character skills and recovery, inventory/plates, customers/orders, cooking stations, scoring, audio, fullscreen behavior, and replay/exit flows.
+- `styles.css` contains the warm visual theme, screen layouts, HUD, order cards, station status UI, timed math popup, touch controls, fullscreen styles, and responsive/mobile rules.
+- `game.js` contains the browser-authoritative game loop, player input, movement, timed math challenges, character skills and recovery, inventory/plates, customers/orders, cooking stations, scoring, audio, fullscreen behavior, and replay/exit flows.
 - `recipes.js` is shared recipe data and transformation logic. It works in the browser and as a CommonJS module for tests.
-- `controller.html`, `controller.css`, and `controller.js` implement the phone join screen, d-pad, interaction, skill, and rice-selection controls.
+- `math-challenges.js` generates the per-round question schedule and works in the browser and as a CommonJS module for tests.
+- `controller.html`, `controller.css`, and `controller.js` implement the phone join screen, d-pad, interaction, skill, rice-selection controls, and math-challenge waiting state.
 - `server/server.js` serves the repository root, exposes `/health`, creates LAN join QR data, and relays controller input/actions through Socket.IO.
 - `server/package.json` defines the Node.js scripts and Express, Socket.IO, and QR-code dependencies.
 - `image/kitchen/` contains kitchen furniture, station, ingredient, and cooked-station artwork.
@@ -23,7 +24,7 @@ Solo and keyboard-only local co-op work without the server by opening `index.htm
 - `animation/animation_walk/` contains each chef's standing and directional walking frames.
 - `animation/animation_cooldownskill/` contains the two-frame recovery artwork for each chef.
 - `Sound/` contains lobby music, gameplay music, and walking sound.
-- `test/` contains recipe unit tests, browser checks, local co-op browser checks, and Socket.IO relay checks.
+- `test/` contains recipe and math unit tests, browser checks, local co-op browser checks, and Socket.IO relay checks.
 - `AGENTS.md` contains repository contribution and validation instructions.
 - `DOC.md` is this maintained project summary.
 
@@ -36,6 +37,14 @@ The start screen offers `เล่นคนเดียว` and `เล่นห
 Local co-op setup allows either keyboard slot to be disabled. Phone capacity is reduced automatically as keyboard slots are enabled, with a maximum of five total players. At least two connected players are required to enter character selection; this minimum is not enforced after a round starts. The Host can open `จัดการผู้เล่น` from the lobby, character selection, gameplay, or results to inspect connected/reconnecting phone slots and remove one with an in-page confirmation. `Play Again` starts a new Solo character selection or returns local co-op to its lobby. `Return to Start`/`ออกจากเกม` clears the current round and local phone session.
 
 Every round lasts 420 seconds. When the timer reaches zero, gameplay stops, timers and audio are cleaned up, controllers receive the results phase, and the results screen appears after a short transition. Exiting during a round performs the same cleanup immediately and returns to the start screen.
+
+## Timed Math Challenges
+
+Each Solo or local co-op round schedules two one-question challenges. The first appears at a random elapsed time from 1–180 seconds and the second from 181–360 seconds. One question uses addition and the other subtraction in a shuffled order; operands and answers stay within 0–100.
+
+The Host answers on the main game screen. A wrong integer answer clears the field and keeps the same question open without changing score or time. While the popup is open, keyboard, touch, and phone movement, interaction, skills, staged-station discard, and rice actions are locked. Held directions and open rice choices are cleared, but the round timer, customers, order expiry, cooking, skill cooldowns, active periods, and recovery continue. If the later challenge is already due, it opens immediately after the current answer is correct. Ending or exiting a round clears all challenge state.
+
+Phone controllers receive only the `mathChallengeActive` state, hide their gameplay controls, and show that the Host is answering. The relay does not receive the equation or answer and remains unaware of gameplay.
 
 ## Controls
 
@@ -55,7 +64,7 @@ Every round lasts 420 seconds. When the timer reaches zero, gameplay stops, time
 
 ### Phone controller
 
-Open the QR/controller URL on a phone, enter the room code and a player name, then use the d-pad, `โต้ตอบ`, `สกิล`, and `ทิ้ง` controls. The phone also receives the rice choices, lobby/selecting/playing/results phase, skill cooldown/recovery status, messages, and the shared team score. `ออกจากห้อง` releases movement, clears the local reconnect token, and returns to Join after an in-page confirmation; it also works while offline. The main-game touch controls expose the same discard action.
+Open the QR/controller URL on a phone, enter the room code and a player name, then use the d-pad, `โต้ตอบ`, `สกิล`, and `ทิ้ง` controls. The phone also receives the rice choices, lobby/selecting/playing/results phase, math-challenge lock, skill cooldown/recovery status, messages, and the shared team score. `ออกจากห้อง` releases movement, clears the local reconnect token, and returns to Join after an in-page confirmation; it also works while offline. The main-game touch controls expose the same discard action.
 
 ## Cooking Gameplay
 
@@ -155,10 +164,16 @@ The relay and browser checks expect a running server at port `3210`; browser che
 Validation status for this documentation update:
 
 - `npm run check`: passed.
-- `npm test`: passed (`test/recipes.test.js`).
-- `npm run test:relay`: passed, including `discard-station` relay forwarding.
-- `npm run test:browser:solo`: passed for all six menus, orphan-recipe prevention, staged-station discard, touch controls, and responsive layout.
-- `npm run test:browser:local`: passed for both keyboard discard keys and the phone-controller discard action.
+- `npm test`: passed (`test/recipes.test.js` and `test/math-challenges.test.js`).
+- `npm run test:relay`: passed, including controller reconnect, kick/leave, and action forwarding.
+- `npm run test:browser:solo`: passed for timed math scheduling, answer retry, input lock, background game systems, cleanup, all six menus, touch controls, fullscreen, and responsive layout.
+- `npm run test:browser:local`: passed for keyboard/phone math lock and resume, local player management, both keyboard discard keys, and phone-controller actions.
+
+## Timed Math Challenge Restoration
+
+Restored on 2026-08-15 after the feature had been temporarily removed. The existing `math-challenges.js` generator is loaded by the game again, and `game.js` owns scheduling, popup state, answer validation, input locking, controller notifications, overdue challenge sequencing, and round cleanup. The phone waiting UI and math unit-test coverage are included again while preserving the newer `selecting` phase, reconnect flow, Host player manager, and mid-round removal behavior.
+
+Validation passed: `npm run check`, `npm test`, `npm run test:relay`, `npm run test:browser:solo`, `npm run test:browser:local`, and `git diff --check`. Real-device LAN, touch, and fullscreen visual checking remains recommended.
 
 ## Station Recipe Safety and Discard Update
 
