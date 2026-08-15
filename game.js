@@ -5,6 +5,10 @@ const gameScreen = document.querySelector("#game-screen");
 const resultsScreen = document.querySelector("#results-screen");
 const playButton = document.querySelector("#play-button");
 const multiplayerButton = document.querySelector("#multiplayer-button");
+const storyButton = document.querySelector("#story-button");
+const storyModal = document.querySelector("#story-modal");
+const storyModalClose = document.querySelector("#story-modal-close");
+const storyModalDone = document.querySelector("#story-modal-done");
 const backButton = document.querySelector("#back-button");
 const startLocalButton = document.querySelector("#start-local-button");
 const connectPhonesButton = document.querySelector("#connect-phones-button");
@@ -1965,8 +1969,25 @@ function blockGamePageCopy(event) {
   if (gameScreen.contains(event.target)) event.preventDefault();
 }
 
+function openStoryModal() {
+  startScreen.inert = true;
+  storyModal.hidden = false;
+  storyModalClose.focus();
+}
+
+function closeStoryModal() {
+  if (storyModal.hidden) return;
+  storyModal.hidden = true;
+  startScreen.inert = false;
+  storyButton.focus();
+}
+
 playButton.addEventListener("click", () => startCharacterSelection("solo"));
 multiplayerButton.addEventListener("click", setupLocalGame);
+storyButton.addEventListener("click", openStoryModal);
+storyModalClose.addEventListener("click", closeStoryModal);
+storyModalDone.addEventListener("click", closeStoryModal);
+storyModal.addEventListener("click", (event) => { if (event.target === storyModal) closeStoryModal(); });
 startLocalButton.addEventListener("click", () => startCharacterSelection("local"));
 connectPhonesButton.addEventListener("click", connectPhoneRelay);
 backButton.addEventListener("click", () => { closeLocalSession(); showScreen(startScreen); });
@@ -2010,6 +2031,10 @@ window.addEventListener("keydown", (event) => {
   if (!startScreen.hidden) syncLobbyMusic(true);
   if (!gameScreen.hidden) syncGameMusic(true);
   const key = event.key.toLowerCase();
+  if (!storyModal.hidden) {
+    if (key === "escape") closeStoryModal();
+    return;
+  }
   if (playerManagerOpen) {
     if (key === "escape") closePlayerManager();
     return;

@@ -64,6 +64,25 @@ async function main() {
 
   assert.equal(await cdp.evaluate("document.title"), "Oodd Oodd Cooking");
   assert.equal(await cdp.evaluate("Boolean(window.CookingData)"), true);
+  assert.deepEqual(await cdp.evaluate(`(() => {
+    storyButton.click();
+    return {
+      open: !storyModal.hidden,
+      title: document.querySelector('#story-title').textContent,
+      paragraphs: document.querySelectorAll('#story-content p').length,
+      focusedClose: document.activeElement === storyModalClose
+    };
+  })()`), {
+    open: true,
+    title: "OOD OOD COOKING STORY",
+    paragraphs: 2,
+    focusedClose: true
+  }, "story button opens an organized, accessible story modal");
+  await cdp.evaluate("window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))");
+  assert.deepEqual(await cdp.evaluate("({ closed: storyModal.hidden, focusReturned: document.activeElement === storyButton })"), {
+    closed: true,
+    focusReturned: true
+  }, "Escape closes the story modal and returns focus to its trigger");
   assert.equal(await cdp.evaluate("document.querySelectorAll('[data-object=ingredients]').length"), 0);
   assert.equal(await cdp.evaluate("document.querySelectorAll('[data-tool=pan]').length"), 2, "two pans are rendered");
   assert.equal(await cdp.evaluate("document.querySelectorAll('[data-tool=pot]').length"), 2, "two pots are rendered");
