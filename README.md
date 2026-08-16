@@ -1,4 +1,4 @@
-# Oodd Oodd Cooking
+# Oood Oood Cooking
 
 ## ไฟล์วิดีโอ DEMO
 
@@ -17,11 +17,11 @@ https://github.com/jEmzn/oodd-oodd-cooking
 https://jemzn.github.io/oodd-oodd-cooking/
 
 ## ลิ้งค์แบบประเมิน
-
 ### แบบประเมิน
-https://docs.google.com/forms/d/e/1FAIpQLSe0OJWnho56OUs235Nn1MU6-w7udB0nT3pRu1ZKMYzHWTR10w/viewform?usp=dialog
-
+https://docs.google.com/forms/d/e/1FAIpQLSe0OJWnho56OUs235Nn1MU6-w7udB0nT3pRu1ZKMYzHWTR10w/viewform
 ### ผลประเมิน
+https://docs.google.com/spreadsheets/d/1E22sFq-eEf-4kp3QcgaS9_ncl2yTWkXniEkpLWzYNMI/edit?gid=86293370#gid=86293370
+
 
 
 
