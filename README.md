@@ -10,11 +10,11 @@ https://drive.google.com/file/d/1ctnwK5UCVj6Xww4BDzRKIOD4d3QuAzZn/view?usp=shari
 
 ## ลิ้งค์ Github
 
-https://github.com/jEmzn/oodd-oodd-cooking
+https://github.com/jEmzn/oood-oood-cooking
 
 ## ลิ้ง Github Page
 
-https://jemzn.github.io/oodd-oodd-cooking/
+https://jemzn.github.io/oood-oood-cooking/
 
 ## ลิ้งค์แบบประเมิน
 ### แบบประเมิน
